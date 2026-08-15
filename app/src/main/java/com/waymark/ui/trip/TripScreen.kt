@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -19,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waymark.domain.logic.TimeText
 import com.waymark.domain.model.DisruptionAlert
+import com.waymark.domain.model.Idea
 import com.waymark.ui.components.GhostIconButton
 import com.waymark.ui.components.NoticeBanner
 import com.waymark.ui.components.SectionLabel
@@ -30,7 +34,7 @@ import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
 
 /**
- * The command centre. One trip, four views of it, and a header that says what
+ * The command centre. One trip, five views of it, and a header that says what
  * is happening now without being asked.
  */
 @Composable
@@ -46,6 +50,7 @@ fun TripScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val tab by viewModel.tab.collectAsStateWithLifecycle()
     val colors = Waymark.colors
+    var scheduling by remember { mutableStateOf<Idea?>(null) }
 
     WaymarkBackdrop {
         Column(
@@ -140,6 +145,16 @@ fun TripScreen(
                     onAddPlan = onAddPlan,
                 )
 
+                TripTab.IDEAS -> IdeasTab(
+                    state = state,
+                    onAdopt = viewModel::adopt,
+                    onSetStatus = viewModel::setIdeaStatus,
+                    onToggleInterest = viewModel::toggleInterest,
+                    onDelete = viewModel::deleteIdea,
+                    onSchedule = { scheduling = it },
+                    onAddIdea = viewModel::addIdea,
+                )
+
                 TripTab.MAP -> MapTab(state = state, onSelectSegment = onOpenSegment)
 
                 TripTab.PARTY -> PartyTab(
@@ -156,5 +171,26 @@ fun TripScreen(
                 )
             }
         }
+    }
+
+    scheduling?.let { idea ->
+        ScheduleIdeaModal(
+            idea = idea,
+            // Default to the first day of the trip that has not already gone.
+            defaultDate = state.dossier?.trip?.let { trip ->
+                maxOf(
+                    trip.startDate(),
+                    java.time.Instant.ofEpochMilli(state.nowMillis)
+                        .atZone(com.waymark.domain.model.Segment.zoneOrUtc(trip.homeZoneId))
+                        .toLocalDate(),
+                )
+            } ?: java.time.LocalDate.now(),
+            onDismiss = { scheduling = null },
+            onSchedule = { date, time, minutes ->
+                viewModel.scheduleIdea(idea, date, time, minutes)
+                scheduling = null
+                viewModel.selectTab(TripTab.TIMELINE)
+            },
+        )
     }
 }

@@ -5,7 +5,11 @@ import com.waymark.domain.model.DisruptionAlert
 import com.waymark.domain.model.FlightState
 import com.waymark.domain.model.FlightStatus
 import com.waymark.domain.model.GroundMode
+import com.waymark.domain.model.Idea
+import com.waymark.domain.model.IdeaKind
+import com.waymark.domain.model.IdeaStatus
 import com.waymark.domain.model.Place
+import com.waymark.domain.model.PriceBand
 import com.waymark.domain.model.Reservation
 import com.waymark.domain.model.SeatPreference
 import com.waymark.domain.model.Segment
@@ -263,6 +267,44 @@ object Mappers {
         barcodeSealed = cipher.seal(pass.barcodePayload),
         imageUri = pass.imageUri,
         addedAtMillis = pass.addedAtMillis,
+    )
+
+    fun toIdea(entity: IdeaEntity): Idea = Idea(
+        id = entity.id,
+        tripId = entity.tripId,
+        title = entity.title,
+        kind = runCatching { IdeaKind.valueOf(entity.kind) }.getOrDefault(IdeaKind.SIGHT),
+        city = entity.city,
+        place = Codecs.decodePlace(entity.place),
+        note = entity.note,
+        priceBand = entity.priceBand?.let { band ->
+            runCatching { PriceBand.valueOf(band) }.getOrNull()
+        },
+        typicalMinutes = entity.typicalMinutes,
+        bestTime = entity.bestTime,
+        interestedTravelerIds = Codecs.decodeIds(entity.interestedTravelerIds),
+        status = runCatching { IdeaStatus.valueOf(entity.status) }.getOrDefault(IdeaStatus.SAVED),
+        scheduledSegmentId = entity.scheduledSegmentId,
+        source = entity.source,
+        addedAtMillis = entity.addedAtMillis,
+    )
+
+    fun toEntity(idea: Idea): IdeaEntity = IdeaEntity(
+        id = idea.id,
+        tripId = idea.tripId,
+        title = idea.title,
+        kind = idea.kind.name,
+        city = idea.city,
+        place = Codecs.encodePlace(idea.place).ifBlank { null },
+        note = idea.note,
+        priceBand = idea.priceBand?.name,
+        typicalMinutes = idea.typicalMinutes,
+        bestTime = idea.bestTime,
+        interestedTravelerIds = Codecs.encodeIds(idea.interestedTravelerIds).ifBlank { null },
+        status = idea.status.name,
+        scheduledSegmentId = idea.scheduledSegmentId,
+        source = idea.source,
+        addedAtMillis = idea.addedAtMillis,
     )
 
     fun toStatus(entity: FlightStatusEntity): FlightStatus = FlightStatus(

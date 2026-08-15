@@ -54,6 +54,9 @@ fun SegmentedToggle(
     modifier: Modifier = Modifier,
 ) {
     val colors = Waymark.colors
+    // Five segments on a phone need a tighter setting than three; the label
+    // stays legible rather than being truncated to initials.
+    val dense = options.size > 4
     Row(
         modifier = modifier
             .clip(WaymarkShapes.control)
@@ -69,12 +72,13 @@ fun SegmentedToggle(
                     .clip(WaymarkShapes.control)
                     .background(if (active) colors.accentBright else Color.Transparent)
                     .clickable(role = Role.Tab) { onSelect(index) }
-                    .padding(vertical = 9.dp),
+                    .padding(vertical = if (dense) 8.dp else 9.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = option,
-                    style = Waymark.type.control.copy(
+                    maxLines = 1,
+                    style = (if (dense) Waymark.type.bodySmall else Waymark.type.control).copy(
                         fontWeight = if (active) {
                             androidx.compose.ui.text.font.FontWeight.Medium
                         } else {

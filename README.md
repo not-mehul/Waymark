@@ -43,8 +43,19 @@ a duration estimate, the four hours that belong to nobody.
 **See the geography.** An offline vector chart draws great-circle legs, the
 graticule, and every place whose coordinates the app holds. Pinch, pan, tap.
 
-**Land informed.** Bundled destination notes: currency, plug, emergency number,
-airport transfer, transit, tipping, seasons, neighbourhoods.
+**Keep a list.** Not everything on a trip has a time on it. The Ideas board
+holds places to see, food to try, walks and shops with no date attached —
+saved, scheduled, or ticked off. Each traveler can mark what they want, so a
+party of four can see where their interests actually overlap. One tap promotes
+an idea onto the timeline with a date and a duration, where it becomes an
+ordinary booking; removing that booking puts it back on the list rather than
+losing it.
+
+**Land informed.** Bundled destination notes — currency, plug, emergency
+number, airport transfer, transit, tipping, seasons, neighbourhoods — and a
+bundled guide per city: what to see, where to eat, what to order. Suggestions
+appear on the Ideas board for the cities this trip actually visits, and
+anything already on the list stops being suggested.
 
 ---
 
@@ -96,12 +107,14 @@ com.waymark
 ├── domain/
 │   ├── model/      Trip, Traveler, Segment (sealed), Reservation, FlightStatus
 │   └── logic/      TimelineBuilder, ConnectionRisk, TransitEstimator,
-│                   PartySplitAnalyzer, Geo, Bcbp, Code39, TimeText
+│                   PartySplitAnalyzer, IdeaBoard, Geo, Bcbp, Code39, TimeText
 ├── data/
-│   ├── catalog/    Bundled airports, schedules, destination notes, sample trip
+│   ├── catalog/    Bundled airports, schedules, destination notes and guide,
+│   │               sample trip
 │   ├── local/      Room entities, DAOs, codecs, SecretCipher (Keystore AES-GCM)
 │   ├── remote/     FlightStatusProvider: offline model + optional HTTP feed
-│   └── repo/       TripRepository, VaultRepository, FlightRepository
+│   └── repo/       TripRepository, VaultRepository, FlightRepository,
+│                   IdeaRepository
 ├── alerts/         DelayWatchWorker (WorkManager) + notification channels
 ├── di/             AppContainer — the whole graph, readable top to bottom
 └── ui/
@@ -159,7 +172,7 @@ vendors means changing `parse()` and the base URL, nothing else.
 
 ## Tests
 
-73 JVM unit tests over the domain and catalog layers:
+91 JVM unit tests over the domain and catalog layers:
 
 - `FlightDesignatorTest` — parsing `BA286`, `ba 286`, `BAW286`, `3U8888`, `U2 1234`
 - `Code39Test` — symbology invariants (nine elements, three wide, two wide bars
@@ -176,6 +189,11 @@ vendors means changing `parse()` and the base URL, nothing else.
 - `TransitAndTimeTest` — estimates, mode selection, duration and zone-shift text
 - `FlightCatalogTest` — catalog consistency, both local clocks, a westbound
   date-line crossing that lands the previous day
+- `IdeaBoardTest` — section ordering, per-traveler filtering, suggestions that
+  exclude what is already on the list, and promotion to a timeline segment
+- `DestinationGuideTest` — guide integrity, including a check that every
+  coordinate lands within 120 km of its city's airport, which is what catches a
+  transposed latitude and longitude
 - `OfflineFlightStatusProviderTest` — determinism, phase transitions, delay
   distribution
 
@@ -196,3 +214,7 @@ Three places where the app says less than it could:
 - **The offline flight model is a model.** It is deterministic, shaped like
   real-world delay distributions, and labelled as such on every screen it
   reaches.
+- **The guide is a briefing, not a guidebook.** Nine cities, a handful of
+  entries each, bundled and offline. Where a place is listed, its coordinates
+  are accurate to the block; where a dish is listed, it carries no coordinates,
+  because a dish is not a place.

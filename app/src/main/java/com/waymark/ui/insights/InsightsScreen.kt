@@ -18,7 +18,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.waymark.data.catalog.DestinationGuide
 import com.waymark.data.catalog.DestinationInsights
+import com.waymark.domain.model.IdeaKind
 import com.waymark.ui.components.EditorialNote
 import com.waymark.ui.components.FieldLabel
 import com.waymark.ui.components.GhostIconButton
@@ -105,6 +107,69 @@ fun InsightsScreen(
                     Fact("Getting around", insight.transitNote)
                     Fact("Season", insight.seasonNote)
                     Fact("A word", insight.greeting)
+                }
+
+                val guide = DestinationGuide.forCity(insight.city)
+                val dishes = guide.filter { it.kind == IdeaKind.DISH }
+                val seeing = guide.filter { it.kind != IdeaKind.DISH }
+
+                if (dishes.isNotEmpty()) {
+                    Panel(faint = true, modifier = Modifier.fillMaxWidth()) {
+                        FieldLabel("Food to try")
+                        Spacer(Modifier.height(WaymarkSpacing.snug))
+                        dishes.forEach { entry ->
+                            Text(
+                                text = entry.title,
+                                style = Waymark.type.bodySmall,
+                                color = colors.textHeading,
+                            )
+                            Text(
+                                text = entry.note,
+                                style = Waymark.type.hint,
+                                color = colors.textDim,
+                            )
+                            Spacer(Modifier.height(WaymarkSpacing.snug))
+                        }
+                        Text(
+                            text = "Add any of these to the trip's list from the Ideas tab.",
+                            style = Waymark.type.hint,
+                            color = colors.textFaint,
+                        )
+                    }
+                }
+
+                if (seeing.isNotEmpty()) {
+                    Panel(faint = true, modifier = Modifier.fillMaxWidth()) {
+                        FieldLabel("Worth the walk")
+                        Spacer(Modifier.height(WaymarkSpacing.snug))
+                        seeing.forEach { entry ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    text = entry.title,
+                                    style = Waymark.type.bodySmall,
+                                    color = colors.textHeading,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text(
+                                    text = listOfNotNull(
+                                        entry.priceBand?.label,
+                                        entry.typicalMinutes?.let { "${it}m" },
+                                    ).joinToString(" · "),
+                                    style = Waymark.type.fieldLabel,
+                                    color = colors.textFaint,
+                                )
+                            }
+                            Text(
+                                text = entry.note,
+                                style = Waymark.type.hint,
+                                color = colors.textDim,
+                            )
+                            Spacer(Modifier.height(WaymarkSpacing.snug))
+                        }
+                    }
                 }
 
                 Panel(faint = true, modifier = Modifier.fillMaxWidth()) {

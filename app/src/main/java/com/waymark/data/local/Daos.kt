@@ -134,6 +134,37 @@ interface BoardingPassDao {
 }
 
 @Dao
+interface IdeaDao {
+
+    @Query("SELECT * FROM ideas WHERE tripId = :tripId ORDER BY addedAtMillis")
+    fun observeForTrip(tripId: String): Flow<List<IdeaEntity>>
+
+    @Query("SELECT * FROM ideas WHERE id = :ideaId")
+    suspend fun find(ideaId: String): IdeaEntity?
+
+    @Query("SELECT * FROM ideas WHERE tripId = :tripId AND status = :status")
+    suspend fun findByStatus(tripId: String, status: String): List<IdeaEntity>
+
+    @Upsert
+    suspend fun upsert(idea: IdeaEntity)
+
+    @Upsert
+    suspend fun upsertAll(ideas: List<IdeaEntity>)
+
+    @Query("DELETE FROM ideas WHERE id = :ideaId")
+    suspend fun delete(ideaId: String)
+
+    /** When a scheduled segment is removed the idea returns to the list. */
+    @Query(
+        """
+        UPDATE ideas SET status = 'SAVED', scheduledSegmentId = NULL
+        WHERE scheduledSegmentId = :segmentId
+        """
+    )
+    suspend fun releaseSegment(segmentId: String)
+}
+
+@Dao
 interface FlightStatusDao {
 
     @Query("SELECT * FROM flight_status")

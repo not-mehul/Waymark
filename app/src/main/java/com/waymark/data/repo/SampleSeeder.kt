@@ -11,6 +11,7 @@ import java.time.LocalDate
 class SampleSeeder(
     private val trips: TripRepository,
     private val vault: VaultRepository,
+    private val ideas: IdeaRepository,
 ) {
 
     suspend fun seedIfEmpty(today: LocalDate = LocalDate.now()) {
@@ -25,6 +26,7 @@ class SampleSeeder(
         trips.saveSegments(bundle.segments)
         bundle.reservations.forEach { vault.save(it) }
         bundle.passes.forEach { vault.savePass(it) }
+        ideas.saveAll(bundle.ideas)
     }
 
     private companion object {

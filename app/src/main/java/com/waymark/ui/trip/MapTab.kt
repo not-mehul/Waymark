@@ -40,7 +40,22 @@ fun MapTab(
     val colors = Waymark.colors
     val segments = state.dossier?.segments.orEmpty()
 
-    val places = remember(segments) {
+    // Saved ideas with coordinates sit on the chart beside the bookings: the
+    // "what is near where we are staying" question is a map question.
+    val ideaPlaces = remember(state.ideas) {
+        state.ideas
+            .filter { it.hasLocation && it.status != com.waymark.domain.model.IdeaStatus.DISMISSED }
+            .map { idea ->
+                ChartPlace(
+                    id = idea.scheduledSegmentId ?: idea.id,
+                    label = idea.title,
+                    position = LatLon(idea.place!!.latitude, idea.place.longitude),
+                    kind = ChartPlace.Kind.STOP,
+                )
+            }
+    }
+
+    val bookedPlaces = remember(segments) {
         segments
             .flatMap { segment ->
                 listOf(segment.origin to segment, segment.destination to segment)
@@ -55,6 +70,12 @@ fun MapTab(
                     kind = kindOf(place, segment),
                 )
             }
+    }
+
+    val places = remember(bookedPlaces, ideaPlaces) {
+        // A booked place wins over an idea at the same spot.
+        val booked = bookedPlaces.map { it.label }.toSet()
+        bookedPlaces + ideaPlaces.filterNot { it.label in booked }
     }
 
     val routes = remember(segments, state.dossier?.statuses) {
@@ -96,7 +117,9 @@ fun MapTab(
             RouteChart(
                 places = places,
                 routes = routes,
-                onSelect = onSelectSegment,
+                // Idea marks that are not yet on the timeline have no segment
+                // to open; they stay as marks rather than leading nowhere.
+                onSelect = { id -> if (segments.any { it.id == id }) onSelectSegment(id) },
                 modifier = Modifier.height(340.dp),
             )
         }
@@ -104,7 +127,10 @@ fun MapTab(
         Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.large)) {
             Stat(value = Geo.formatDistance(totalKm), label = "Total distance")
             Stat(value = Geo.formatDistance(flownKm), label = "In the air", emphasised = true)
-            Stat(value = places.size.toString(), label = "Places")
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.large)) {
+            Stat(value = bookedPlaces.size.toString(), label = "Booked places")
+            Stat(value = ideaPlaces.size.toString(), label = "On the list")
         }
 
         SectionHeader("Legs")
@@ -140,6 +166,12 @@ fun MapTab(
                     )
                 }
             }
+
+        EditorialNote(
+            term = "Marks",
+            body = "Amber rings are stations, sage are stays, plain rings are places on " +
+                "your list. Tap one to open it.",
+        )
 
         EditorialNote(
             term = "Drawn, not downloaded",

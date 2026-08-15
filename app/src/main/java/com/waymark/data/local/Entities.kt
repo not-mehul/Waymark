@@ -173,6 +173,41 @@ data class BoardingPassEntity(
     val addedAtMillis: Long,
 )
 
+/**
+ * The unscheduled half of a trip: places to see, food to try, walks to take.
+ * Rows survive being promoted onto the timeline — [scheduledSegmentId] links
+ * the two — so the list keeps its memory of why something was saved.
+ */
+@Entity(
+    tableName = "ideas",
+    foreignKeys = [
+        ForeignKey(
+            entity = TripEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["tripId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("tripId"), Index("status")],
+)
+data class IdeaEntity(
+    @PrimaryKey val id: String,
+    val tripId: String,
+    val title: String,
+    val kind: String,
+    val city: String,
+    val place: String?,
+    val note: String?,
+    val priceBand: String?,
+    val typicalMinutes: Int?,
+    val bestTime: String?,
+    val interestedTravelerIds: String?,
+    val status: String,
+    val scheduledSegmentId: String?,
+    val source: String,
+    val addedAtMillis: Long,
+)
+
 @Entity(tableName = "flight_status")
 data class FlightStatusEntity(
     @PrimaryKey val segmentId: String,

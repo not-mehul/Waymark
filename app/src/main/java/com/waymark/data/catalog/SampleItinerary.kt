@@ -3,6 +3,9 @@ package com.waymark.data.catalog
 import com.waymark.domain.logic.Bcbp
 import com.waymark.domain.model.BoardingPass
 import com.waymark.domain.model.GroundMode
+import com.waymark.domain.model.Idea
+import com.waymark.domain.model.IdeaKind
+import com.waymark.domain.model.IdeaStatus
 import com.waymark.domain.model.Place
 import com.waymark.domain.model.Reservation
 import com.waymark.domain.model.SeatPreference
@@ -33,6 +36,7 @@ object SampleItinerary {
         val segments: List<Segment>,
         val reservations: List<Reservation>,
         val passes: List<BoardingPass>,
+        val ideas: List<Idea>,
     )
 
     private val london = ZoneId.of("Europe/London")
@@ -376,7 +380,31 @@ object SampleItinerary {
             boardingPass(outbound, julian, "21C", "043", "3", "K7QH2P", tripId),
         )
 
-        return Bundle(trip, listOf(mara, julian), segments, reservations, passes)
+        // A few things on the list with no date on them yet — the half of a
+        // trip that reservations cannot hold.
+        val ideas = listOf(
+            guideIdea("idea-wallace", tripId, "London", "The Wallace Collection"),
+            guideIdea("idea-canal", tripId, "London", "Regent's Canal: Angel to Broadway Market")
+                .copy(interestedTravelerIds = setOf(julian.id)),
+            guideIdea("idea-beigel", tripId, "London", "Salt beef beigel, Brick Lane"),
+            guideIdea("idea-roast", tripId, "London", "A proper Sunday roast")
+                .copy(status = IdeaStatus.DONE),
+            guideIdea("idea-rodin", tripId, "Paris", "Musée Rodin")
+                .copy(interestedTravelerIds = setOf(mara.id)),
+            guideIdea("idea-aligre", tripId, "Paris", "Marché d'Aligre"),
+            guideIdea("idea-nata", tripId, "Paris", "Jambon-beurre"),
+            Idea(
+                id = "idea-bookshop",
+                tripId = tripId,
+                title = "The secondhand bookshop Julian mentioned",
+                kind = IdeaKind.SHOP,
+                city = "London",
+                note = "Somewhere off Charing Cross Road. Ask him which one.",
+                interestedTravelerIds = setOf(julian.id),
+            ),
+        )
+
+        return Bundle(trip, listOf(mara, julian), segments, reservations, passes, ideas)
     }
 
     private fun FlightCatalog.FlightPlan.toSegment(
@@ -406,6 +434,14 @@ object SampleItinerary {
         seats = seats,
         operatedBy = carrierName,
     )
+
+    /** Pull one entry out of the bundled guide, by city and title. */
+    private fun guideIdea(id: String, tripId: String, city: String, title: String): Idea {
+        val entry = requireNotNull(
+            DestinationGuide.forCity(city).firstOrNull { it.title == title }
+        ) { "The bundled guide must contain \"$title\" for $city" }
+        return with(DestinationGuide) { entry.toIdea(id = id, tripId = tripId, city = city) }
+    }
 
     private fun experience(
         id: String,

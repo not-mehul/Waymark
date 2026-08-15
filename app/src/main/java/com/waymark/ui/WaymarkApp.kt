@@ -162,7 +162,7 @@ private fun androidx.navigation.NavBackStackEntry.requireTripId(): String =
     arguments?.getString("tripId").orEmpty()
 
 /**
- * The trip view model is keyed by route, so the four tabs, the segment screen
+ * The trip view model is keyed by route, so the five tabs, the segment screen
  * and the pass screen each get one bound to the same trip id.
  */
 private fun tripFactory(container: AppContainer, tripId: String): ViewModelProvider.Factory =
@@ -172,6 +172,7 @@ private fun tripFactory(container: AppContainer, tripId: String): ViewModelProvi
             trips = container.tripRepository,
             vault = container.vaultRepository,
             flights = container.flightRepository,
+            ideas = container.ideaRepository,
         )
     }
 

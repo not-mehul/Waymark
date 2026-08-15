@@ -28,6 +28,7 @@ class TripRepository(
     private val travelers = database.travelerDao()
     private val segments = database.segmentDao()
     private val statuses = database.flightStatusDao()
+    private val ideas = database.ideaDao()
 
     fun observeTrips(): Flow<List<Trip>> =
         trips.observeAll().map { rows -> rows.map(Mappers::toTrip) }
@@ -98,6 +99,9 @@ class TripRepository(
     suspend fun deleteSegment(segmentId: String) {
         database.withTransaction {
             statuses.delete(segmentId)
+            // An idea promoted onto the timeline goes back to the list rather
+            // than vanishing with the segment.
+            ideas.releaseSegment(segmentId)
             segments.delete(segmentId)
         }
     }
