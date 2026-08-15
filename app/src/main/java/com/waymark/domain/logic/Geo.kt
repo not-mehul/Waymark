@@ -156,4 +156,68 @@ object Geo {
     /** Mercator y at a given latitude, unclamped — handy for graticule spacing. */
     internal fun mercatorY(latitude: Double): Double =
         ln(tan(Math.PI / 4 + toRadians(latitude.coerceIn(-85.0, 85.0)) / 2))
+
+    // — Orthographic projection: the globe —————————————————————————————————
+
+    /**
+     * A point seen on a globe: unit-sphere screen coordinates in −1..1, and
+     * whether it is on the near face. Points on the far side are still
+     * projected — a route arc that runs behind the world should fade rather
+     * than jump — but they must never be drawn as if they were in front.
+     */
+    data class GlobePoint(val x: Double, val y: Double, val visible: Boolean)
+
+    /**
+     * Orthographic projection: the view of a sphere from infinitely far away,
+     * which is what a globe looks like. [centreLat] and [centreLon] are the
+     * point facing the viewer.
+     */
+    fun orthographic(point: LatLon, centreLat: Double, centreLon: Double): GlobePoint {
+        val lat = toRadians(point.latitude)
+        val lon = toRadians(point.longitude)
+        val lat0 = toRadians(centreLat)
+        val lon0 = toRadians(centreLon)
+
+        val cosC = sin(lat0) * sin(lat) + cos(lat0) * cos(lat) * cos(lon - lon0)
+        return GlobePoint(
+            x = cos(lat) * sin(lon - lon0),
+            y = cos(lat0) * sin(lat) - sin(lat0) * cos(lat) * cos(lon - lon0),
+            visible = cosC >= 0,
+        )
+    }
+
+    /** The great-circle path, sampled and projected for the globe in one pass. */
+    fun globeArc(
+        from: LatLon,
+        to: LatLon,
+        centreLat: Double,
+        centreLon: Double,
+        samples: Int = 64,
+    ): List<GlobePoint> = arc(from, to, samples).map { orthographic(it, centreLat, centreLon) }
+
+    /**
+     * Where to point the globe so a set of places is in view: the normalised
+     * mean of their unit vectors, which behaves correctly across the
+     * antimeridian in a way that averaging longitudes does not.
+     */
+    fun centroid(points: List<LatLon>): LatLon? {
+        if (points.isEmpty()) return null
+        var x = 0.0
+        var y = 0.0
+        var z = 0.0
+        points.forEach { point ->
+            val lat = toRadians(point.latitude)
+            val lon = toRadians(point.longitude)
+            x += cos(lat) * cos(lon)
+            y += cos(lat) * sin(lon)
+            z += sin(lat)
+        }
+        val count = points.size
+        x /= count
+        y /= count
+        z /= count
+        val hypotenuse = sqrt(x * x + y * y)
+        if (hypotenuse < 1e-9 && abs(z) < 1e-9) return points.first()
+        return LatLon(toDegrees(atan2(z, hypotenuse)), toDegrees(atan2(y, x)))
+    }
 }

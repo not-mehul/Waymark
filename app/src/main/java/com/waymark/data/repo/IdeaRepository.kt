@@ -88,6 +88,10 @@ class IdeaRepository(
         )
     }
 
+    /** Pencil an idea in for a day, or rub the day out. */
+    suspend fun setPlannedDay(ideaId: String, date: LocalDate?) =
+        ideas.setPlannedDay(ideaId, date?.toEpochDay())
+
     suspend fun setInterest(ideaId: String, travelerId: String) {
         val existing = find(ideaId) ?: return
         val next = existing.interestedTravelerIds.toMutableSet()

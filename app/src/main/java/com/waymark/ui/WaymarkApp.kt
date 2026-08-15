@@ -17,7 +17,9 @@ import com.waymark.ui.add.AddFlightScreen
 import com.waymark.ui.add.AddFlightViewModel
 import com.waymark.ui.add.AddPlanScreen
 import com.waymark.ui.add.AddPlanViewModel
+import com.waymark.ui.analytics.AnalyticsScreen
 import com.waymark.ui.insights.InsightsScreen
+import com.waymark.ui.packing.PackingScreen
 import com.waymark.ui.pass.BoardingPassScreen
 import com.waymark.ui.segment.SegmentScreen
 import com.waymark.ui.trip.TripScreen
@@ -33,6 +35,8 @@ object Routes {
     const val SEGMENT = "trip/{tripId}/segment/{segmentId}"
     const val PASS = "trip/{tripId}/pass/{passId}"
     const val INSIGHTS = "trip/{tripId}/insights"
+    const val PACKING = "trip/{tripId}/packing"
+    const val ANALYTICS = "trip/{tripId}/numbers"
 
     fun trip(tripId: String) = "trip/$tripId"
     fun addFlight(tripId: String) = "trip/$tripId/add-flight"
@@ -40,6 +44,8 @@ object Routes {
     fun segment(tripId: String, segmentId: String) = "trip/$tripId/segment/$segmentId"
     fun pass(tripId: String, passId: String) = "trip/$tripId/pass/$passId"
     fun insights(tripId: String) = "trip/$tripId/insights"
+    fun packing(tripId: String) = "trip/$tripId/packing"
+    fun analytics(tripId: String) = "trip/$tripId/numbers"
 }
 
 @Composable
@@ -72,6 +78,8 @@ fun WaymarkApp(
                 onOpenSegment = { navController.navigate(Routes.segment(tripId, it)) },
                 onOpenPass = { navController.navigate(Routes.pass(tripId, it)) },
                 onOpenInsights = { navController.navigate(Routes.insights(tripId)) },
+                onOpenPacking = { navController.navigate(Routes.packing(tripId)) },
+                onOpenAnalytics = { navController.navigate(Routes.analytics(tripId)) },
             )
         }
 
@@ -147,6 +155,26 @@ fun WaymarkApp(
         }
 
         composable(
+            route = Routes.PACKING,
+            arguments = listOf(navArgument("tripId") { type = NavType.StringType }),
+        ) { entry ->
+            PackingScreen(
+                viewModel = viewModel(factory = tripFactory(container, entry.requireTripId())),
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(
+            route = Routes.ANALYTICS,
+            arguments = listOf(navArgument("tripId") { type = NavType.StringType }),
+        ) { entry ->
+            AnalyticsScreen(
+                viewModel = viewModel(factory = tripFactory(container, entry.requireTripId())),
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(
             route = Routes.INSIGHTS,
             arguments = listOf(navArgument("tripId") { type = NavType.StringType }),
         ) { entry ->
@@ -173,6 +201,7 @@ private fun tripFactory(container: AppContainer, tripId: String): ViewModelProvi
             vault = container.vaultRepository,
             flights = container.flightRepository,
             ideas = container.ideaRepository,
+            preparations = container.preparationRepository,
         )
     }
 

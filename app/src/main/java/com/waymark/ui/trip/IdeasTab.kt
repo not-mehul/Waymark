@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
@@ -23,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
+import com.waymark.domain.logic.TimeText
 import com.waymark.ui.components.EditorialNote
 import com.waymark.ui.components.FieldLabel
 import com.waymark.ui.components.GhostIconButton
@@ -32,11 +35,13 @@ import com.waymark.ui.components.Panel
 import com.waymark.ui.components.PartyMark
 import com.waymark.ui.components.PrimaryButton
 import com.waymark.ui.components.SectionHeader
+import com.waymark.ui.components.SegmentedToggle
 import com.waymark.ui.components.Stat
 import com.waymark.ui.components.WaymarkIcon
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
+import java.time.LocalDate
 
 /**
  * The unscheduled half of the trip: places to see, food to try, walks to take.
@@ -54,10 +59,13 @@ fun IdeasTab(
     onDelete: (String) -> Unit,
     onSchedule: (Idea) -> Unit,
     onAddIdea: (String, IdeaKind, String, String?) -> Unit,
+    onPencilDay: (String, LocalDate?) -> Unit,
+    tripDays: List<LocalDate>,
 ) {
     val colors = Waymark.colors
     var composing by remember { mutableStateOf(false) }
     var showingSuggestions by remember { mutableStateOf(true) }
+    var grouping by remember { mutableStateOf(IdeaGrouping.KIND) }
     val party = state.dossier?.party?.travelers.orEmpty()
 
     LazyColumn(
@@ -80,19 +88,111 @@ fun IdeasTab(
             }
         }
 
-        state.ideaSections.forEach { section ->
-            item(key = "head-${section.kind.name}") {
-                SectionHeader(section.kind.heading)
+        // The same list, read three ways: by what it is, by where it is, and
+        // by the day it is pencilled in for.
+        item {
+            SegmentedToggle(
+                options = IdeaGrouping.entries.map { it.label },
+                selectedIndex = IdeaGrouping.entries.indexOf(grouping),
+                onSelect = { grouping = IdeaGrouping.entries[it] },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = WaymarkSpacing.snug),
+            )
+        }
+
+        when (grouping) {
+            IdeaGrouping.KIND -> state.ideaSections.forEach { section ->
+                item(key = "kind-${section.kind.name}") {
+                    SectionHeader(section.kind.heading)
+                }
+                items(section.ideas, key = { "kind-${it.id}" }) { idea ->
+                    IdeaCard(
+                        idea = idea,
+                        party = party,
+                        tripDays = tripDays,
+                        onSetStatus = onSetStatus,
+                        onToggleInterest = onToggleInterest,
+                        onDelete = onDelete,
+                        onSchedule = onSchedule,
+                        onPencilDay = onPencilDay,
+                    )
+                }
             }
-            items(section.ideas, key = { it.id }) { idea ->
-                IdeaCard(
-                    idea = idea,
-                    party = party,
-                    onSetStatus = onSetStatus,
-                    onToggleInterest = onToggleInterest,
-                    onDelete = onDelete,
-                    onSchedule = onSchedule,
-                )
+
+            IdeaGrouping.PLACE -> state.ideasByCity.forEach { group ->
+                item(key = "city-${group.city}") {
+                    SectionHeader(
+                        label = group.city,
+                        trailing = {
+                            Text(
+                                text = "${group.outstanding} open",
+                                style = Waymark.type.fieldLabel,
+                                color = colors.textFaint,
+                            )
+                        },
+                    )
+                }
+                items(group.ideas, key = { "city-${it.id}" }) { idea ->
+                    IdeaCard(
+                        idea = idea,
+                        party = party,
+                        tripDays = tripDays,
+                        onSetStatus = onSetStatus,
+                        onToggleInterest = onToggleInterest,
+                        onDelete = onDelete,
+                        onSchedule = onSchedule,
+                        onPencilDay = onPencilDay,
+                    )
+                }
+            }
+
+            IdeaGrouping.DAY -> {
+                state.dayPlan.days.forEach { day ->
+                    item(key = "day-${day.date}") {
+                        SectionHeader(
+                            label = TimeText.dayCompact(day.date),
+                            trailing = {
+                                Text(
+                                    text = TimeText.duration(day.estimatedMinutes),
+                                    style = Waymark.type.fieldLabel,
+                                    color = if (day.estimatedMinutes > FULL_DAY_MINUTES) {
+                                        colors.danger
+                                    } else {
+                                        colors.textFaint
+                                    },
+                                )
+                            },
+                        )
+                    }
+                    items(day.ideas, key = { "day-${it.id}" }) { idea ->
+                        IdeaCard(
+                            idea = idea,
+                            party = party,
+                            tripDays = tripDays,
+                            onSetStatus = onSetStatus,
+                            onToggleInterest = onToggleInterest,
+                            onDelete = onDelete,
+                            onSchedule = onSchedule,
+                            onPencilDay = onPencilDay,
+                        )
+                    }
+                }
+                if (state.dayPlan.undated.isNotEmpty()) {
+                    item(key = "day-undated") { SectionHeader("No day yet") }
+                    items(state.dayPlan.undated, key = { "undated-${it.id}" }) { idea ->
+                        IdeaCard(
+                            idea = idea,
+                            party = party,
+                            tripDays = tripDays,
+                            onSetStatus = onSetStatus,
+                            onToggleInterest = onToggleInterest,
+                            onDelete = onDelete,
+                            onSchedule = onSchedule,
+                            onPencilDay = onPencilDay,
+                        )
+                    }
+                }
             }
         }
 
@@ -177,10 +277,12 @@ fun IdeasTab(
 private fun IdeaCard(
     idea: Idea,
     party: List<com.waymark.domain.model.Traveler>,
+    tripDays: List<LocalDate>,
     onSetStatus: (String, IdeaStatus) -> Unit,
     onToggleInterest: (String, String) -> Unit,
     onDelete: (String) -> Unit,
     onSchedule: (Idea) -> Unit,
+    onPencilDay: (String, LocalDate?) -> Unit,
 ) {
     val colors = Waymark.colors
     val done = idea.status == IdeaStatus.DONE
@@ -225,8 +327,12 @@ private fun IdeaCard(
                     color = colors.textDim,
                 )
             }
-            if (scheduled) {
-                FieldLabel("On the timeline", color = colors.accentSage)
+            when {
+                scheduled -> FieldLabel("On the timeline", color = colors.accentSage)
+                idea.plannedDate != null -> FieldLabel(
+                    TimeText.dayCompact(idea.plannedDate),
+                    color = colors.accentAmber,
+                )
             }
         }
 
@@ -248,6 +354,27 @@ private fun IdeaCard(
                 ) {
                     WaymarkIcon(WaymarkIcons.Clock, tint = colors.textDim, size = 13.dp)
                     Text(text = best, style = Waymark.type.hint, color = colors.textDim)
+                }
+            }
+
+            if (tripDays.isNotEmpty() && !scheduled) {
+                Spacer(Modifier.height(WaymarkSpacing.small))
+                FieldLabel("Pencil it in for")
+                Spacer(Modifier.height(WaymarkSpacing.tight))
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
+                ) {
+                    tripDays.forEach { day ->
+                        OptionChip(
+                            text = TimeText.dayCompact(day),
+                            selected = idea.plannedDate == day,
+                            // Tapping the day it already holds rubs it out.
+                            onClick = {
+                                onPencilDay(idea.id, if (idea.plannedDate == day) null else day)
+                            },
+                        )
+                    }
                 }
             }
 
@@ -337,6 +464,15 @@ private fun SuggestionCard(suggestion: Idea, onAdopt: (Idea) -> Unit) {
             )
         }
     }
+}
+
+/** A day with more than this pencilled in is a day nobody will keep. */
+private const val FULL_DAY_MINUTES = 480
+
+enum class IdeaGrouping(val label: String) {
+    KIND("By kind"),
+    PLACE("By place"),
+    DAY("By day"),
 }
 
 private fun iconFor(kind: IdeaKind) = when (kind) {

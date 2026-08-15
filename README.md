@@ -45,11 +45,33 @@ graticule, and every place whose coordinates the app holds. Pinch, pan, tap.
 
 **Keep a list.** Not everything on a trip has a time on it. The Ideas board
 holds places to see, food to try, walks and shops with no date attached —
-saved, scheduled, or ticked off. Each traveler can mark what they want, so a
+saved, scheduled, or ticked off — readable three ways: by kind, by place, or by
+the day it is pencilled in for. A day is a date without a clock time, which is
+how planning actually happens; the board totals each day's estimates and says
+so when a day is overfull. Each traveler can mark what they want, so a
 party of four can see where their interests actually overlap. One tap promotes
 an idea onto the timeline with a date and a duration, where it becomes an
 ordinary booking; removing that booking puts it back on the list rather than
 losing it.
+
+**Keep the documents straight.** Passports, visas and insurance live in the
+vault with their numbers sealed and their dates in the clear — because a
+warning that needs a fingerprint before it can fire is a warning that arrives
+at the airport. Waymark checks each one against the trip, including the rule a
+plain expiry date hides: most borders want a passport valid six months beyond
+arrival, so a passport that outlives the return flight by four months is still
+a problem.
+
+**Pack from the itinerary.** A first draft the app writes itself: counts scaled
+to the nights, an adaptor only where the sockets differ from home, a swimsuit
+only where something on the trip involves water, a power bank only on long
+haul. Per traveler plus a shared list, with meters for who is ready.
+
+**Count it.** A numbers screen: distance by mode, the shape of each day, where
+the hours go, nights per city, and a carbon estimate that shows its factors
+rather than asserting a figure. The trip is drawn on an orthographic globe you
+can turn with a finger — routes that pass behind the world are culled, which is
+the honest way to show how far away somewhere is.
 
 **Land informed.** Bundled destination notes — currency, plug, emergency
 number, airport transfer, transit, tipping, seasons, neighbourhoods — and a
@@ -98,6 +120,20 @@ Two deliberate departures, both documented at the call site:
 Both themes share one type ramp; only colour changes. First launch follows the
 system setting; the toggle overrides it.
 
+### Charts: one hue, by measurement
+
+The palette's two accents are deliberately close — that closeness is what makes
+the theme calm — and that rules them out as a categorical pair. Measured with a
+colour-vision validator against the Dusk surface, amber against sage separates
+by **ΔE 5.8 under protanopia and 8.6 to normal vision**, both under the floor
+at which two marks can be told apart.
+
+So no chart in Waymark encodes identity with hue. Length carries magnitude,
+position and a written label carry identity, and colour does one job: emphasis.
+Where a mark genuinely has two parts, they are two shades of a single hue
+(ΔE 35 in Dusk, 21 in Dawn) and both parts are labelled. Every bar prints its
+own value; legend text wears a text token, never the series colour.
+
 ---
 
 ## Architecture
@@ -107,20 +143,23 @@ com.waymark
 ├── domain/
 │   ├── model/      Trip, Traveler, Segment (sealed), Reservation, FlightStatus
 │   └── logic/      TimelineBuilder, ConnectionRisk, TransitEstimator,
-│                   PartySplitAnalyzer, IdeaBoard, Geo, Bcbp, Code39, TimeText
+│                   PartySplitAnalyzer, IdeaBoard, DocumentWatch, PackingPlanner,
+│                   TripAnalytics, Geo (incl. orthographic globe), Bcbp, Code39
 ├── data/
 │   ├── catalog/    Bundled airports, schedules, destination notes and guide,
 │   │               sample trip
 │   ├── local/      Room entities, DAOs, codecs, SecretCipher (Keystore AES-GCM)
 │   ├── remote/     FlightStatusProvider: offline model + optional HTTP feed
 │   └── repo/       TripRepository, VaultRepository, FlightRepository,
-│                   IdeaRepository
+│                   IdeaRepository, PreparationRepository
 ├── alerts/         DelayWatchWorker (WorkManager) + notification channels
 ├── di/             AppContainer — the whole graph, readable top to bottom
 └── ui/
     ├── theme/      Tokens, type ramp, shapes, spacing
     ├── components/ Panel, buttons, chips, toggles, modal, icons, backdrop
-    ├── trips/ trip/ add/ segment/ pass/ insights/ map/ vault/
+    ├── charts/     BarSeries, DayLoadChart, Meter, RingFigure, SplitBar
+    ├── map/        RouteChart (flat) and Globe (orthographic)
+    ├── trips/ trip/ add/ segment/ pass/ insights/ packing/ analytics/ vault/
 ```
 
 **The domain layer is plain Kotlin.** No Android imports, no Compose, no Room —
@@ -172,7 +211,7 @@ vendors means changing `parse()` and the base URL, nothing else.
 
 ## Tests
 
-91 JVM unit tests over the domain and catalog layers:
+133 JVM unit tests over the domain and catalog layers:
 
 - `FlightDesignatorTest` — parsing `BA286`, `ba 286`, `BAW286`, `3U8888`, `U2 1234`
 - `Code39Test` — symbology invariants (nine elements, three wide, two wide bars
@@ -194,6 +233,15 @@ vendors means changing `parse()` and the base URL, nothing else.
 - `DestinationGuideTest` — guide integrity, including a check that every
   coordinate lands within 120 km of its city's airport, which is what catches a
   transposed latitude and longitude
+- `DocumentWatchTest` — expiry, the six-month passport margin, severity
+  ordering, travelers with no passport recorded
+- `PackingPlannerTest` — counts that scale with the nights and **never fall as
+  a trip lengthens**, adaptors only where sockets differ, climate by latitude
+  and hemisphere
+- `TripAnalyticsTest` — distance splits that add up, day loads that cannot
+  exceed a day, carbon against the published factors
+- `GlobeProjectionTest` — orthographic projection inside the unit disc, the
+  horizon as the culling boundary, and a centroid that survives the antimeridian
 - `OfflineFlightStatusProviderTest` — determinism, phase transitions, delay
   distribution
 
@@ -211,6 +259,8 @@ Three places where the app says less than it could:
   sixty characters in a one-dimensional symbology is too dense to scan off a
   phone. Airlines use a 2D symbol for that, and an imported pass image is shown
   in preference to the rendered one.
+- **The carbon figure is a model, and says so on screen**, with its per-mode
+  factors printed beside it. Lodging and meals are excluded rather than guessed.
 - **The offline flight model is a model.** It is deterministic, shaped like
   real-world delay distributions, and labelled as such on every screen it
   reaches.

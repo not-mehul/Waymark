@@ -46,6 +46,8 @@ fun TripScreen(
     onOpenSegment: (String) -> Unit,
     onOpenPass: (String) -> Unit,
     onOpenInsights: () -> Unit,
+    onOpenPacking: () -> Unit,
+    onOpenAnalytics: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val tab by viewModel.tab.collectAsStateWithLifecycle()
@@ -78,6 +80,16 @@ fun TripScreen(
                         contentDescription = "Refresh flight status",
                         onClick = viewModel::refresh,
                         tint = if (state.refreshing) colors.accentAmber else null,
+                    )
+                    GhostIconButton(
+                        icon = WaymarkIcons.Globe,
+                        contentDescription = "The numbers",
+                        onClick = onOpenAnalytics,
+                    )
+                    GhostIconButton(
+                        icon = WaymarkIcons.Check,
+                        contentDescription = "Packing",
+                        onClick = onOpenPacking,
                     )
                     GhostIconButton(
                         icon = WaymarkIcons.Compass,
@@ -153,6 +165,8 @@ fun TripScreen(
                     onDelete = viewModel::deleteIdea,
                     onSchedule = { scheduling = it },
                     onAddIdea = viewModel::addIdea,
+                    onPencilDay = viewModel::pencilIdeaFor,
+                    tripDays = viewModel.tripDays(),
                 )
 
                 TripTab.MAP -> MapTab(state = state, onSelectSegment = onOpenSegment)
@@ -168,6 +182,8 @@ fun TripScreen(
                     state = state,
                     onOpenPass = onOpenPass,
                     onOpenSegment = onOpenSegment,
+                    onAddDocument = viewModel::addDocument,
+                    onDeleteDocument = viewModel::deleteDocument,
                 )
             }
         }

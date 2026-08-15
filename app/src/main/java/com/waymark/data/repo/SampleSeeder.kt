@@ -12,6 +12,7 @@ class SampleSeeder(
     private val trips: TripRepository,
     private val vault: VaultRepository,
     private val ideas: IdeaRepository,
+    private val preparations: PreparationRepository,
 ) {
 
     suspend fun seedIfEmpty(today: LocalDate = LocalDate.now()) {
@@ -27,6 +28,8 @@ class SampleSeeder(
         bundle.reservations.forEach { vault.save(it) }
         bundle.passes.forEach { vault.savePass(it) }
         ideas.saveAll(bundle.ideas)
+        bundle.documents.forEach { preparations.saveDocument(it) }
+        bundle.packing.forEach { preparations.savePackingItem(it) }
     }
 
     private companion object {

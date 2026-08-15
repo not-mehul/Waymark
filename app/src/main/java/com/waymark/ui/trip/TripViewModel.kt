@@ -4,23 +4,36 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.waymark.data.catalog.DestinationInsights
 import com.waymark.data.repo.FlightRepository
+import com.waymark.data.catalog.TripFacts
 import com.waymark.data.repo.IdeaRepository
+import com.waymark.data.repo.PreparationRepository
 import com.waymark.data.repo.TripRepository
 import com.waymark.data.repo.VaultRepository
+import com.waymark.domain.logic.DayPlan
+import com.waymark.domain.logic.DocumentVerdict
+import com.waymark.domain.logic.DocumentWatch
+import com.waymark.domain.logic.CityGroup
 import com.waymark.domain.logic.IdeaBoard
 import com.waymark.domain.logic.IdeaSection
 import com.waymark.domain.logic.IdeaTally
+import com.waymark.domain.logic.PackingPlanner
 import com.waymark.domain.logic.PartySplitAnalyzer
 import com.waymark.domain.logic.SplitWindow
 import com.waymark.domain.logic.TimelineBuilder
 import com.waymark.domain.logic.TimelineEntry
+import com.waymark.domain.logic.TripAnalytics
+import com.waymark.domain.logic.TripAnalyticsReport
 import com.waymark.domain.model.BoardingPass
 import com.waymark.domain.model.DisruptionAlert
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
+import com.waymark.domain.model.PackingCategory
+import com.waymark.domain.model.PackingItem
+import com.waymark.domain.model.PackingProgress
 import com.waymark.domain.model.Reservation
 import com.waymark.domain.model.Segment
+import com.waymark.domain.model.TravelDocument
 import com.waymark.domain.model.TripDossier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,6 +46,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
+import java.time.LocalDate
 
 enum class TripTab(val label: String) {
     TIMELINE("Timeline"),
@@ -54,6 +68,13 @@ data class TripUiState(
     val ideaSections: List<IdeaSection> = emptyList(),
     val ideaTally: IdeaTally = IdeaTally(0, 0, 0, 0),
     val suggestions: List<Idea> = emptyList(),
+    val ideasByCity: List<CityGroup> = emptyList(),
+    val dayPlan: DayPlan = DayPlan(emptyList(), emptyList()),
+    val documents: List<DocumentVerdict> = emptyList(),
+    val missingPassportFor: List<String> = emptyList(),
+    val packing: List<PackingItem> = emptyList(),
+    val packingProgress: List<PackingProgress> = emptyList(),
+    val analytics: TripAnalyticsReport? = null,
     val travelerFilter: String? = null,
     val refreshing: Boolean = false,
     val nowMillis: Long = System.currentTimeMillis(),
@@ -90,6 +111,7 @@ class TripViewModel(
     private val vault: VaultRepository,
     private val flights: FlightRepository,
     private val ideas: IdeaRepository,
+    private val preparations: PreparationRepository,
 ) : ViewModel() {
 
     private val travelerFilter = MutableStateFlow<String?>(null)
@@ -115,14 +137,24 @@ class TripViewModel(
         val refreshing: Boolean,
         val now: Long,
         val ideas: List<Idea>,
+        val documents: List<TravelDocument>,
+        val packing: List<PackingItem>,
     )
+
+    private val preparation = combine(
+        preparations.observeDocuments(),
+        preparations.observePacking(tripId),
+    ) { documents, packing -> documents to packing }
 
     private val ambient = combine(
         travelerFilter,
         refreshing,
         clock,
         ideas.observe(tripId),
-    ) { filter, isRefreshing, now, ideaList -> Ambient(filter, isRefreshing, now, ideaList) }
+        preparation,
+    ) { filter, isRefreshing, now, ideaList, (documents, packing) ->
+        Ambient(filter, isRefreshing, now, ideaList, documents, packing)
+    }
 
     val state: StateFlow<TripUiState> = combine(
         trips.observeDossier(tripId),
@@ -157,6 +189,16 @@ class TripViewModel(
             ),
             ideaTally = IdeaBoard.tally(current.ideas),
             suggestions = ideas.suggestionsFor(tripId, cities, current.ideas),
+            ideasByCity = IdeaBoard.byCity(current.ideas, cityOrder = cities),
+            dayPlan = IdeaBoard.byDay(current.ideas),
+            documents = partyDocuments(dossier, current.documents, instant),
+            missingPassportFor = dossier?.party?.travelers
+                ?.map { it.id }
+                ?.let { DocumentWatch.travelersMissingPassport(it, current.documents) }
+                .orEmpty(),
+            packing = current.packing,
+            packingProgress = packingProgress(dossier, current.packing),
+            analytics = dossier?.let { TripAnalytics.report(it, current.ideas) },
             travelerFilter = current.filter,
             refreshing = current.refreshing,
             nowMillis = current.now,
@@ -276,6 +318,126 @@ class TripViewModel(
                 minutesOverride = minutesOverride,
             )
         }
+    }
+
+    // — Documents and packing —————————————————————————————————————————————
+
+    fun addDocument(
+        travelerId: String,
+        kind: com.waymark.domain.model.DocumentKind,
+        label: String,
+        number: String,
+        issuer: String?,
+        expiresOn: LocalDate?,
+        note: String?,
+    ) {
+        if (number.isBlank()) return
+        viewModelScope.launch {
+            preparations.addDocument(
+                travelerId = travelerId,
+                kind = kind,
+                label = label,
+                number = number,
+                issuer = issuer,
+                issuedOn = null,
+                expiresOn = expiresOn,
+                note = note,
+            )
+        }
+    }
+
+    fun deleteDocument(id: String) {
+        viewModelScope.launch { preparations.deleteDocument(id) }
+    }
+
+    fun setPacked(itemId: String, packed: Boolean) {
+        viewModelScope.launch { preparations.setPacked(itemId, packed) }
+    }
+
+    fun addPackingItem(
+        travelerId: String?,
+        title: String,
+        category: PackingCategory,
+        essential: Boolean,
+    ) {
+        if (title.isBlank()) return
+        viewModelScope.launch {
+            preparations.addPackingItem(
+                tripId = tripId,
+                travelerId = travelerId,
+                title = title,
+                category = category,
+                essential = essential,
+            )
+        }
+    }
+
+    fun deletePackingItem(itemId: String) {
+        viewModelScope.launch { preparations.deletePackingItem(itemId) }
+    }
+
+    fun unpackEverything() {
+        viewModelScope.launch { preparations.unpackAll(tripId) }
+    }
+
+    /**
+     * Draft a list from the itinerary for one traveler: counts scaled to the
+     * nights, an adaptor only where the sockets differ, a swimsuit only where
+     * something involves water.
+     */
+    fun suggestPacking(travelerId: String?) {
+        viewModelScope.launch {
+            val current = state.value
+            val dossier = current.dossier ?: return@launch
+            preparations.applySuggestions(
+                context = TripFacts.packingContext(dossier, current.ideas),
+                travelerId = travelerId,
+                existing = current.packing,
+            )
+        }
+    }
+
+    fun pencilIdeaFor(ideaId: String, date: LocalDate?) {
+        viewModelScope.launch { ideas.setPlannedDay(ideaId, date) }
+    }
+
+    /** The trip's own days, for the day-planner chips. */
+    fun tripDays(): List<LocalDate> {
+        val trip = state.value.dossier?.trip ?: return emptyList()
+        val days = mutableListOf<LocalDate>()
+        var day = trip.startDate()
+        while (!day.isAfter(trip.endDate()) && days.size < 60) {
+            days += day
+            day = day.plusDays(1)
+        }
+        return days
+    }
+
+    private fun partyDocuments(
+        dossier: TripDossier?,
+        documents: List<TravelDocument>,
+        now: Instant,
+    ): List<DocumentVerdict> {
+        val partyIds = dossier?.party?.travelers?.map { it.id }?.toSet() ?: return emptyList()
+        val zone = com.waymark.domain.model.Segment.zoneOrUtc(dossier.trip.homeZoneId)
+        return DocumentWatch.assessAll(
+            documents = documents.filter { it.travelerId in partyIds },
+            tripEnd = dossier.trip.endDate(),
+            today = now.atZone(zone).toLocalDate(),
+        )
+    }
+
+    private fun packingProgress(
+        dossier: TripDossier?,
+        items: List<PackingItem>,
+    ): List<PackingProgress> {
+        val travelers = dossier?.party?.travelers.orEmpty()
+        return buildList {
+            add(PackingPlanner.progress(items, null, "Shared"))
+            travelers.forEach { traveler ->
+                add(PackingPlanner.progress(items, traveler.id, traveler.displayName))
+            }
+        }.filter { it.total > 0 || it.travelerId != null }
     }
 
     fun reservationFor(segmentId: String?): Reservation? =

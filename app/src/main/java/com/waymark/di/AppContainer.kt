@@ -12,6 +12,7 @@ import com.waymark.data.remote.HttpFlightStatusProvider
 import com.waymark.data.remote.OfflineFlightStatusProvider
 import com.waymark.data.repo.FlightRepository
 import com.waymark.data.repo.IdeaRepository
+import com.waymark.data.repo.PreparationRepository
 import com.waymark.data.repo.SampleSeeder
 import com.waymark.data.repo.TripRepository
 import com.waymark.data.repo.VaultRepository
@@ -51,7 +52,10 @@ class AppContainer(context: Context) {
     val vaultRepository: VaultRepository by lazy { VaultRepository(database, cipher) }
     val flightRepository: FlightRepository by lazy { FlightRepository(database, flightProviders) }
     val ideaRepository: IdeaRepository by lazy { IdeaRepository(database) }
-    val seeder: SampleSeeder by lazy { SampleSeeder(tripRepository, vaultRepository, ideaRepository) }
+    val preparationRepository: PreparationRepository by lazy {
+        PreparationRepository(database, cipher)
+    }
+    val seeder: SampleSeeder by lazy { SampleSeeder(tripRepository, vaultRepository, ideaRepository, preparationRepository) }
 
     private fun isOnline(): Boolean {
         val manager = appContext.getSystemService<ConnectivityManager>() ?: return false

@@ -1,5 +1,7 @@
 package com.waymark.domain.model
 
+import java.time.LocalDate
+
 /**
  * Something the party wants to do, see or eat, which does not yet have a time
  * on it — and may never need one.
@@ -21,6 +23,12 @@ data class Idea(
     val priceBand: PriceBand? = null,
     val typicalMinutes: Int? = null,
     val bestTime: String? = null,
+    /**
+     * A day without a time. Most planning happens at this resolution — "the
+     * market, Tuesday, sometime" — and forcing a clock time onto it produces
+     * a schedule nobody keeps.
+     */
+    val plannedDate: LocalDate? = null,
     val interestedTravelerIds: Set<String> = emptySet(),
     val status: IdeaStatus = IdeaStatus.SAVED,
     val scheduledSegmentId: String? = null,
@@ -28,6 +36,9 @@ data class Idea(
     val addedAtMillis: Long = System.currentTimeMillis(),
 ) {
     val hasLocation: Boolean get() = place?.hasCoordinates == true
+
+    /** On the list with a day against it, but no booking behind it yet. */
+    val isPencilled: Boolean get() = plannedDate != null && status == IdeaStatus.SAVED
 
     /** A dish has no address; everything else can be put on the map. */
     val isPlaceless: Boolean get() = kind == IdeaKind.DISH && place == null

@@ -201,9 +201,69 @@ data class IdeaEntity(
     val priceBand: String?,
     val typicalMinutes: Int?,
     val bestTime: String?,
+    val plannedDateEpochDay: Long?,
     val interestedTravelerIds: String?,
     val status: String,
     val scheduledSegmentId: String?,
+    val source: String,
+    val addedAtMillis: Long,
+)
+
+/**
+ * Passports, visas, insurance. The number is sealed; the dates are not,
+ * because an expiry warning that needs authentication to fire is a warning
+ * that arrives at the airport.
+ */
+@Entity(
+    tableName = "documents",
+    foreignKeys = [
+        ForeignKey(
+            entity = TravelerEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["travelerId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("travelerId"), Index("expiresOnEpochDay")],
+)
+data class DocumentEntity(
+    @PrimaryKey val id: String,
+    val travelerId: String,
+    val kind: String,
+    val label: String,
+    /** Sealed. */
+    val numberSealed: String,
+    val issuer: String?,
+    val issuedOnEpochDay: Long?,
+    val expiresOnEpochDay: Long?,
+    val note: String?,
+    val fileUri: String?,
+    val updatedAtMillis: Long,
+)
+
+@Entity(
+    tableName = "packing_items",
+    foreignKeys = [
+        ForeignKey(
+            entity = TripEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["tripId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("tripId"), Index("travelerId")],
+)
+data class PackingItemEntity(
+    @PrimaryKey val id: String,
+    val tripId: String,
+    /** Null means the item belongs to the party rather than one traveler. */
+    val travelerId: String?,
+    val title: String,
+    val category: String,
+    val quantity: Int,
+    val packed: Boolean,
+    val essential: Boolean,
+    val note: String?,
     val source: String,
     val addedAtMillis: Long,
 )

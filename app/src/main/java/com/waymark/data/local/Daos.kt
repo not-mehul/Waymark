@@ -154,6 +154,9 @@ interface IdeaDao {
     @Query("DELETE FROM ideas WHERE id = :ideaId")
     suspend fun delete(ideaId: String)
 
+    @Query("UPDATE ideas SET plannedDateEpochDay = :epochDay WHERE id = :ideaId")
+    suspend fun setPlannedDay(ideaId: String, epochDay: Long?)
+
     /** When a scheduled segment is removed the idea returns to the list. */
     @Query(
         """
@@ -162,6 +165,50 @@ interface IdeaDao {
         """
     )
     suspend fun releaseSegment(segmentId: String)
+}
+
+@Dao
+interface DocumentDao {
+
+    @Query("SELECT * FROM documents ORDER BY expiresOnEpochDay IS NULL, expiresOnEpochDay")
+    fun observeAll(): Flow<List<DocumentEntity>>
+
+    @Query("SELECT * FROM documents WHERE travelerId IN (:travelerIds)")
+    fun observeFor(travelerIds: List<String>): Flow<List<DocumentEntity>>
+
+    @Query("SELECT * FROM documents WHERE id = :id")
+    suspend fun find(id: String): DocumentEntity?
+
+    @Upsert
+    suspend fun upsert(document: DocumentEntity)
+
+    @Query("DELETE FROM documents WHERE id = :id")
+    suspend fun delete(id: String)
+}
+
+@Dao
+interface PackingDao {
+
+    @Query("SELECT * FROM packing_items WHERE tripId = :tripId ORDER BY addedAtMillis")
+    fun observeForTrip(tripId: String): Flow<List<PackingItemEntity>>
+
+    @Query("SELECT * FROM packing_items WHERE id = :id")
+    suspend fun find(id: String): PackingItemEntity?
+
+    @Upsert
+    suspend fun upsert(item: PackingItemEntity)
+
+    @Upsert
+    suspend fun upsertAll(items: List<PackingItemEntity>)
+
+    @Query("UPDATE packing_items SET packed = :packed WHERE id = :id")
+    suspend fun setPacked(id: String, packed: Boolean)
+
+    @Query("UPDATE packing_items SET packed = 0 WHERE tripId = :tripId")
+    suspend fun unpackAll(tripId: String)
+
+    @Query("DELETE FROM packing_items WHERE id = :id")
+    suspend fun delete(id: String)
 }
 
 @Dao

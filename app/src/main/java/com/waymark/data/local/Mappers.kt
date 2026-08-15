@@ -2,18 +2,22 @@ package com.waymark.data.local
 
 import com.waymark.domain.model.BoardingPass
 import com.waymark.domain.model.DisruptionAlert
+import com.waymark.domain.model.DocumentKind
 import com.waymark.domain.model.FlightState
 import com.waymark.domain.model.FlightStatus
 import com.waymark.domain.model.GroundMode
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
+import com.waymark.domain.model.PackingCategory
+import com.waymark.domain.model.PackingItem
 import com.waymark.domain.model.Place
 import com.waymark.domain.model.PriceBand
 import com.waymark.domain.model.Reservation
 import com.waymark.domain.model.SeatPreference
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.SegmentKind
+import com.waymark.domain.model.TravelDocument
 import com.waymark.domain.model.Traveler
 import com.waymark.domain.model.Trip
 
@@ -282,6 +286,7 @@ object Mappers {
         },
         typicalMinutes = entity.typicalMinutes,
         bestTime = entity.bestTime,
+        plannedDate = entity.plannedDateEpochDay?.let(java.time.LocalDate::ofEpochDay),
         interestedTravelerIds = Codecs.decodeIds(entity.interestedTravelerIds),
         status = runCatching { IdeaStatus.valueOf(entity.status) }.getOrDefault(IdeaStatus.SAVED),
         scheduledSegmentId = entity.scheduledSegmentId,
@@ -300,11 +305,69 @@ object Mappers {
         priceBand = idea.priceBand?.name,
         typicalMinutes = idea.typicalMinutes,
         bestTime = idea.bestTime,
+        plannedDateEpochDay = idea.plannedDate?.toEpochDay(),
         interestedTravelerIds = Codecs.encodeIds(idea.interestedTravelerIds).ifBlank { null },
         status = idea.status.name,
         scheduledSegmentId = idea.scheduledSegmentId,
         source = idea.source,
         addedAtMillis = idea.addedAtMillis,
+    )
+
+    fun toDocument(entity: DocumentEntity, cipher: SecretCipher): TravelDocument = TravelDocument(
+        id = entity.id,
+        travelerId = entity.travelerId,
+        kind = runCatching { DocumentKind.valueOf(entity.kind) }.getOrDefault(DocumentKind.OTHER),
+        label = entity.label,
+        number = cipher.open(entity.numberSealed).orEmpty(),
+        issuer = entity.issuer,
+        issuedOn = entity.issuedOnEpochDay?.let(java.time.LocalDate::ofEpochDay),
+        expiresOn = entity.expiresOnEpochDay?.let(java.time.LocalDate::ofEpochDay),
+        note = entity.note,
+        fileUri = entity.fileUri,
+        updatedAtMillis = entity.updatedAtMillis,
+    )
+
+    fun toEntity(document: TravelDocument, cipher: SecretCipher): DocumentEntity = DocumentEntity(
+        id = document.id,
+        travelerId = document.travelerId,
+        kind = document.kind.name,
+        label = document.label,
+        numberSealed = cipher.seal(document.number),
+        issuer = document.issuer,
+        issuedOnEpochDay = document.issuedOn?.toEpochDay(),
+        expiresOnEpochDay = document.expiresOn?.toEpochDay(),
+        note = document.note,
+        fileUri = document.fileUri,
+        updatedAtMillis = document.updatedAtMillis,
+    )
+
+    fun toPackingItem(entity: PackingItemEntity): PackingItem = PackingItem(
+        id = entity.id,
+        tripId = entity.tripId,
+        travelerId = entity.travelerId,
+        title = entity.title,
+        category = runCatching { PackingCategory.valueOf(entity.category) }
+            .getOrDefault(PackingCategory.OTHER),
+        quantity = entity.quantity,
+        packed = entity.packed,
+        essential = entity.essential,
+        note = entity.note,
+        source = entity.source,
+        addedAtMillis = entity.addedAtMillis,
+    )
+
+    fun toEntity(item: PackingItem): PackingItemEntity = PackingItemEntity(
+        id = item.id,
+        tripId = item.tripId,
+        travelerId = item.travelerId,
+        title = item.title,
+        category = item.category.name,
+        quantity = item.quantity,
+        packed = item.packed,
+        essential = item.essential,
+        note = item.note,
+        source = item.source,
+        addedAtMillis = item.addedAtMillis,
     )
 
     fun toStatus(entity: FlightStatusEntity): FlightStatus = FlightStatus(

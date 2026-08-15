@@ -33,6 +33,7 @@ import com.waymark.ui.components.WaymarkIcon
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
+import com.waymark.ui.vault.DocumentsSection
 import com.waymark.ui.vault.rememberVaultAuthenticator
 
 /**
@@ -44,6 +45,16 @@ fun VaultTab(
     state: TripUiState,
     onOpenPass: (String) -> Unit,
     onOpenSegment: (String) -> Unit,
+    onAddDocument: (
+        String,
+        com.waymark.domain.model.DocumentKind,
+        String,
+        String,
+        String?,
+        java.time.LocalDate?,
+        String?,
+    ) -> Unit,
+    onDeleteDocument: (String) -> Unit,
 ) {
     val colors = Waymark.colors
     val authenticator = rememberVaultAuthenticator()
@@ -131,6 +142,18 @@ fun VaultTab(
             }
             Spacer(Modifier.height(WaymarkSpacing.snug))
         }
+
+        DocumentsSection(
+            verdicts = state.documents,
+            party = state.dossier?.party?.travelers.orEmpty(),
+            missingPassportFor = state.missingPassportFor,
+            revealed = revealed,
+            onReveal = ::reveal,
+            onAdd = onAddDocument,
+            onDelete = onDeleteDocument,
+        )
+
+        Spacer(Modifier.height(WaymarkSpacing.medium))
 
         EditorialNote(
             term = "Sealed",

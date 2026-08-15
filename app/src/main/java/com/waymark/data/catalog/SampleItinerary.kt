@@ -6,6 +6,10 @@ import com.waymark.domain.model.GroundMode
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
+import com.waymark.domain.model.DocumentKind
+import com.waymark.domain.model.PackingCategory
+import com.waymark.domain.model.PackingItem
+import com.waymark.domain.model.TravelDocument
 import com.waymark.domain.model.Place
 import com.waymark.domain.model.Reservation
 import com.waymark.domain.model.SeatPreference
@@ -37,6 +41,8 @@ object SampleItinerary {
         val reservations: List<Reservation>,
         val passes: List<BoardingPass>,
         val ideas: List<Idea>,
+        val documents: List<TravelDocument>,
+        val packing: List<PackingItem>,
     )
 
     private val london = ZoneId.of("Europe/London")
@@ -404,7 +410,90 @@ object SampleItinerary {
             ),
         )
 
-        return Bundle(trip, listOf(mara, julian), segments, reservations, passes, ideas)
+        // One passport comfortably valid, one inside the six-month margin —
+        // the case the expiry rule exists to catch.
+        val returnDay = homeward.end.toLocalDate()
+        val documents = listOf(
+            TravelDocument(
+                id = "doc-mara-passport",
+                travelerId = mara.id,
+                kind = DocumentKind.PASSPORT,
+                label = "Passport",
+                number = "509384711",
+                issuer = "United States",
+                issuedOn = returnDay.minusYears(6),
+                expiresOn = returnDay.plusYears(4),
+            ),
+            TravelDocument(
+                id = "doc-julian-passport",
+                travelerId = julian.id,
+                kind = DocumentKind.PASSPORT,
+                label = "Passport",
+                number = "488120953",
+                issuer = "United States",
+                issuedOn = returnDay.minusYears(9),
+                expiresOn = returnDay.plusMonths(4),
+                note = "Renewal takes six to eight weeks at the moment.",
+            ),
+            TravelDocument(
+                id = "doc-shared-insurance",
+                travelerId = mara.id,
+                kind = DocumentKind.INSURANCE,
+                label = "Travel insurance, both travelers",
+                number = "TI-88240-EU",
+                issuer = "Meridian Cover",
+                expiresOn = returnDay.plusMonths(7),
+                note = "Medical to \u00a35m, cancellation to \u00a32,500 each.",
+            ),
+        )
+
+        val packing = listOf(
+            PackingItem(
+                id = "pack-shared-adaptor",
+                tripId = tripId,
+                travelerId = null,
+                title = "Travel adaptor (Type G)",
+                category = PackingCategory.ELECTRONICS,
+                quantity = 2,
+                essential = true,
+                note = "One for the room, one for the bag.",
+            ),
+            PackingItem(
+                id = "pack-shared-kit",
+                tripId = tripId,
+                travelerId = null,
+                title = "First-aid kit",
+                category = PackingCategory.HEALTH,
+            ),
+            PackingItem(
+                id = "pack-mara-passport",
+                tripId = tripId,
+                travelerId = mara.id,
+                title = "Passport",
+                category = PackingCategory.DOCUMENTS,
+                essential = true,
+                packed = true,
+            ),
+            PackingItem(
+                id = "pack-julian-shoes",
+                tripId = tripId,
+                travelerId = julian.id,
+                title = "Shoes you can walk all day in",
+                category = PackingCategory.CLOTHING,
+                essential = true,
+            ),
+        )
+
+        return Bundle(
+            trip = trip,
+            travelers = listOf(mara, julian),
+            segments = segments,
+            reservations = reservations,
+            passes = passes,
+            ideas = ideas,
+            documents = documents,
+            packing = packing,
+        )
     }
 
     private fun FlightCatalog.FlightPlan.toSegment(

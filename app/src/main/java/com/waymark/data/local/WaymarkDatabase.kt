@@ -14,6 +14,8 @@ import androidx.room.RoomDatabase
         ReservationEntity::class,
         BoardingPassEntity::class,
         IdeaEntity::class,
+        DocumentEntity::class,
+        PackingItemEntity::class,
         FlightStatusEntity::class,
         RaisedAlertEntity::class,
     ],
@@ -28,6 +30,8 @@ abstract class WaymarkDatabase : RoomDatabase() {
     abstract fun reservationDao(): ReservationDao
     abstract fun boardingPassDao(): BoardingPassDao
     abstract fun ideaDao(): IdeaDao
+    abstract fun documentDao(): DocumentDao
+    abstract fun packingDao(): PackingDao
     abstract fun flightStatusDao(): FlightStatusDao
     abstract fun alertDao(): AlertDao
 

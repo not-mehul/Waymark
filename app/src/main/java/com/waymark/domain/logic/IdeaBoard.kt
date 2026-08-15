@@ -10,6 +10,20 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
+/** The board grouped by place. */
+data class CityGroup(val city: String, val ideas: List<Idea>) {
+    val outstanding: Int get() = ideas.count { it.status == IdeaStatus.SAVED }
+}
+
+/** The board grouped by the day it is pencilled in for. */
+data class DayGroup(val date: LocalDate, val ideas: List<Idea>) {
+    val estimatedMinutes: Int get() = ideas.sumOf { it.typicalMinutes ?: 60 }
+}
+
+data class DayPlan(val days: List<DayGroup>, val undated: List<Idea>) {
+    val isEmpty: Boolean get() = days.isEmpty() && undated.isEmpty()
+}
+
 /** One section of the board: a kind of idea, and the ideas in it. */
 data class IdeaSection(
     val kind: IdeaKind,
@@ -138,6 +152,60 @@ object IdeaBoard {
             curatedBy = idea.bestTime ?: idea.source,
         )
     }
+
+    /**
+     * The list grouped by place, in visiting order where the trip supplies one.
+     * A trip that touches three cities should not present one undifferentiated
+     * list; what to eat in Paris is not useful while standing in London.
+     */
+    fun byCity(
+        ideas: List<Idea>,
+        cityOrder: List<String> = emptyList(),
+        includeDismissed: Boolean = false,
+    ): List<CityGroup> {
+        val visible = ideas.filter { includeDismissed || it.status != IdeaStatus.DISMISSED }
+        val order = cityOrder.map { it.lowercase() }
+        return visible
+            .groupBy { it.city.ifBlank { "Anywhere" } }
+            .map { (city, group) -> CityGroup(city, group.sortedWith(displayOrder)) }
+            .sortedWith(
+                compareBy(
+                    { group ->
+                        order.indexOf(group.city.lowercase())
+                            .let { if (it < 0) Int.MAX_VALUE else it }
+                    },
+                    { it.city.lowercase() },
+                )
+            )
+    }
+
+    /**
+     * The list grouped by the day it is pencilled in for, with everything that
+     * has no day yet gathered at the end. Days the trip does not contain are
+     * kept rather than hidden: a date that has drifted out of range is a fact
+     * the traveler needs to see.
+     */
+    fun byDay(
+        ideas: List<Idea>,
+        includeDismissed: Boolean = false,
+    ): DayPlan {
+        val visible = ideas.filter { includeDismissed || it.status != IdeaStatus.DISMISSED }
+        val dated = visible.filter { it.plannedDate != null }
+        val days = dated
+            .groupBy { it.plannedDate!! }
+            .map { (date, group) -> DayGroup(date, group.sortedWith(displayOrder)) }
+            .sortedBy { it.date }
+        return DayPlan(days = days, undated = visible.filter { it.plannedDate == null }
+            .sortedWith(displayOrder))
+    }
+
+    /**
+     * How full a pencilled day already is, by the ideas' own estimates. Used to
+     * warn before a fourth museum joins a day that already holds three.
+     */
+    fun plannedMinutes(ideas: List<Idea>, date: LocalDate): Int = ideas
+        .filter { it.plannedDate == date && it.status != IdeaStatus.DISMISSED }
+        .sumOf { it.typicalMinutes ?: DEFAULT_MINUTES }
 
     /**
      * Ideas worth doing from where the traveler currently is: everything saved,
