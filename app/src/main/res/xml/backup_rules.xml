@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Nothing leaves the device. The vault key lives in the Android Keystore and
+    cannot be restored elsewhere, so backing up sealed rows would only produce
+    a database that no key can open.
+-->
+<full-backup-content>
+    <exclude domain="database" path="waymark.db" />
+    <exclude domain="sharedpref" path="." />
+</full-backup-content>

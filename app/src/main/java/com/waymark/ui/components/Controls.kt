@@ -1,0 +1,263 @@
+package com.waymark.ui.components
+
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
+import com.waymark.ui.theme.Waymark
+import com.waymark.ui.theme.WaymarkShapes
+import com.waymark.ui.theme.WaymarkSpacing
+
+/**
+ * Segmented control. The active fill is the only divider between options —
+ * and it is the bright accent with near-black text, never `textStrong` as a
+ * background, which would collapse to invisible in one of the two themes.
+ */
+@Composable
+fun SegmentedToggle(
+    options: List<String>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = Waymark.colors
+    Row(
+        modifier = modifier
+            .clip(WaymarkShapes.control)
+            .background(colors.panelFaint)
+            .border(1.dp, colors.border, WaymarkShapes.control)
+            .padding(1.dp),
+    ) {
+        options.forEachIndexed { index, option ->
+            val active = index == selectedIndex
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(WaymarkShapes.control)
+                    .background(if (active) colors.accentBright else Color.Transparent)
+                    .clickable(role = Role.Tab) { onSelect(index) }
+                    .padding(vertical = 9.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = option,
+                    style = Waymark.type.control.copy(
+                        fontWeight = if (active) {
+                            androidx.compose.ui.text.font.FontWeight.Medium
+                        } else {
+                            androidx.compose.ui.text.font.FontWeight.Normal
+                        }
+                    ),
+                    color = if (active) colors.onAccent else colors.textMuted,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Text input. Recessed fill, hairline border, focus moves the border to
+ * `textDim`. Placeholders are serif italic in `textFaint`; technical fields
+ * take the mono face.
+ */
+@Composable
+fun WaymarkTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    label: String? = null,
+    placeholder: String? = null,
+    hint: String? = null,
+    mono: Boolean = false,
+    singleLine: Boolean = true,
+    enabled: Boolean = true,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    trailing: @Composable (() -> Unit)? = null,
+) {
+    val colors = Waymark.colors
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+    val textStyle: TextStyle = (if (mono) Waymark.type.data else Waymark.type.body)
+        .copy(color = if (enabled) colors.textStrong else colors.textFaint)
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
+    ) {
+        label?.let { FieldLabel(it) }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(WaymarkShapes.control)
+                .background(if (enabled) colors.input else colors.disabled)
+                .border(
+                    1.dp,
+                    when {
+                        !enabled -> colors.borderFaint
+                        focused -> colors.textDim
+                        else -> colors.border
+                    },
+                    WaymarkShapes.control,
+                )
+                .padding(horizontal = WaymarkSpacing.small, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                if (value.isEmpty() && placeholder != null) {
+                    Text(
+                        text = placeholder,
+                        style = Waymark.type.hint,
+                        color = colors.textFaint,
+                    )
+                }
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    enabled = enabled,
+                    singleLine = singleLine,
+                    textStyle = textStyle,
+                    cursorBrush = SolidColor(colors.accentAmber),
+                    interactionSource = interaction,
+                    visualTransformation = visualTransformation,
+                    keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            trailing?.invoke()
+        }
+        hint?.let {
+            Text(text = it, style = Waymark.type.hint, color = colors.textDim)
+        }
+    }
+}
+
+/**
+ * Theme switch: a two-pixel track holding a moon and a sun, with an amber
+ * knob that slides between them. Operable by keyboard, announces its state.
+ */
+@Composable
+fun ThemeToggle(modifier: Modifier = Modifier) {
+    val colors = Waymark.colors
+    val controller = Waymark.theme
+    val knobOffset by animateDpAsState(
+        targetValue = if (controller.isDusk) 2.dp else 30.dp,
+        animationSpec = tween(durationMillis = 220),
+        label = "theme-knob",
+    )
+
+    Box(
+        modifier = modifier
+            .width(60.dp)
+            .height(32.dp)
+            .clip(WaymarkShapes.control)
+            .background(colors.input)
+            .border(1.dp, colors.border, WaymarkShapes.control)
+            .clickable(role = Role.Switch) { controller.toggle() }
+            .semantics {
+                contentDescription = "Theme"
+                stateDescription = if (controller.isDusk) "Dusk" else "Dawn"
+            },
+    ) {
+        Box(
+            modifier = Modifier
+                .offset(x = knobOffset, y = 2.dp)
+                .size(26.dp)
+                .clip(WaymarkShapes.control)
+                .background(colors.accentAmber)
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 7.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            WaymarkIcon(
+                icon = WaymarkIcons.Moon,
+                tint = if (controller.isDusk) colors.onAccent else colors.textFaint,
+                size = 15.dp,
+            )
+            WaymarkIcon(
+                icon = WaymarkIcons.Sun,
+                tint = if (controller.isDusk) colors.textFaint else colors.onAccent,
+                size = 15.dp,
+            )
+        }
+    }
+}
+
+/** A quiet status line: icon, headline, detail. Used for delays and notices. */
+@Composable
+fun NoticeBanner(
+    icon: ImageVector,
+    headline: String,
+    detail: String? = null,
+    modifier: Modifier = Modifier,
+    critical: Boolean = false,
+) {
+    val colors = Waymark.colors
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(WaymarkShapes.panel)
+            .background(if (critical) colors.dangerWash else colors.noticeWash)
+            .border(
+                1.dp,
+                if (critical) colors.danger.copy(alpha = 0.4f) else colors.amber(0.35f),
+                WaymarkShapes.panel,
+            )
+            .padding(WaymarkSpacing.small),
+        horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.small),
+    ) {
+        WaymarkIcon(
+            icon = icon,
+            tint = if (critical) colors.danger else colors.accentBright,
+            size = 17.dp,
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = headline,
+                style = Waymark.type.bodySmall,
+                color = if (critical) colors.danger else colors.textHeading,
+            )
+            detail?.let {
+                Text(text = it, style = Waymark.type.hint, color = colors.textDim)
+            }
+        }
+    }
+}
