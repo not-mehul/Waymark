@@ -33,8 +33,8 @@ data class AddFlightUiState(
     val date: LocalDate = LocalDate.now(),
     val origin: String = "",
     val destination: String = "",
-    val departTime: String = "",
-    val arriveTime: String = "",
+    val departTime: LocalTime? = null,
+    val arriveTime: LocalTime? = null,
 
     // Everything below is optional detail, off the ticket.
     val departureTerminal: String = "",
@@ -52,8 +52,6 @@ data class AddFlightUiState(
     val parsedDesignator: FlightDesignator? get() = FlightDesignator.parse(designator)
     val originAirport: Airport? get() = Airports.find(origin)
     val destinationAirport: Airport? get() = Airports.find(destination)
-    val departure: LocalTime? get() = parseClock(departTime)
-    val arrival: LocalTime? get() = parseClock(arriveTime)
 
     /** Only the four facts a flight cannot exist without are required. */
     val canSave: Boolean
@@ -61,8 +59,8 @@ data class AddFlightUiState(
             originAirport != null &&
             destinationAirport != null &&
             originAirport?.code != destinationAirport?.code &&
-            departure != null &&
-            arrival != null
+            departTime != null &&
+            arriveTime != null
 
     /** Station suggestions for whichever end is being typed into. */
     fun suggestionsFor(field: Field): List<Airport> {
@@ -76,18 +74,6 @@ data class AddFlightUiState(
 
     enum class Field { ORIGIN, DESTINATION }
 
-    companion object {
-        /** "0815", "08:15", "8:15" all mean the same thing to a tired traveler. */
-        fun parseClock(text: String): LocalTime? {
-            val digits = text.filter { it.isDigit() }
-            if (digits.length !in 3..4) return null
-            val padded = digits.padStart(4, '0')
-            val hour = padded.substring(0, 2).toIntOrNull() ?: return null
-            val minute = padded.substring(2, 4).toIntOrNull() ?: return null
-            if (hour > 23 || minute > 59) return null
-            return LocalTime.of(hour, minute)
-        }
-    }
 }
 
 class AddFlightViewModel(
@@ -117,9 +103,9 @@ class AddFlightViewModel(
 
     fun setDestination(text: String) = mutable.update { it.copy(destination = text.uppercase()) }
 
-    fun setDepartTime(text: String) = mutable.update { it.copy(departTime = text) }
+    fun setDepartTime(time: LocalTime) = mutable.update { it.copy(departTime = time) }
 
-    fun setArriveTime(text: String) = mutable.update { it.copy(arriveTime = text) }
+    fun setArriveTime(time: LocalTime) = mutable.update { it.copy(arriveTime = time) }
 
     fun setDepartureTerminal(text: String) = mutable.update { it.copy(departureTerminal = text) }
 
@@ -172,8 +158,8 @@ class AddFlightViewModel(
         val designator = ui.parsedDesignator ?: return null
         val origin = ui.originAirport?.toPlace() ?: return null
         val destination = ui.destinationAirport?.toPlace() ?: return null
-        val departTime = ui.departure ?: return null
-        val arriveTime = ui.arrival ?: return null
+        val departTime = ui.departTime ?: return null
+        val arriveTime = ui.arriveTime ?: return null
 
         val departure = ZonedDateTime.of(ui.date, departTime, ZoneId.of(origin.timeZoneId))
         var arrival = ZonedDateTime.of(ui.date, arriveTime, ZoneId.of(destination.timeZoneId))

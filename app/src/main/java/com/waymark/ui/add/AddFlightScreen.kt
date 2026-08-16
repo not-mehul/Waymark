@@ -10,15 +10,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waymark.data.catalog.Airports
 import com.waymark.domain.logic.TimeText
+import com.waymark.ui.components.DateField
 import com.waymark.ui.components.EmptyLine
 import com.waymark.ui.components.FieldLabel
 import com.waymark.ui.components.Footnote
@@ -27,15 +27,14 @@ import com.waymark.ui.components.PartyMark
 import com.waymark.ui.components.PrimaryButton
 import com.waymark.ui.components.ScreenScaffold
 import com.waymark.ui.components.SectionHeader
+import com.waymark.ui.components.TimeField
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.components.WaymarkTextField
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
 import java.time.Duration
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
-import java.time.format.DateTimeParseException
 
 /**
  * A flight, typed in.
@@ -67,8 +66,9 @@ fun AddFlightScreen(
                 modifier = Modifier.weight(1f),
             )
             DateField(
-                date = state.date,
-                onDateChange = viewModel::setDate,
+                value = state.date,
+                onValueChange = viewModel::setDate,
+                label = "Date",
                 modifier = Modifier.weight(1f),
             )
         }
@@ -91,22 +91,16 @@ fun AddFlightScreen(
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
-            WaymarkTextField(
+            TimeField(
                 value = state.departTime,
                 onValueChange = viewModel::setDepartTime,
                 label = "Departs",
-                placeholder = "16:20",
-                mono = true,
-                keyboardType = KeyboardType.Number,
                 modifier = Modifier.weight(1f),
             )
-            WaymarkTextField(
+            TimeField(
                 value = state.arriveTime,
                 onValueChange = viewModel::setArriveTime,
                 label = "Arrives",
-                placeholder = "10:55",
-                mono = true,
-                keyboardType = KeyboardType.Number,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -281,42 +275,17 @@ private fun StationField(
     }
 }
 
-@Composable
-private fun DateField(
-    date: LocalDate,
-    onDateChange: (LocalDate) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var text by rememberSaveable(date) { mutableStateOf(date.toString()) }
-    WaymarkTextField(
-        value = text,
-        onValueChange = { entered ->
-            text = entered
-            try {
-                onDateChange(LocalDate.parse(entered.trim()))
-            } catch (error: DateTimeParseException) {
-                // Left as typed until it parses; no shouting mid-entry.
-            }
-        },
-        label = "Date",
-        placeholder = "2026-05-14",
-        mono = true,
-        keyboardType = KeyboardType.Number,
-        modifier = modifier,
-    )
-}
-
 /**
- * Block time, computed from what has been typed so far — the one number the
- * app can derive rather than ask for, and the quickest way to catch a time
- * entered in the wrong zone or with the digits transposed.
+ * Block time, computed from what has been entered so far — the one number the
+ * app can derive rather than ask for, and the quickest way to catch a time set
+ * against the wrong airport.
  */
 private fun AddFlightUiState.blockSummary(): String? {
     if (!canSave) return null
     val from = originAirport ?: return null
     val to = destinationAirport ?: return null
-    val leaves = ZonedDateTime.of(date, departure ?: return null, ZoneId.of(from.timeZoneId))
-    var lands = ZonedDateTime.of(date, arrival ?: return null, ZoneId.of(to.timeZoneId))
+    val leaves = ZonedDateTime.of(date, departTime ?: return null, ZoneId.of(from.timeZoneId))
+    var lands = ZonedDateTime.of(date, arriveTime ?: return null, ZoneId.of(to.timeZoneId))
     if (!lands.toInstant().isAfter(leaves.toInstant())) lands = lands.plusDays(1)
 
     val minutes = Duration.between(leaves, lands).toMinutes().toInt()

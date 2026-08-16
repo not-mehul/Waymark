@@ -49,14 +49,7 @@ data class IdeaTally(
 object IdeaBoard {
 
     /** Sections in a fixed order, so the board does not reshuffle as it fills. */
-    private val ORDER = listOf(
-        IdeaKind.SIGHT,
-        IdeaKind.EATERY,
-        IdeaKind.DISH,
-        IdeaKind.WALK,
-        IdeaKind.ACTIVITY,
-        IdeaKind.SHOP,
-    )
+    private val ORDER = listOf(IdeaKind.SEE, IdeaKind.EAT, IdeaKind.DO, IdeaKind.SHOP)
 
     fun sections(
         ideas: List<Idea>,

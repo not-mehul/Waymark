@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkShapes
@@ -171,23 +172,40 @@ fun WaymarkTextField(
 }
 
 /**
- * Theme switch: a two-pixel track holding a moon and a sun, with an amber
- * knob that slides between them. Operable by keyboard, announces its state.
+ * Theme switch: a track holding a moon and a sun, with an amber knob that
+ * slides between them. Operable by keyboard, announces its state.
+ *
+ * The geometry is derived rather than typed, because it had drifted: the knob
+ * rested 2dp from the left edge but 4dp from the right, and the icons were
+ * spaced by `SpaceBetween` against a padding that put the sun 2.5dp off the
+ * centre of its own knob. Both halves now come from the same three numbers, so
+ * the moon and the sun sit exactly under the knob in either theme.
  */
 @Composable
 fun ThemeToggle(modifier: Modifier = Modifier) {
     val colors = Waymark.colors
     val controller = Waymark.theme
+
+    val track = 60.dp
+    val inset = 3.dp
+    val knob = 26.dp
+    // Two rest positions, equidistant from their own edge.
+    val restLeft = inset
+    val restRight = track - inset - knob
+    // …and therefore two centres, symmetric about the middle of the track.
+    val centreLeft = restLeft + knob / 2
+    val centreRight = restRight + knob / 2
+
     val knobOffset by animateDpAsState(
-        targetValue = if (controller.isDusk) 2.dp else 30.dp,
+        targetValue = if (controller.isDusk) restLeft else restRight,
         animationSpec = tween(durationMillis = 220),
         label = "theme-knob",
     )
 
     Box(
         modifier = modifier
-            .width(60.dp)
-            .height(32.dp)
+            .width(track)
+            .height(knob + inset * 2)
             .clip(WaymarkShapes.control)
             .background(colors.input)
             .border(1.dp, colors.border, WaymarkShapes.control)
@@ -196,32 +214,37 @@ fun ThemeToggle(modifier: Modifier = Modifier) {
                 contentDescription = "Theme"
                 stateDescription = if (controller.isDusk) "Dusk" else "Dawn"
             },
+        contentAlignment = Alignment.CenterStart,
     ) {
         Box(
             modifier = Modifier
-                .offset(x = knobOffset, y = 2.dp)
-                .size(26.dp)
+                .offset(x = knobOffset)
+                .size(knob)
                 .clip(WaymarkShapes.control)
                 .background(colors.accentAmber)
         )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 7.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            WaymarkIcon(
-                icon = WaymarkIcons.Moon,
-                tint = if (controller.isDusk) colors.onAccent else colors.textFaint,
-                size = 15.dp,
-            )
-            WaymarkIcon(
-                icon = WaymarkIcons.Sun,
-                tint = if (controller.isDusk) colors.textFaint else colors.onAccent,
-                size = 15.dp,
-            )
-        }
+        ToggleGlyph(
+            icon = WaymarkIcons.Moon,
+            centre = centreLeft,
+            tint = if (controller.isDusk) colors.onAccent else colors.textFaint,
+        )
+        ToggleGlyph(
+            icon = WaymarkIcons.Sun,
+            centre = centreRight,
+            tint = if (controller.isDusk) colors.textFaint else colors.onAccent,
+        )
+    }
+}
+
+/** One glyph, centred on a given x within the track rather than laid out by flow. */
+@Composable
+private fun ToggleGlyph(icon: ImageVector, centre: Dp, tint: Color) {
+    val size = 15.dp
+    Box(
+        modifier = Modifier.offset(x = centre - size / 2).size(size),
+        contentAlignment = Alignment.Center,
+    ) {
+        WaymarkIcon(icon = icon, tint = tint, size = size)
     }
 }
 

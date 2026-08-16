@@ -30,15 +30,15 @@ class IdeaBoardTest {
         }
         // Sights come before food, food before walks: the board does not reshuffle.
         val order = sections.map { it.kind }
-        assertTrue(order.indexOf(IdeaKind.SIGHT) < order.indexOf(IdeaKind.DISH))
+        assertTrue(order.indexOf(IdeaKind.SEE) < order.indexOf(IdeaKind.EAT))
     }
 
     @Test
     fun `open items sort above finished ones`() {
         val mixed = listOf(
-            idea("z-done", IdeaKind.SIGHT, IdeaStatus.DONE),
-            idea("a-saved", IdeaKind.SIGHT, IdeaStatus.SAVED),
-            idea("m-scheduled", IdeaKind.SIGHT, IdeaStatus.SCHEDULED),
+            idea("z-done", IdeaKind.SEE, IdeaStatus.DONE),
+            idea("a-saved", IdeaKind.SEE, IdeaStatus.SAVED),
+            idea("m-scheduled", IdeaKind.SEE, IdeaStatus.SCHEDULED),
         )
         val titles = IdeaBoard.sections(mixed).single().ideas.map { it.title }
         assertEquals(listOf("a-saved", "m-scheduled", "z-done"), titles)
@@ -46,7 +46,7 @@ class IdeaBoardTest {
 
     @Test
     fun `dismissed ideas stay out of the way unless asked for`() {
-        val withDismissed = ideas + idea("Not this trip", IdeaKind.SIGHT, IdeaStatus.DISMISSED)
+        val withDismissed = ideas + idea("Not this trip", IdeaKind.SEE, IdeaStatus.DISMISSED)
         val visible = IdeaBoard.sections(withDismissed).flatMap { it.ideas }
         assertTrue(visible.none { it.status == IdeaStatus.DISMISSED })
         val all = IdeaBoard.sections(withDismissed, includeDismissed = true).flatMap { it.ideas }
@@ -112,7 +112,7 @@ class IdeaBoardTest {
 
     @Test
     fun `an idea with no estimate gets an hour, and an override wins`() {
-        val vague = idea("Something", IdeaKind.ACTIVITY, IdeaStatus.SAVED)
+        val vague = idea("Something", IdeaKind.DO, IdeaStatus.SAVED)
         val default = IdeaBoard.schedule(
             vague, "s1", LocalDate.of(2026, 5, 17), LocalTime.NOON, london, emptySet(),
         )
@@ -127,7 +127,7 @@ class IdeaBoardTest {
 
     @Test
     fun `scheduling falls back to the idea's own interest list for travelers`() {
-        val claimed = idea("Walk", IdeaKind.WALK, IdeaStatus.SAVED)
+        val claimed = idea("Walk", IdeaKind.SEE, IdeaStatus.SAVED)
             .copy(interestedTravelerIds = setOf("trav-julian"))
         val segment = IdeaBoard.schedule(
             claimed, "s3", LocalDate.of(2026, 5, 17), LocalTime.NOON, london, emptySet(),
@@ -147,7 +147,7 @@ class IdeaBoardTest {
         assertTrue(near.all { it.second <= 5.0 })
         assertTrue(near.all { it.first.status == IdeaStatus.SAVED })
         // A dish has no coordinates and cannot be "near" anything.
-        assertTrue(near.none { it.first.kind == IdeaKind.DISH && it.first.place == null })
+        assertTrue(near.none { it.first.kind == IdeaKind.EAT && it.first.place == null })
     }
 
     @Test

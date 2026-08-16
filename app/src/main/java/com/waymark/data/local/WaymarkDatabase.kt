@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [
@@ -16,10 +18,9 @@ import androidx.room.RoomDatabase
         IdeaEntity::class,
         DocumentEntity::class,
         PackingItemEntity::class,
-        FlightStatusEntity::class,
         RaisedAlertEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class WaymarkDatabase : RoomDatabase() {
@@ -32,7 +33,6 @@ abstract class WaymarkDatabase : RoomDatabase() {
     abstract fun ideaDao(): IdeaDao
     abstract fun documentDao(): DocumentDao
     abstract fun packingDao(): PackingDao
-    abstract fun flightStatusDao(): FlightStatusDao
     abstract fun alertDao(): AlertDao
 
     companion object {
@@ -48,6 +48,22 @@ abstract class WaymarkDatabase : RoomDatabase() {
         private fun build(context: Context): WaymarkDatabase =
             Room.databaseBuilder(context, WaymarkDatabase::class.java, NAME)
                 .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
+                .addMigrations(MIGRATION_1_2)
                 .build()
+
+        /**
+         * Version 2 drops the flight-status table and folds the six idea kinds
+         * into four. Both are destructive of data the app no longer models, so
+         * they are done in SQL rather than by rebuilding the database: a
+         * traveler's itinerary must survive an app update.
+         */
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS flight_status")
+                db.execSQL("UPDATE ideas SET kind = 'EAT' WHERE kind IN ('DISH', 'EATERY')")
+                db.execSQL("UPDATE ideas SET kind = 'SEE' WHERE kind = 'SIGHT'")
+                db.execSQL("UPDATE ideas SET kind = 'DO' WHERE kind IN ('ACTIVITY', 'WALK')")
+            }
+        }
     }
 }

@@ -3,8 +3,6 @@ package com.waymark.data.local
 import com.waymark.domain.model.BoardingPass
 import com.waymark.domain.model.DisruptionAlert
 import com.waymark.domain.model.DocumentKind
-import com.waymark.domain.model.FlightState
-import com.waymark.domain.model.FlightStatus
 import com.waymark.domain.model.GroundMode
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
@@ -277,7 +275,7 @@ object Mappers {
         id = entity.id,
         tripId = entity.tripId,
         title = entity.title,
-        kind = runCatching { IdeaKind.valueOf(entity.kind) }.getOrDefault(IdeaKind.SIGHT),
+        kind = runCatching { IdeaKind.valueOf(entity.kind) }.getOrDefault(IdeaKind.SEE),
         city = entity.city,
         place = Codecs.decodePlace(entity.place),
         note = entity.note,
@@ -368,60 +366,6 @@ object Mappers {
         note = item.note,
         source = item.source,
         addedAtMillis = item.addedAtMillis,
-    )
-
-    fun toStatus(entity: FlightStatusEntity): FlightStatus = FlightStatus(
-        segmentId = entity.segmentId,
-        designator = entity.designator,
-        state = runCatching { FlightState.valueOf(entity.state) }.getOrDefault(FlightState.UNKNOWN),
-        scheduledDepartureMillis = entity.scheduledDepartureMillis,
-        estimatedDepartureMillis = entity.estimatedDepartureMillis,
-        scheduledArrivalMillis = entity.scheduledArrivalMillis,
-        estimatedArrivalMillis = entity.estimatedArrivalMillis,
-        departureTerminal = entity.departureTerminal,
-        departureGate = entity.departureGate,
-        arrivalTerminal = entity.arrivalTerminal,
-        arrivalGate = entity.arrivalGate,
-        baggageBelt = entity.baggageBelt,
-        boardingMillis = entity.boardingMillis,
-        position = if (entity.latitude != null && entity.longitude != null) {
-            FlightStatus.Position(
-                latitude = entity.latitude,
-                longitude = entity.longitude,
-                altitudeFeet = entity.altitudeFeet,
-                groundSpeedKnots = entity.groundSpeedKnots,
-                headingDegrees = entity.headingDegrees,
-            )
-        } else {
-            null
-        },
-        progressPercent = entity.progressPercent,
-        observedAtMillis = entity.observedAtMillis,
-        source = entity.source,
-    )
-
-    fun toEntity(status: FlightStatus): FlightStatusEntity = FlightStatusEntity(
-        segmentId = status.segmentId,
-        designator = status.designator,
-        state = status.state.name,
-        scheduledDepartureMillis = status.scheduledDepartureMillis,
-        estimatedDepartureMillis = status.estimatedDepartureMillis,
-        scheduledArrivalMillis = status.scheduledArrivalMillis,
-        estimatedArrivalMillis = status.estimatedArrivalMillis,
-        departureTerminal = status.departureTerminal,
-        departureGate = status.departureGate,
-        arrivalTerminal = status.arrivalTerminal,
-        arrivalGate = status.arrivalGate,
-        baggageBelt = status.baggageBelt,
-        boardingMillis = status.boardingMillis,
-        latitude = status.position?.latitude,
-        longitude = status.position?.longitude,
-        altitudeFeet = status.position?.altitudeFeet,
-        groundSpeedKnots = status.position?.groundSpeedKnots,
-        headingDegrees = status.position?.headingDegrees,
-        progressPercent = status.progressPercent,
-        observedAtMillis = status.observedAtMillis,
-        source = status.source,
     )
 
     fun toAlert(entity: RaisedAlertEntity): DisruptionAlert = DisruptionAlert(

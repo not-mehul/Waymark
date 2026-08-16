@@ -22,8 +22,6 @@ data class ChartRoute(
     val from: LatLon,
     val to: LatLon,
     val flying: Boolean,
-    val aircraft: LatLon? = null,
-    val emphasis: Boolean = false,
 )
 
 /** Flat chart or globe. The same data, projected two ways. */

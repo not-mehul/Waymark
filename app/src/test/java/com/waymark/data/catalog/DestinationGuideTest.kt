@@ -24,11 +24,11 @@ class DestinationGuideTest {
             assertTrue("$city has too few entries", entries.size >= 5)
             assertTrue(
                 "$city has nothing to eat",
-                entries.any { it.kind == IdeaKind.DISH || it.kind == IdeaKind.EATERY },
+                entries.any { it.kind == IdeaKind.EAT || it.kind == IdeaKind.EAT },
             )
             assertTrue(
                 "$city has nothing to see or do",
-                entries.any { it.kind == IdeaKind.SIGHT || it.kind == IdeaKind.WALK },
+                entries.any { it.kind == IdeaKind.SEE || it.kind == IdeaKind.SEE },
             )
         }
     }
@@ -63,7 +63,7 @@ class DestinationGuideTest {
         val entry = DestinationGuide.forCity("London").first { it.title == "Borough Market" }
         val idea = with(DestinationGuide) { entry.toIdea("i1", "trip", "London") }
 
-        assertEquals(IdeaKind.EATERY, idea.kind)
+        assertEquals(IdeaKind.EAT, idea.kind)
         assertTrue(idea.hasLocation)
         assertEquals(ZoneId.of("Europe/London"), ZoneId.of(idea.place!!.timeZoneId))
         assertEquals("Bundled guide", idea.source)

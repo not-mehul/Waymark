@@ -1,6 +1,5 @@
 package com.waymark.ui.segment
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,17 +14,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waymark.data.catalog.DestinationInsights
 import com.waymark.domain.logic.ConnectionRisk
-import com.waymark.domain.logic.FlightUpdate
 import com.waymark.domain.logic.Geo
 import com.waymark.domain.logic.TimeText
 import com.waymark.domain.logic.TransitEstimator
-import com.waymark.domain.model.FlightState
-import com.waymark.domain.model.FlightStatus
 import com.waymark.domain.model.Segment
 import com.waymark.ui.components.FieldLabel
 import com.waymark.ui.components.Footnote
@@ -33,26 +28,26 @@ import com.waymark.ui.components.GhostIconButton
 import com.waymark.ui.components.Hairline
 import com.waymark.ui.components.MutedButton
 import com.waymark.ui.components.NoticeBanner
-import com.waymark.ui.components.OptionChip
 import com.waymark.ui.components.Panel
 import com.waymark.ui.components.PartyMark
-import com.waymark.ui.components.PrimaryButton
 import com.waymark.ui.components.ScreenScaffold
 import com.waymark.ui.components.SectionHeader
 import com.waymark.ui.components.SectionLabel
 import com.waymark.ui.components.Stat
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.components.WaymarkModal
-import com.waymark.ui.components.WaymarkTextField
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
 import com.waymark.ui.trip.TripViewModel
-import java.time.Instant
 
 /**
- * One booking in full: the times in both local clocks, who is on it, the codes
- * that belong to it, and — for a flight — whatever the departure board last
- * said, as reported by whoever was standing in front of it.
+ * One booking in full — and, until you say otherwise, **read only**.
+ *
+ * The traveler chips on this screen used to be live: a stray thumb while
+ * scrolling could quietly add someone to a flight they were not on, and
+ * nothing said it had happened. A booking is a record of something that is
+ * already arranged, so it now behaves like one. Edit puts the whole screen
+ * into a form with Save and Cancel; nothing is written until Save.
  */
 @Composable
 fun SegmentScreen(
@@ -64,9 +59,21 @@ fun SegmentScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = Waymark.colors
     val segment = state.dossier?.segments?.firstOrNull { it.id == segmentId }
-    val status = segment?.let { state.dossier?.statusFor(it) }
     var confirmingDelete by remember { mutableStateOf(false) }
-    var reporting by remember { mutableStateOf(false) }
+    var editing by remember(segmentId) { mutableStateOf(false) }
+
+    if (editing && segment != null) {
+        EditSegmentScreen(
+            original = segment,
+            party = state.dossier?.party?.travelers.orEmpty(),
+            onCancel = { editing = false },
+            onSave = {
+                viewModel.updateSegment(it)
+                editing = false
+            },
+        )
+        return
+    }
 
     ScreenScaffold(
         title = segment?.title ?: "Booking",
@@ -74,26 +81,24 @@ fun SegmentScreen(
         spacing = WaymarkSpacing.small,
         action = {
             if (segment != null) {
-                GhostIconButton(
-                    icon = WaymarkIcons.Trash,
-                    contentDescription = "Remove booking",
-                    onClick = { confirmingDelete = true },
-                )
+                Row {
+                    GhostIconButton(
+                        icon = WaymarkIcons.Pencil,
+                        contentDescription = "Edit booking",
+                        onClick = { editing = true },
+                    )
+                    GhostIconButton(
+                        icon = WaymarkIcons.Trash,
+                        contentDescription = "Remove booking",
+                        onClick = { confirmingDelete = true },
+                    )
+                }
             }
         },
     ) {
         if (segment == null) {
             Footnote("This booking has been removed.")
             return@ScreenScaffold
-        }
-
-        if (segment is Segment.Flight) {
-            StatusPanel(
-                status = status,
-                segment = segment,
-                onReport = { reporting = true },
-                onClear = { viewModel.clearFlightReport(segment.id) },
-            )
         }
 
         Panel(modifier = Modifier.fillMaxWidth()) {
@@ -175,26 +180,28 @@ fun SegmentScreen(
 
         SpecificsPanel(segment, state.dossier?.party?.travelers.orEmpty())
 
-        SectionHeader("Travelling")
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
-        ) {
-            state.dossier?.party?.travelers?.forEach { traveler ->
-                val on = segment.travelerIds.isEmpty() || traveler.id in segment.travelerIds
-                OptionChip(
-                    text = traveler.displayName,
-                    selected = on,
-                    onClick = {
-                        val current = segment.travelerIds.ifEmpty {
-                            state.dossier?.party?.travelers?.map { it.id }?.toSet().orEmpty()
-                        }
-                        viewModel.setTravelers(
-                            segment.id,
-                            if (on) current - traveler.id else current + traveler.id,
-                        )
+        val party = state.dossier?.party?.travelers.orEmpty()
+        val travelling = party.filter {
+            segment.travelerIds.isEmpty() || it.id in segment.travelerIds
+        }
+        if (party.size > 1) {
+            SectionHeader("Travelling")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    travelling.forEach { PartyMark(initials = it.initials, size = 22.dp) }
+                }
+                Text(
+                    text = if (travelling.size == party.size) {
+                        "Everyone"
+                    } else {
+                        travelling.joinToString(", ") { it.displayName }
                     },
-                    leading = { PartyMark(initials = traveler.initials, active = on, size = 18.dp) },
+                    style = Waymark.type.bodySmall,
+                    color = colors.textBody,
                 )
             }
         }
@@ -241,7 +248,7 @@ fun SegmentScreen(
             }
         }
 
-        ConnectionPanel(segment, state.dossier?.segments.orEmpty(), state.dossier?.statuses.orEmpty())
+        ConnectionPanel(segment, state.dossier?.segments.orEmpty())
 
         val insight = DestinationInsights.forAirport(segment.destination.code)
             ?: DestinationInsights.forCity(segment.destination.city)
@@ -251,18 +258,6 @@ fun SegmentScreen(
                     "emergency ${it.emergencyNumber}"
             )
         }
-    }
-
-    if (reporting && segment is Segment.Flight) {
-        ReportStatusModal(
-            flight = segment,
-            current = status,
-            onDismiss = { reporting = false },
-            onReport = { update ->
-                viewModel.reportFlight(segment.id, update)
-                reporting = false
-            },
-        )
     }
 
     if (confirmingDelete && segment != null) {
@@ -295,204 +290,6 @@ fun SegmentScreen(
                 )
             }
         }
-    }
-}
-
-/**
- * What the flight is doing, and the control that changes it.
- *
- * Waymark has no feed, so this panel is only ever as current as the last
- * person who looked at a board and typed what it said. It says so, with a
- * timestamp, rather than presenting a hand-entered delay as a live one.
- */
-@Composable
-private fun StatusPanel(
-    status: FlightStatus?,
-    segment: Segment.Flight,
-    onReport: () -> Unit,
-    onClear: () -> Unit,
-) {
-    val colors = Waymark.colors
-
-    if (status == null) {
-        Panel(faint = true, modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "On its booked times",
-                        style = Waymark.type.cardTitle,
-                        color = colors.textHeading,
-                    )
-                    Text(
-                        text = "Nothing reported yet.",
-                        style = Waymark.type.hint,
-                        color = colors.textDim,
-                    )
-                }
-                MutedButton(text = "Report", onClick = onReport)
-            }
-        }
-        return
-    }
-
-    val delay = status.departureDelayMinutes
-    Panel(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = status.state.label,
-                style = Waymark.type.sectionHeading,
-                color = if (status.state.isDisrupted) colors.danger else colors.textHeading,
-            )
-            MutedButton(text = "Update", onClick = onReport)
-        }
-
-        Spacer(Modifier.height(WaymarkSpacing.snug))
-        Text(
-            text = buildString {
-                if (delay != 0) {
-                    append("Departure ${TimeText.duration(delay)} ")
-                    append(if (delay > 0) "late" else "early")
-                    append(" · now ")
-                    append(
-                        TimeText.clock(
-                            Instant.ofEpochMilli(status.estimatedDepartureMillis)
-                                .atZone(segment.start.zone)
-                        )
-                    )
-                } else {
-                    append("Running to schedule")
-                }
-                status.departureGate?.let { append(" · gate $it") }
-                status.departureTerminal?.let { append(" · terminal $it") }
-                status.baggageBelt?.let { append(" · belt $it") }
-            },
-            style = Waymark.type.bodySmall,
-            color = colors.textMuted,
-        )
-
-        Spacer(Modifier.height(WaymarkSpacing.snug))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Reported ${TimeText.relative(status.observedAtMillis)}",
-                style = Waymark.type.hint,
-                color = colors.textFaint,
-            )
-            Text(
-                text = "Reset",
-                style = Waymark.type.hint,
-                color = colors.textDim,
-                modifier = Modifier.clickable(onClick = onClear),
-            )
-        }
-    }
-}
-
-/**
- * The report itself. Deliberately five fields and no more: a traveler at a
- * gate with a bag on their shoulder is not going to fill in a form.
- */
-@Composable
-private fun ReportStatusModal(
-    flight: Segment.Flight,
-    current: FlightStatus?,
-    onDismiss: () -> Unit,
-    onReport: (FlightUpdate) -> Unit,
-) {
-    var state by remember { mutableStateOf(current?.state) }
-    var delay by remember { mutableStateOf(current?.departureDelayMinutes?.toString().orEmpty()) }
-    var gate by remember { mutableStateOf(current?.departureGate.orEmpty()) }
-    var terminal by remember { mutableStateOf(current?.departureTerminal.orEmpty()) }
-    var belt by remember { mutableStateOf(current?.baggageBelt.orEmpty()) }
-
-    WaymarkModal(
-        title = flight.designator,
-        eyebrow = "What the board says",
-        onDismiss = onDismiss,
-    ) {
-        FieldLabel("Status")
-        // The six states a departure board actually shows. Anything finer is
-        // detail nobody standing in a queue is going to enter.
-        listOf(
-            listOf(FlightState.ON_TIME, FlightState.DELAYED, FlightState.BOARDING),
-            listOf(FlightState.DEPARTED, FlightState.LANDED, FlightState.CANCELLED),
-        ).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
-                row.forEach { option ->
-                    OptionChip(
-                        text = option.label,
-                        selected = state == option,
-                        onClick = { state = if (state == option) null else option },
-                    )
-                }
-            }
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
-            WaymarkTextField(
-                value = delay,
-                onValueChange = { delay = it.filter { c -> c.isDigit() || c == '-' } },
-                label = "Delay (min)",
-                placeholder = "40",
-                mono = true,
-                keyboardType = KeyboardType.Number,
-                modifier = Modifier.weight(1f),
-            )
-            WaymarkTextField(
-                value = gate,
-                onValueChange = { gate = it.uppercase() },
-                label = "Gate",
-                placeholder = "A12",
-                mono = true,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
-            WaymarkTextField(
-                value = terminal,
-                onValueChange = { terminal = it.uppercase() },
-                label = "Terminal",
-                placeholder = "5",
-                mono = true,
-                modifier = Modifier.weight(1f),
-            )
-            WaymarkTextField(
-                value = belt,
-                onValueChange = { belt = it.uppercase() },
-                label = "Baggage belt",
-                placeholder = "7",
-                mono = true,
-                modifier = Modifier.weight(1f),
-            )
-        }
-
-        PrimaryButton(
-            text = "Save",
-            icon = WaymarkIcons.Check,
-            onClick = {
-                onReport(
-                    FlightUpdate(
-                        state = state,
-                        departureDelayMinutes = delay.toIntOrNull(),
-                        departureGate = gate,
-                        departureTerminal = terminal,
-                        baggageBelt = belt,
-                    )
-                )
-            },
-            modifier = Modifier.fillMaxWidth(),
-        )
     }
 }
 
@@ -553,11 +350,7 @@ private fun SpecificsPanel(
 
 /** What happens either side of this booking, and whether it actually works. */
 @Composable
-private fun ConnectionPanel(
-    segment: Segment,
-    all: List<Segment>,
-    statuses: Map<String, FlightStatus>,
-) {
+private fun ConnectionPanel(segment: Segment, all: List<Segment>) {
     val colors = Waymark.colors
     val ordered = all.sortedBy { it.startEpochMillis }
     val index = ordered.indexOfFirst { it.id == segment.id }
@@ -567,12 +360,7 @@ private fun ConnectionPanel(
 
     val gapMinutes = ((segment.startEpochMillis - previous.endEpochMillis) / 60_000L).toInt()
     val verdict = if (previous is Segment.Flight && segment is Segment.Flight) {
-        ConnectionRisk.assess(
-            inbound = previous,
-            onward = segment,
-            inboundStatus = statuses[previous.id],
-            onwardStatus = statuses[segment.id],
-        )
+        ConnectionRisk.assess(inbound = previous, onward = segment)
     } else {
         ConnectionRisk.assessGap(previous.destination, segment.origin, gapMinutes)
     }

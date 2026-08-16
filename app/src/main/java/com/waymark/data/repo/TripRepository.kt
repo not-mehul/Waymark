@@ -27,7 +27,6 @@ class TripRepository(
     private val trips = database.tripDao()
     private val travelers = database.travelerDao()
     private val segments = database.segmentDao()
-    private val statuses = database.flightStatusDao()
     private val ideas = database.ideaDao()
 
     fun observeTrips(): Flow<List<Trip>> =
@@ -46,18 +45,12 @@ class TripRepository(
         trips.observe(tripId),
         travelers.observeForTrip(tripId),
         segments.observeForTrip(tripId),
-        statuses.observeAll(),
-    ) { trip, party, rows, statusRows ->
+    ) { trip, party, rows ->
         trip ?: return@combine null
-        val mappedSegments = rows.map(Mappers::toSegment)
-        val segmentIds = mappedSegments.map { it.id }.toSet()
         TripDossier(
             trip = Mappers.toTrip(trip),
             party = TripParty(tripId, party.map(Mappers::toTraveler)),
-            segments = mappedSegments,
-            statuses = statusRows
-                .filter { it.segmentId in segmentIds }
-                .associate { it.segmentId to Mappers.toStatus(it) },
+            segments = rows.map(Mappers::toSegment),
         )
     }
 
@@ -98,7 +91,6 @@ class TripRepository(
 
     suspend fun deleteSegment(segmentId: String) {
         database.withTransaction {
-            statuses.delete(segmentId)
             // An idea promoted onto the timeline goes back to the list rather
             // than vanishing with the segment.
             ideas.releaseSegment(segmentId)

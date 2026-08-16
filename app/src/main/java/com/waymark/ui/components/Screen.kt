@@ -103,22 +103,6 @@ fun Footnote(text: String, modifier: Modifier = Modifier) {
     )
 }
 
-/**
- * A row of labelled facts that share a line. Collapses to whatever fits; each
- * entry keeps the serif number over tracked mono label of [Stat].
- */
-@Composable
-fun StatRow(
-    modifier: Modifier = Modifier,
-    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.large),
-        content = content,
-    )
-}
-
 /** The standard empty state: one line, dim, no panel, no illustration. */
 @Composable
 fun EmptyLine(text: String, modifier: Modifier = Modifier) {

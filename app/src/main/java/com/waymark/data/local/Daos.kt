@@ -212,25 +212,6 @@ interface PackingDao {
 }
 
 @Dao
-interface FlightStatusDao {
-
-    @Query("SELECT * FROM flight_status")
-    fun observeAll(): Flow<List<FlightStatusEntity>>
-
-    @Query("SELECT * FROM flight_status WHERE segmentId IN (:segmentIds)")
-    fun observeFor(segmentIds: List<String>): Flow<List<FlightStatusEntity>>
-
-    @Query("SELECT * FROM flight_status WHERE segmentId = :segmentId")
-    suspend fun find(segmentId: String): FlightStatusEntity?
-
-    @Upsert
-    suspend fun upsert(status: FlightStatusEntity)
-
-    @Query("DELETE FROM flight_status WHERE segmentId = :segmentId")
-    suspend fun delete(segmentId: String)
-}
-
-@Dao
 interface AlertDao {
 
     @Query("SELECT * FROM raised_alerts ORDER BY raisedAtMillis DESC LIMIT 50")

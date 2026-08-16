@@ -30,8 +30,8 @@ data class AddPlanUiState(
     val destinationQuery: String = "",
     val startDate: LocalDate = LocalDate.now(),
     val endDate: LocalDate = LocalDate.now().plusDays(1),
-    val startTime: String = "15:00",
-    val endTime: String = "11:00",
+    val startTime: LocalTime = LocalTime.of(15, 0),
+    val endTime: LocalTime = LocalTime.of(11, 0),
     val mode: GroundMode = GroundMode.TRAIN,
     val category: String = "",
     val note: String = "",
@@ -41,10 +41,8 @@ data class AddPlanUiState(
     val zoneId: String = ZoneId.systemDefault().id,
 ) {
     val needsDestination: Boolean get() = kind == SegmentKind.GROUND
-    val canSave: Boolean
-        get() = title.isNotBlank() &&
-            AddFlightUiState.parseClock(startTime) != null &&
-            AddFlightUiState.parseClock(endTime) != null
+    /** A plan needs a name; the pickers guarantee everything else is valid. */
+    val canSave: Boolean get() = title.isNotBlank()
 }
 
 /**
@@ -73,8 +71,10 @@ class AddPlanViewModel(
     fun setKind(kind: SegmentKind) = mutable.update {
         it.copy(
             kind = kind,
-            startTime = if (kind == SegmentKind.LODGING) "15:00" else "09:00",
-            endTime = if (kind == SegmentKind.LODGING) "11:00" else "11:00",
+            // Sensible defaults per kind: a hotel is a 15:00 check-in, an
+            // experience is a morning slot.
+            startTime = if (kind == SegmentKind.LODGING) LocalTime.of(15, 0) else LocalTime.of(9, 0),
+            endTime = LocalTime.of(11, 0),
             endDate = if (kind == SegmentKind.LODGING) it.startDate.plusDays(1) else it.startDate,
         )
     }
@@ -87,8 +87,9 @@ class AddPlanViewModel(
         it.copy(startDate = value, endDate = if (it.endDate < value) value else it.endDate)
     }
     fun setEndDate(value: LocalDate) = mutable.update { it.copy(endDate = value) }
-    fun setStartTime(value: String) = mutable.update { it.copy(startTime = value) }
-    fun setEndTime(value: String) = mutable.update { it.copy(endTime = value) }
+    fun setStartTime(value: LocalTime) = mutable.update { it.copy(startTime = value) }
+
+    fun setEndTime(value: LocalTime) = mutable.update { it.copy(endTime = value) }
     fun setMode(mode: GroundMode) = mutable.update { it.copy(mode = mode) }
     fun setCategory(value: String) = mutable.update { it.copy(category = value) }
     fun setNote(value: String) = mutable.update { it.copy(note = value) }
@@ -114,12 +115,12 @@ class AddPlanViewModel(
 
         val start = ZonedDateTime.of(
             ui.startDate,
-            AddFlightUiState.parseClock(ui.startTime) ?: LocalTime.NOON,
+            ui.startTime,
             zone,
         )
         var end = ZonedDateTime.of(
             if (ui.kind == SegmentKind.LODGING) ui.endDate else ui.startDate,
-            AddFlightUiState.parseClock(ui.endTime) ?: LocalTime.NOON,
+            ui.endTime,
             endZone,
         )
         if (!end.toInstant().isAfter(start.toInstant())) end = end.plusDays(1)

@@ -268,34 +268,9 @@ data class PackingItemEntity(
     val addedAtMillis: Long,
 )
 
-@Entity(tableName = "flight_status")
-data class FlightStatusEntity(
-    @PrimaryKey val segmentId: String,
-    val designator: String,
-    val state: String,
-    val scheduledDepartureMillis: Long,
-    val estimatedDepartureMillis: Long,
-    val scheduledArrivalMillis: Long,
-    val estimatedArrivalMillis: Long,
-    val departureTerminal: String?,
-    val departureGate: String?,
-    val arrivalTerminal: String?,
-    val arrivalGate: String?,
-    val baggageBelt: String?,
-    val boardingMillis: Long?,
-    val latitude: Double?,
-    val longitude: Double?,
-    val altitudeFeet: Int?,
-    val groundSpeedKnots: Int?,
-    val headingDegrees: Int?,
-    val progressPercent: Int,
-    val observedAtMillis: Long,
-    val source: String,
-)
-
 /**
- * Alerts already raised, so a delay that has not changed does not buzz the
- * traveler's pocket every fifteen minutes.
+ * Reminders already raised, so a flight that is still four hours out does not
+ * buzz the traveler's pocket on every check.
  */
 @Entity(tableName = "raised_alerts")
 data class RaisedAlertEntity(

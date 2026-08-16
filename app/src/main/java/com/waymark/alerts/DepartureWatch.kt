@@ -57,7 +57,7 @@ class DepartureWatchWorker(
                 // One reminder per flight per departure date: the signature
                 // deliberately omits the countdown so a later run does not
                 // announce the same flight again with a smaller number.
-                container.flightRepository
+                container.alertRepository
                     .raiseOnce("departure|${flight.id}|${flight.startEpochMillis}", alert, now)
                     ?.let { Notifications.post(applicationContext, it) }
             }

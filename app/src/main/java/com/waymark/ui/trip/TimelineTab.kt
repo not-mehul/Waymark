@@ -19,7 +19,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -29,16 +28,11 @@ import com.waymark.domain.logic.LinkNature
 import com.waymark.domain.logic.RiskLevel
 import com.waymark.domain.logic.TimeText
 import com.waymark.domain.logic.TimelineEntry
-import com.waymark.domain.model.FlightState
-import com.waymark.domain.model.FlightStatus
 import com.waymark.domain.model.Segment
-import com.waymark.ui.components.FieldLabel
-import com.waymark.ui.components.MutedButton
-import com.waymark.ui.components.OptionChip
 import com.waymark.ui.components.Panel
+import com.waymark.ui.components.PartyFilterBar
 import com.waymark.ui.components.PartyMark
-import com.waymark.ui.components.PrimaryButton
-import com.waymark.ui.components.SectionLabel
+import com.waymark.ui.components.SecondaryButton
 import com.waymark.ui.components.WaymarkIcon
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.theme.Waymark
@@ -66,44 +60,23 @@ fun TimelineTab(
         contentPadding = PaddingValues(bottom = WaymarkSpacing.screenBottom),
         verticalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
     ) {
-        if (party.size > 1) {
-            item {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
-                    modifier = Modifier.padding(bottom = WaymarkSpacing.tight),
-                ) {
-                    OptionChip(
-                        text = "Everyone",
-                        selected = state.travelerFilter == null,
-                        onClick = { onFilterTraveler(null) },
-                    )
-                    party.forEach { traveler ->
-                        OptionChip(
-                            text = traveler.displayName,
-                            selected = state.travelerFilter == traveler.id,
-                            onClick = { onFilterTraveler(traveler.id) },
-                        )
-                    }
-                }
-            }
+        item {
+            PartyFilterBar(
+                names = party.associate { it.id to it.displayName },
+                selected = state.travelerFilter,
+                onSelect = onFilterTraveler,
+                modifier = Modifier.padding(bottom = WaymarkSpacing.tight),
+            )
         }
 
         if (state.timeline.isEmpty()) {
             item {
-                Panel(faint = true, modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "Nothing booked yet.",
-                        style = Waymark.type.hint,
-                        color = colors.textDim,
-                    )
-                    Spacer(Modifier.height(WaymarkSpacing.small))
-                    Text(
-                        text = "Enter a flight number and the schedule, terminals and " +
-                            "tracking fill themselves in.",
-                        style = Waymark.type.bodySmall,
-                        color = colors.textMuted,
-                    )
-                }
+                Text(
+                    text = "Nothing booked yet.",
+                    style = Waymark.type.hint,
+                    color = colors.textDim,
+                    modifier = Modifier.padding(vertical = WaymarkSpacing.small),
+                )
             }
         }
 
@@ -124,14 +97,20 @@ fun TimelineTab(
 
         item {
             Spacer(Modifier.height(WaymarkSpacing.medium))
-            Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
-                PrimaryButton(
+            // Two equal halves. They were a PrimaryButton and a MutedButton,
+            // which have different vertical padding and different border
+            // weights, so side by side one sat taller than the other.
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SecondaryButton(
                     text = "Add flight",
                     icon = WaymarkIcons.Plane,
                     onClick = onAddFlight,
                     modifier = Modifier.weight(1f),
                 )
-                MutedButton(
+                SecondaryButton(
                     text = "Add plan",
                     icon = WaymarkIcons.Plus,
                     onClick = onAddPlan,
@@ -345,11 +324,6 @@ private fun EventRow(
             }
 
             DetailLine(segment)
-
-            entry.status?.let { status ->
-                Spacer(Modifier.height(WaymarkSpacing.snug))
-                StatusLine(status)
-            }
         }
     }
 }
@@ -427,45 +401,6 @@ private fun DetailLine(segment: Segment) {
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
     )
-}
-
-@Composable
-private fun StatusLine(status: FlightStatus) {
-    val colors = Waymark.colors
-    val delay = status.departureDelayMinutes
-    val tint = when {
-        status.state == FlightState.CANCELLED -> colors.danger
-        delay >= 15 -> colors.danger
-        status.state == FlightState.BOARDING -> colors.accentBright
-        status.state.isAirborne -> colors.accentSage
-        else -> colors.textDim
-    }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(6.dp)
-                .clip(WaymarkShapes.chip)
-                .background(tint)
-        )
-        Text(
-            text = buildString {
-                append(status.state.label)
-                if (delay >= 5) append(" ${TimeText.duration(delay)}")
-                status.departureGate?.let { append(" · Gate $it") }
-                if (status.state.isAirborne) append(" · ${status.progressPercent}%")
-            },
-            style = Waymark.type.dataSmall,
-            color = tint,
-        )
-        Text(
-            text = status.source.lowercase(),
-            style = Waymark.type.fieldLabel,
-            color = colors.textFaint,
-        )
-    }
 }
 
 private fun iconFor(segment: Segment): ImageVector = when (segment) {

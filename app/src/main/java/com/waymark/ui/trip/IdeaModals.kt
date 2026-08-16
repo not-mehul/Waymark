@@ -15,10 +15,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
+import com.waymark.ui.components.ChoiceCard
+import com.waymark.ui.components.DateField
 import com.waymark.ui.components.FieldLabel
 import com.waymark.ui.components.MutedButton
 import com.waymark.ui.components.OptionChip
 import com.waymark.ui.components.PrimaryButton
+import com.waymark.ui.components.TimeField
+import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.components.WaymarkModal
 import com.waymark.ui.components.WaymarkTextField
 import com.waymark.ui.theme.Waymark
@@ -34,7 +38,7 @@ fun AddIdeaModal(
     onAdd: (title: String, kind: IdeaKind, city: String, note: String?) -> Unit,
 ) {
     var title by remember { mutableStateOf("") }
-    var kind by remember { mutableStateOf(IdeaKind.SIGHT) }
+    var kind by remember { mutableStateOf(IdeaKind.SEE) }
     var city by remember { mutableStateOf(cities.firstOrNull().orEmpty()) }
     var note by remember { mutableStateOf("") }
 
@@ -47,24 +51,18 @@ fun AddIdeaModal(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        FieldLabel("Kind")
-        Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
-            listOf(IdeaKind.SIGHT, IdeaKind.EATERY, IdeaKind.DISH).forEach { option ->
-                OptionChip(
-                    text = option.label,
-                    selected = kind == option,
-                    onClick = { kind = option },
-                )
-            }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
-            listOf(IdeaKind.WALK, IdeaKind.ACTIVITY, IdeaKind.SHOP).forEach { option ->
-                OptionChip(
-                    text = option.label,
-                    selected = kind == option,
-                    onClick = { kind = option },
-                )
-            }
+        FieldLabel("What kind")
+        // Four cards, each carrying the sentence that makes the word obvious.
+        // The old six chips read "See · Eat · Table · Walk · Do · Shop", which
+        // required already knowing what the app meant by "Table".
+        IdeaKind.entries.forEach { option ->
+            ChoiceCard(
+                title = option.label,
+                detail = option.hint,
+                icon = iconFor(option),
+                selected = kind == option,
+                onClick = { kind = option },
+            )
         }
 
         if (cities.size > 1) {
@@ -109,12 +107,10 @@ fun ScheduleIdeaModal(
     onDismiss: () -> Unit,
     onSchedule: (LocalDate, LocalTime, Int?) -> Unit,
 ) {
-    var dateText by remember { mutableStateOf(defaultDate.toString()) }
-    var timeText by remember { mutableStateOf("10:00") }
+    var date by remember { mutableStateOf(defaultDate) }
+    var time by remember { mutableStateOf(LocalTime.of(10, 0)) }
     var minutesText by remember { mutableStateOf((idea.typicalMinutes ?: 60).toString()) }
 
-    val date = runCatching { LocalDate.parse(dateText.trim()) }.getOrNull()
-    val time = parseClock(timeText)
     val minutes = minutesText.filter { it.isDigit() }.toIntOrNull()
 
     WaymarkModal(title = idea.title, eyebrow = "Put it on the day", onDismiss = onDismiss) {
@@ -125,63 +121,43 @@ fun ScheduleIdeaModal(
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
-            WaymarkTextField(
-                value = dateText,
-                onValueChange = { dateText = it },
+            DateField(
+                value = date,
+                onValueChange = { date = it },
                 label = "Date",
-                placeholder = "2026-05-16",
-                mono = true,
-                keyboardType = KeyboardType.Number,
-                modifier = Modifier.weight(1.4f),
+                modifier = Modifier.weight(1.3f),
             )
-            WaymarkTextField(
-                value = timeText,
-                onValueChange = { timeText = it },
+            TimeField(
+                value = time,
+                onValueChange = { time = it },
                 label = "From",
-                placeholder = "10:00",
-                mono = true,
-                keyboardType = KeyboardType.Number,
-                modifier = Modifier.weight(1f),
-            )
-            WaymarkTextField(
-                value = minutesText,
-                onValueChange = { minutesText = it },
-                label = "Minutes",
-                placeholder = "90",
-                mono = true,
-                keyboardType = KeyboardType.Number,
                 modifier = Modifier.weight(1f),
             )
         }
-
-        if (date == null || time == null) {
-            Text(
-                text = "Dates read as year-month-day; times as 24-hour.",
-                style = Waymark.type.hint,
-                color = Waymark.colors.danger,
-            )
-        }
+        WaymarkTextField(
+            value = minutesText,
+            onValueChange = { minutesText = it },
+            label = "How long, in minutes",
+            placeholder = "90",
+            mono = true,
+            keyboardType = KeyboardType.Number,
+            modifier = Modifier.fillMaxWidth(),
+        )
 
         Spacer(Modifier.height(WaymarkSpacing.tight))
         PrimaryButton(
             text = "Schedule it",
-            onClick = {
-                if (date != null && time != null) onSchedule(date, time, minutes)
-            },
-            enabled = date != null && time != null,
+            onClick = { onSchedule(date, time, minutes) },
             modifier = Modifier.fillMaxWidth(),
         )
         MutedButton(text = "Not now", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
     }
 }
 
-/** "0930", "09:30" and "9:30" all mean the same thing. */
-private fun parseClock(text: String): LocalTime? {
-    val digits = text.filter { it.isDigit() }
-    if (digits.length !in 3..4) return null
-    val padded = digits.padStart(4, '0')
-    val hour = padded.substring(0, 2).toIntOrNull() ?: return null
-    val minute = padded.substring(2, 4).toIntOrNull() ?: return null
-    if (hour > 23 || minute > 59) return null
-    return runCatching { LocalTime.of(hour, minute) }.getOrNull()
+/** The glyph for each kind, shared by the picker and the board. */
+fun iconFor(kind: IdeaKind): androidx.compose.ui.graphics.vector.ImageVector = when (kind) {
+    IdeaKind.SEE -> WaymarkIcons.Sights
+    IdeaKind.EAT -> WaymarkIcons.Fork
+    IdeaKind.DO -> WaymarkIcons.Activity
+    IdeaKind.SHOP -> WaymarkIcons.Shop
 }

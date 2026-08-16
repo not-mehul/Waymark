@@ -21,6 +21,11 @@ class WaymarkApplication : Application() {
         container = AppContainer(this)
         Notifications.createChannels(this)
         DepartureWatch.schedule(this)
-        scope.launch { container.seeder.seedIfEmpty() }
+        scope.launch {
+            // The directory first: a traveler who opens the app to add a flight
+            // should find the field already able to resolve their airport.
+            container.loadAirportDirectory()
+            container.seeder.seedIfEmpty()
+        }
     }
 }

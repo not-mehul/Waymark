@@ -80,8 +80,8 @@ fun InsightsScreen(
             }
 
             val guide = DestinationGuide.forCity(insight.city)
-            val dishes = guide.filter { it.kind == IdeaKind.DISH }
-            val seeing = guide.filter { it.kind != IdeaKind.DISH }
+            val dishes = guide.filter { it.kind == IdeaKind.EAT }
+            val seeing = guide.filter { it.kind != IdeaKind.EAT }
 
             if (dishes.isNotEmpty()) {
                 Panel(faint = true, modifier = Modifier.fillMaxWidth()) {

@@ -1,6 +1,5 @@
 package com.waymark.domain.logic
 
-import com.waymark.domain.model.FlightStatus
 import com.waymark.domain.model.Place
 import com.waymark.domain.model.Segment
 
@@ -90,19 +89,19 @@ object ConnectionRisk {
     }
 
     /**
-     * Judge a connection using live times when they exist — a 90-minute
-     * connection with a 70-minute inbound delay is not a 90-minute connection.
+     * Judge a connection on the times as booked.
+     *
+     * Those are the only times Waymark has — it tracks nothing — so this is a
+     * verdict on the itinerary as planned, which is the useful thing to know
+     * while planning it. On the day, a delay is a delay.
      */
     fun assess(
         inbound: Segment.Flight,
         onward: Segment.Flight,
-        inboundStatus: FlightStatus? = null,
-        onwardStatus: FlightStatus? = null,
         checkedBags: Boolean = true,
     ): ConnectionVerdict {
-        val arrival = inboundStatus?.estimatedArrivalMillis ?: inbound.endEpochMillis
-        val departure = onwardStatus?.estimatedDepartureMillis ?: onward.startEpochMillis
-        val available = ((departure - arrival) / 60_000L).toInt()
+        val available =
+            ((onward.startEpochMillis - inbound.endEpochMillis) / 60_000L).toInt()
         val (required, reason) = requiredMinutes(inbound, onward, checkedBags)
         val slack = available - required
         val level = when {

@@ -1,8 +1,6 @@
 package com.waymark.domain.logic
 
 import com.waymark.data.catalog.Airports
-import com.waymark.domain.model.FlightState
-import com.waymark.domain.model.FlightStatus
 import com.waymark.domain.model.Segment
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -59,21 +57,28 @@ class ConnectionRiskTest {
         assertTrue(reason.contains("immigration"))
     }
 
+    /**
+     * The same pair of flights, once with a comfortable gap and once with the
+     * onward flight moved earlier. Waymark tracks nothing, so a connection is
+     * judged on the itinerary as booked — and shortening the gap has to change
+     * the verdict, or the whole feature is decoration.
+     */
     @Test
-    fun `a delay eats the connection`() {
+    fun `a shorter gap degrades the verdict`() {
         val inbound = flight("a", "SFO", "LHR", 0, 600, arrivalTerminal = "5")
-        val onward = flight("b", "LHR", "FCO", 690, 150, departureTerminal = "5")
-        val comfortable = ConnectionRisk.assess(inbound, onward)
+        val comfortable = ConnectionRisk.assess(
+            inbound,
+            flight("b", "LHR", "FCO", 690, 150, departureTerminal = "5"),
+        )
         assertTrue(comfortable.level != RiskLevel.BROKEN)
 
-        val delayed = ConnectionRisk.assess(
-            inbound = inbound,
-            onward = onward,
-            inboundStatus = status(inbound.id, inbound.endEpochMillis + 75 * 60_000),
+        val tight = ConnectionRisk.assess(
+            inbound,
+            flight("c", "LHR", "FCO", 625, 150, departureTerminal = "5"),
         )
         assertTrue(
-            "expected degradation, got ${delayed.level}",
-            delayed.level == RiskLevel.AT_RISK || delayed.level == RiskLevel.BROKEN,
+            "expected degradation, got ${tight.level}",
+            tight.level == RiskLevel.AT_RISK || tight.level == RiskLevel.BROKEN,
         )
     }
 
@@ -112,13 +117,4 @@ class ConnectionRiskTest {
         assertEquals(RiskLevel.COMFORTABLE, relaxed.level)
     }
 
-    private fun status(segmentId: String, estimatedArrival: Long) = FlightStatus(
-        segmentId = segmentId,
-        designator = "BA100",
-        state = FlightState.DELAYED,
-        scheduledDepartureMillis = base,
-        estimatedDepartureMillis = base,
-        scheduledArrivalMillis = estimatedArrival,
-        estimatedArrivalMillis = estimatedArrival,
-    )
 }

@@ -41,7 +41,4 @@ data class TripDossier(
     val trip: Trip,
     val party: TripParty,
     val segments: List<Segment>,
-    val statuses: Map<String, FlightStatus> = emptyMap(),
-) {
-    fun statusFor(segment: Segment): FlightStatus? = statuses[segment.id]
-}
+)

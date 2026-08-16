@@ -36,10 +36,14 @@ fun TripMenu(
     onOpenAnalytics: () -> Unit,
     onOpenPacking: () -> Unit,
     onOpenInsights: () -> Unit,
+    onOpenMap: () -> Unit,
     onExport: () -> Unit,
 ) {
     WaymarkModal(title = "This trip", onDismiss = onDismiss) {
-        MenuRow(WaymarkIcons.Chart, "The numbers", "Distance, days, carbon") {
+        MenuRow(WaymarkIcons.Map, "The map", "Every leg, on a chart or a globe") {
+            onDismiss(); onOpenMap()
+        }
+        MenuRow(WaymarkIcons.Chart, "The numbers", "Distance, days, legs, carbon") {
             onDismiss(); onOpenAnalytics()
         }
         MenuRow(WaymarkIcons.Bag, "Packing", "Lists, drafted from the itinerary") {

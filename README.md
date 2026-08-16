@@ -11,19 +11,21 @@ runtime dependencies beyond AndroidX.
 
 ## What it does
 
-**Enter a flight.** A designator, a date, two airport codes and two clock
-times. Waymark calls no schedule service and no tracking API — it asks for no
+**Enter a flight.** A designator, a date, two airport codes, two times off a
+picker. Waymark calls no schedule service and no tracking API — it asks for no
 network permission at all — so what it contributes is only what an airport code
-already implies: coordinates and a time zone. That is enough to put the leg on
-the map, to work out that a 16:20 out of San Francisco lands the following
-morning, and to show the block time back as you type, which is the quickest way
-to catch a time entered in the wrong zone.
+already implies: coordinates and a time zone, from a bundled directory of
+**8,831 IATA stations**. That is enough to put the leg on the map, to work out
+that a 16:20 out of San Francisco lands the following morning, and to show the
+block time back as you set it, which is the quickest way to catch a time
+entered against the wrong airport.
 
-**Track it by hand.** Each flight carries a state — on time, delayed, boarding,
-departed, landed, cancelled — with a delay, a gate, a terminal and a belt. All
-of it is reported by whoever is standing in front of the departure board, and
-all of it is stamped with when they reported it. A material change raises an
-alert once, and a change too small to matter raises nothing.
+**And then leave it alone.** There is no live tracking and no "what the board
+says" to keep current, because nobody is going to update an app at a gate. A
+booking is a record of something already arranged, so it opens **read only**;
+Edit turns the screen into a form with Save and Cancel, and nothing is written
+until Save. The one thing the app volunteers is a reminder that a flight you
+booked leaves in a few hours, which it knows from the itinerary and the clock.
 
 **Keep the codes.** Confirmation codes, record locators, e-ticket numbers and
 boarding-pass payloads are sealed with AES-256-GCM under a key held in the
@@ -54,7 +56,7 @@ beside their marks, so a cluster of hotels in one city does not print on top of
 itself; a label with nowhere to go is dropped and its mark stays.
 
 **Keep a list.** Not everything on a trip has a time on it. The Ideas board
-holds places to see, food to try, walks and shops with no date attached —
+holds four kinds — **See, Eat, Do, Shop** — with no date attached —
 saved, scheduled, or ticked off — readable three ways: by kind, by place, or by
 the day it is pencilled in for. A day is a date without a clock time, which is
 how planning actually happens; the board totals each day's estimates and says
@@ -123,6 +125,7 @@ the original CSS.
 | Warm-brown shadows in Dawn, softened | `shadow` + `shadowStrength = 0.4f` |
 | Motion is responsiveness, not decoration | 150–220 ms transitions; nothing animates on load |
 | Voice: restrained, no marketing, italic asides | `Footnote`, and every string in the app |
+| Segmented control for a real choice, quiet rail for navigation | `SegmentedToggle` vs `TabRail` |
 
 Two deliberate departures, both documented at the call site:
 
@@ -163,8 +166,8 @@ com.waymark
 │                   TripAnalytics, FlightUpdate, MarkdownExport, LabelPlacer,
 │                   Geo (incl. orthographic globe), Bcbp, Code39
 ├── data/
-│   ├── catalog/    Bundled airports, coastline, destination notes and guide,
-│   │               sample trip
+│   ├── catalog/    Station core list + world directory, coastline,
+│   │               destination notes and guide, sample trip
 │   ├── local/      Room entities, DAOs, codecs, SecretCipher (Keystore AES-GCM)
 │   └── repo/       TripRepository, VaultRepository, FlightRepository,
 │                   IdeaRepository, PreparationRepository
@@ -176,6 +179,7 @@ com.waymark
     ├── charts/     BarSeries, DayLoadChart, Meter, RingFigure, SplitBar
     ├── map/        WorldMap — one component, flat and orthographic projections
     ├── export/     Markdown export and the share intent
+    ├── components/ …including Pickers (date, time), ChoiceCards, TabRail
     ├── trips/ trip/ add/ segment/ pass/ insights/ packing/ analytics/ vault/
 ```
 
@@ -196,12 +200,22 @@ by `BiometricPrompt`, with graceful fallback where nothing is enrolled — is th
 moment a code becomes readable on screen.
 
 **Flight data comes from the traveler, and only from the traveler.** There is
-no provider interface and no network client to configure; the manifest declares
-no `INTERNET` permission, so the app *cannot* call anything even by mistake.
-`FlightUpdate` folds a hand-entered report onto whatever was already known —
-a null field means "unchanged", not "cleared" — derives the estimated times,
-and decides whether the change is worth an alert. Re-entering the same delay
-stays silent; a delay that grows by a quarter of an hour does not.
+no provider interface, no network client, and no status subsystem; the manifest
+declares no `INTERNET` permission, so the app *cannot* call anything even by
+mistake. A booking holds the times it was given, and changing them means
+editing the booking.
+
+**The station directory.** `assets/airports.txt` holds 8,831 IATA stations —
+the supplied table, with the 259 closed fields dropped and 26 duplicate codes
+resolved in favour of the larger, better-described row. **Time zones were
+resolved from each station's coordinates when the file was generated**, against
+real boundary data, so the app carries an exact IANA zone per airport and
+applies no heuristic of its own; a wrong zone moves a flight to the wrong day,
+not merely the wrong hour. `AirportDirectory.parse` is pure Kotlin over a line
+sequence, so the whole file is checked by the JVM tests. The hand-curated core
+list survives alongside it and wins any collision, because it carries terminal
+designators and the names travelers actually use ("Heathrow", not "London
+Heathrow Airport").
 
 **The basemap.** `Coastline` holds Natural Earth's public-domain 1:110m land
 polygons, reduced by Ramer–Douglas–Peucker to 1,403 vertices across 50 rings —
@@ -244,7 +258,7 @@ sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 Then:
 
 ```bash
-./gradlew :app:testDebugUnitTest    # the 168 unit tests
+./gradlew :app:testDebugUnitTest    # the 171 unit tests
 ./gradlew :app:assembleDebug        # the APK
 ```
 
@@ -255,7 +269,7 @@ configure: no API key, no account, no service.
 
 ## Tests
 
-168 JVM unit tests over the domain and catalog layers:
+171 JVM unit tests over the domain and catalog layers:
 
 - `FlightDesignatorTest` — parsing `BA286`, `ba 286`, `BAW286`, `3U8888`, `U2 1234`
 - `Code39Test` — symbology invariants (nine elements, three wide, two wide bars
@@ -288,9 +302,15 @@ configure: no API key, no account, no service.
   exceed a day, carbon against the published factors
 - `GlobeProjectionTest` — orthographic projection inside the unit disc, the
   horizon as the culling boundary, and a centroid that survives the antimeridian
-- `FlightUpdateTest` — a delay carrying from departure to arrival unless stated
-  separately, null meaning "unchanged", and the rule that keeps a re-entered
-  delay or a first-ever gate from raising an alert
+- `AirportDirectoryTest` — the generated format, interned zones, a station with
+  no municipality falling back to its own name, and a malformed line being
+  skipped rather than taking the directory down with it
+- `AirportAssetTest` — the shipped file itself: every zone one the platform
+  knows, every coordinate in range, no duplicate codes, the stations a traveler
+  is most likely to type, the half-hour and three-quarter-hour zones that a
+  lazy country-to-zone table gets wrong, and **a check that each station's UTC
+  offset agrees with its longitude**, which is what catches a transposed
+  latitude and longitude
 - `MarkdownExportTest` — including the one that matters: **no secret value from
   the fixture appears anywhere in the exported document**
 - `LabelPlacerTest` — no two labels overlapping, no label covering a foreign
@@ -314,6 +334,11 @@ Places where the app says less than it could:
   peninsula; it is not a navigational chart and no place is drawn to a
   resolution finer than about fifty kilometres. It is a basemap for reading a
   trip against, not for finding anything by.
+- **Six hundred station names lost their accents before the file reached us.**
+  The supplied CSV contains literal replacement characters where accented
+  letters used to be — "Kōchi Ryōma" arrived as `K����chi Ry����ma` — so the
+  runs are stripped rather than guessed at. Codes, coordinates and time zones
+  are unaffected, and the municipality is usually intact.
 - **The barcode is Code 39 of the short reference**, not the full BCBP payload:
   sixty characters in a one-dimensional symbology is too dense to scan off a
   phone. Airlines use a 2D symbol for that, and an imported pass image is shown
@@ -330,6 +355,8 @@ Places where the app says less than it could:
 ## Data
 
 Coastlines are derived from [Natural Earth](https://www.naturalearthdata.com)
-1:110m land polygons, which are in the public domain. Airport coordinates, time
-zones, destination notes and the city guide are hand-compiled and bundled.
-Everything else in the app was entered by whoever is using it.
+1:110m land polygons, which are in the public domain. The station directory is
+the IATA table supplied with the project, deduplicated and cleaned, with time
+zones resolved from coordinates at generation time. Destination notes and the
+city guide are hand-compiled. Everything else in the app was entered by
+whoever is using it.

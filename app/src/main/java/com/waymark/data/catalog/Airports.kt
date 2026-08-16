@@ -3,7 +3,19 @@ package com.waymark.data.catalog
 import com.waymark.domain.model.Place
 
 /**
- * Station reference data, bundled so lookup works with the radio off.
+ * Station reference data, bundled so resolving a code works with the radio off.
+ *
+ * Two tiers, deliberately. The **core** list below is hand-checked and carries
+ * what a directory row cannot: real terminal designators, the display names a
+ * traveler recognises ("Heathrow", not "London Heathrow Airport"). The
+ * **directory** — every IATA code in the world, installed at start-up from
+ * `assets/airports.txt` — is what makes the app usable for a flight out of
+ * somewhere the core list never heard of.
+ *
+ * The core always wins on a code collision, and it is always present, so
+ * everything works before the directory has finished loading and in the JVM
+ * tests, which never load it at all.
+ *
  * Coordinates are the terminal complex, not the runway threshold.
  */
 object Airports {
@@ -88,37 +100,76 @@ object Airports {
         Airport("AKL", "Auckland", "Auckland", "New Zealand", -37.0082, 174.7850, "Pacific/Auckland", listOf("I", "D")),
     )
 
-    private val byCode: Map<String, Airport> = all.associateBy { it.code }
+    private val core: Map<String, Airport> = all.associateBy { it.code }
 
-    fun find(code: String?): Airport? = code?.trim()?.uppercase()?.let { byCode[it] }
+    /**
+     * The world directory, once something has loaded it. Held in a plain field
+     * rather than a lock: it is written exactly once, at start-up, before the
+     * first screen that reads it, and a torn read would at worst miss a lookup
+     * for one frame.
+     */
+    @Volatile
+    private var directory: Map<String, Airport> = emptyMap()
+
+    /** Install the parsed directory. Codes already in the core list are kept. */
+    fun install(airports: List<Airport>) {
+        directory = airports.asSequence()
+            .filterNot { it.code in core }
+            .associateBy { it.code }
+    }
+
+    val directoryLoaded: Boolean get() = directory.isNotEmpty()
+
+    fun find(code: String?): Airport? {
+        val needle = code?.trim()?.uppercase() ?: return null
+        return core[needle] ?: directory[needle]
+    }
 
     fun place(code: String): Place =
         find(code)?.toPlace() ?: Place(name = code.uppercase(), code = code.uppercase())
 
+    /** The core list only — the set with terminals, used for the worked example. */
     fun all(): List<Airport> = all
 
-    /** Type-ahead over code, city and name. */
+    fun everything(): Sequence<Airport> = all.asSequence() + directory.values.asSequence()
+
+    /**
+     * Type-ahead over code, city and name.
+     *
+     * Ranking matters more with nine thousand rows than it did with fifty: an
+     * exact code beats a code prefix beats a city prefix, and — the tie-break
+     * that makes the list useful — a core station beats a directory one, so
+     * typing "LON" surfaces Heathrow above a Kentucky airstrip whose name
+     * happens to contain the letters.
+     */
     fun search(query: String, limit: Int = 8): List<Airport> {
         val needle = query.trim().lowercase()
         if (needle.isEmpty()) return emptyList()
-        return all.asSequence()
-            .map { airport ->
-                val score = when {
-                    airport.code.lowercase() == needle -> 0
-                    airport.code.lowercase().startsWith(needle) -> 1
-                    airport.city.lowercase().startsWith(needle) -> 2
-                    airport.name.lowercase().startsWith(needle) -> 3
-                    airport.city.lowercase().contains(needle) -> 4
-                    airport.name.lowercase().contains(needle) -> 5
-                    else -> Int.MAX_VALUE
-                }
-                airport to score
-            }
+        return everything()
+            .map { airport -> airport to score(airport, needle) }
             .filter { it.second != Int.MAX_VALUE }
-            .sortedWith(compareBy({ it.second }, { it.first.code }))
+            .sortedWith(
+                compareBy(
+                    { it.second },
+                    { if (it.first.code in core) 0 else 1 },
+                    { it.first.city.length },
+                    { it.first.code },
+                )
+            )
             .take(limit)
             .map { it.first }
             .toList()
+    }
+
+    private fun score(airport: Airport, needle: String): Int = when {
+        airport.code.lowercase() == needle -> 0
+        airport.code.lowercase().startsWith(needle) -> 1
+        airport.city.lowercase() == needle -> 2
+        airport.city.lowercase().startsWith(needle) -> 3
+        airport.name.lowercase().startsWith(needle) -> 4
+        airport.city.lowercase().contains(needle) -> 5
+        airport.name.lowercase().contains(needle) -> 6
+        else -> Int.MAX_VALUE
     }
 
     fun terminalsFor(code: String): List<String> = find(code)?.terminals ?: emptyList()

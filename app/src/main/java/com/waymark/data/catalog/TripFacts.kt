@@ -2,7 +2,6 @@ package com.waymark.data.catalog
 
 import com.waymark.domain.logic.PackingContext
 import com.waymark.domain.model.Idea
-import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.TripDossier
 import com.waymark.domain.model.chronological
@@ -62,9 +61,13 @@ object TripFacts {
             destinationPlugTypes = destinations
                 .flatMap { plugTypes(it.city) }
                 .toSet(),
+            // Both of these used to key off a category of their own; with four
+            // kinds they key off the words, which is where the signal was all
+            // along — "kayaking" was never reliably filed under Activity.
             swimming = WATER_WORDS.any { it in text } ||
-                ideas.any { it.kind == IdeaKind.ACTIVITY && WATER_WORDS.any { word -> word in it.title.lowercase() } },
-            walking = ideas.any { it.kind == IdeaKind.WALK } || "walk" in text,
+                ideas.any { idea -> WATER_WORDS.any { word -> word in idea.title.lowercase() } },
+            walking = ideas.any { "walk" in it.title.lowercase() || "hike" in it.title.lowercase() } ||
+                "walk" in text,
             formalDinner = segments.filterIsInstance<Segment.Experience>()
                 .any { it.category.equals("Restaurant", ignoreCase = true) },
         )

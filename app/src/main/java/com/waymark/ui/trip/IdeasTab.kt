@@ -473,11 +473,4 @@ enum class IdeaGrouping(val label: String) {
     DAY("By day"),
 }
 
-private fun iconFor(kind: IdeaKind) = when (kind) {
-    IdeaKind.SIGHT -> WaymarkIcons.Compass
-    IdeaKind.DISH -> WaymarkIcons.Coffee
-    IdeaKind.EATERY -> WaymarkIcons.Coffee
-    IdeaKind.WALK -> WaymarkIcons.MapPin
-    IdeaKind.ACTIVITY -> WaymarkIcons.Ticket
-    IdeaKind.SHOP -> WaymarkIcons.Search
-}
+

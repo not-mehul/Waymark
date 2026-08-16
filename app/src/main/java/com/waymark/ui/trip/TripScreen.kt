@@ -26,7 +26,7 @@ import com.waymark.domain.model.DisruptionAlert
 import com.waymark.domain.model.Idea
 import com.waymark.ui.components.GhostIconButton
 import com.waymark.ui.components.NoticeBanner
-import com.waymark.ui.components.SegmentedToggle
+import com.waymark.ui.components.TabRail
 import com.waymark.ui.components.WaymarkBackdrop
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.export.TripExport
@@ -52,6 +52,7 @@ fun TripScreen(
     onOpenInsights: () -> Unit,
     onOpenPacking: () -> Unit,
     onOpenAnalytics: () -> Unit,
+    onOpenMap: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val tab by viewModel.tab.collectAsStateWithLifecycle()
@@ -118,8 +119,8 @@ fun TripScreen(
                 Spacer(Modifier.height(WaymarkSpacing.small))
             }
 
-            SegmentedToggle(
-                options = TripTab.entries.map { it.label },
+            TabRail(
+                labels = TripTab.entries.map { it.label },
                 selectedIndex = TripTab.entries.indexOf(tab),
                 onSelect = { viewModel.selectTab(TripTab.entries[it]) },
                 modifier = Modifier.fillMaxWidth(),
@@ -148,8 +149,6 @@ fun TripScreen(
                     tripDays = viewModel.tripDays(),
                 )
 
-                TripTab.MAP -> MapTab(state = state, onSelectSegment = onOpenSegment)
-
                 TripTab.PARTY -> PartyTab(
                     state = state,
                     onAddTraveler = viewModel::addTraveler,
@@ -174,6 +173,7 @@ fun TripScreen(
             onOpenAnalytics = onOpenAnalytics,
             onOpenPacking = onOpenPacking,
             onOpenInsights = onOpenInsights,
+            onOpenMap = onOpenMap,
             onExport = { TripExport.share(context, state) },
         )
     }

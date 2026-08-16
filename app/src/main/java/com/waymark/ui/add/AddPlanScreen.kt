@@ -7,15 +7,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waymark.domain.model.GroundMode
 import com.waymark.domain.model.SegmentKind
+import com.waymark.ui.components.ChoiceCard
+import com.waymark.ui.components.DateField
 import com.waymark.ui.components.Footnote
 import com.waymark.ui.components.MutedButton
 import com.waymark.ui.components.OptionChip
@@ -23,13 +23,11 @@ import com.waymark.ui.components.PartyMark
 import com.waymark.ui.components.PrimaryButton
 import com.waymark.ui.components.ScreenScaffold
 import com.waymark.ui.components.SectionHeader
-import com.waymark.ui.components.SegmentedToggle
+import com.waymark.ui.components.TimeField
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.components.WaymarkTextField
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
-import java.time.LocalDate
-import java.time.format.DateTimeParseException
 
 private val KINDS = listOf(SegmentKind.LODGING, SegmentKind.GROUND, SegmentKind.EXPERIENCE)
 
@@ -51,12 +49,17 @@ fun AddPlanScreen(
         onBack = onDone,
         spacing = WaymarkSpacing.small,
     ) {
-        SegmentedToggle(
-            options = KINDS.map { label(it) },
-            selectedIndex = KINDS.indexOf(state.kind).coerceAtLeast(0),
-            onSelect = { viewModel.setKind(KINDS[it]) },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        // Three cards rather than three one-word tabs. "Stay · Ground ·
+        // Booked" told a reader who already knew the answer what to press.
+        KINDS.forEach { option ->
+            ChoiceCard(
+                title = titleFor(option),
+                detail = detailFor(option),
+                icon = iconFor(option),
+                selected = state.kind == option,
+                onClick = { viewModel.setKind(option) },
+            )
+        }
 
         Spacer(Modifier.height(WaymarkSpacing.snug))
 
@@ -116,40 +119,34 @@ fun AddPlanScreen(
 
         SectionHeader("When")
         Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
-            DateEntry(
+            DateField(
                 value = state.startDate,
+                onValueChange = viewModel::setStartDate,
                 label = if (state.kind == SegmentKind.LODGING) "Check in" else "Date",
-                onChange = viewModel::setStartDate,
                 modifier = Modifier.weight(1f),
             )
-            WaymarkTextField(
+            TimeField(
                 value = state.startTime,
                 onValueChange = viewModel::setStartTime,
                 label = "From",
-                placeholder = "15:00",
-                mono = true,
-                keyboardType = KeyboardType.Number,
                 modifier = Modifier.weight(1f),
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
             if (state.kind == SegmentKind.LODGING) {
-                DateEntry(
+                DateField(
                     value = state.endDate,
+                    onValueChange = viewModel::setEndDate,
                     label = "Check out",
-                    onChange = viewModel::setEndDate,
                     modifier = Modifier.weight(1f),
                 )
             } else {
                 Spacer(Modifier.weight(1f))
             }
-            WaymarkTextField(
+            TimeField(
                 value = state.endTime,
                 onValueChange = viewModel::setEndTime,
-                label = "Until",
-                placeholder = "11:00",
-                mono = true,
-                keyboardType = KeyboardType.Number,
+                label = if (state.kind == SegmentKind.LODGING) "Check out at" else "Until",
                 modifier = Modifier.weight(1f),
             )
         }
@@ -214,35 +211,23 @@ fun AddPlanScreen(
     }
 }
 
-@Composable
-private fun DateEntry(
-    value: LocalDate,
-    label: String,
-    onChange: (LocalDate) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var text by rememberSaveable(value) { mutableStateOf(value.toString()) }
-    WaymarkTextField(
-        value = text,
-        onValueChange = { entered ->
-            text = entered
-            try {
-                onChange(LocalDate.parse(entered.trim()))
-            } catch (error: DateTimeParseException) {
-                // Wait for a complete date rather than complaining per keystroke.
-            }
-        },
-        label = label,
-        placeholder = "2026-05-14",
-        mono = true,
-        keyboardType = KeyboardType.Number,
-        modifier = modifier,
-    )
+private fun titleFor(kind: SegmentKind): String = when (kind) {
+    SegmentKind.LODGING -> "Somewhere to stay"
+    SegmentKind.GROUND -> "Getting around"
+    SegmentKind.EXPERIENCE -> "Something booked"
+    SegmentKind.FLIGHT -> "Flight"
 }
 
-private fun label(kind: SegmentKind): String = when (kind) {
-    SegmentKind.LODGING -> "Stay"
-    SegmentKind.GROUND -> "Ground"
-    SegmentKind.EXPERIENCE -> "Booking"
-    SegmentKind.FLIGHT -> "Flight"
+private fun detailFor(kind: SegmentKind): String = when (kind) {
+    SegmentKind.LODGING -> "Hotel, rental, a friend's spare room"
+    SegmentKind.GROUND -> "Train, taxi, ferry, hire car"
+    SegmentKind.EXPERIENCE -> "A tour, a table, a show, a ticket"
+    SegmentKind.FLIGHT -> "Use Add flight instead"
+}
+
+private fun iconFor(kind: SegmentKind): ImageVector = when (kind) {
+    SegmentKind.LODGING -> WaymarkIcons.Bed
+    SegmentKind.GROUND -> WaymarkIcons.Train
+    SegmentKind.EXPERIENCE -> WaymarkIcons.Ticket
+    SegmentKind.FLIGHT -> WaymarkIcons.Plane
 }

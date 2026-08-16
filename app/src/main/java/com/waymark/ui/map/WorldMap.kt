@@ -173,7 +173,7 @@ fun WorldMap(
                     drawRoute(
                         route = route,
                         view = view,
-                        flight = if (route.emphasis) colors.accentBright else colors.accentAmber,
+                        flight = colors.accentAmber,
                         ground = colors.accentSage,
                         behind = colors.mapCoast,
                     )
@@ -188,11 +188,6 @@ fun WorldMap(
                     label = colors.textMuted,
                     halo = colors.mapWater,
                 )
-                routes.mapNotNull { it.aircraft }.forEach { position ->
-                    val point = view.screen(position) ?: return@forEach
-                    drawCircle(colors.accentBright.copy(alpha = 0.22f), 13.dp.toPx(), point)
-                    drawCircle(colors.accentBright, 4.dp.toPx(), point)
-                }
             }
         }
 
@@ -501,7 +496,7 @@ private fun DrawScope.drawRoute(
     } else {
         listOf(route.from, route.to)
     }
-    val width = if (route.emphasis) 2.4.dp.toPx() else 1.6.dp.toPx()
+    val width = 1.8.dp.toPx()
     val effect = if (route.flying) {
         null
     } else {

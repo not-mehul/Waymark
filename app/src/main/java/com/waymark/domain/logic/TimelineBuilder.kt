@@ -1,6 +1,5 @@
 package com.waymark.domain.logic
 
-import com.waymark.domain.model.FlightStatus
 import com.waymark.domain.model.Place
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.TripDossier
@@ -38,7 +37,6 @@ sealed interface TimelineEntry {
     data class Event(
         val segment: Segment,
         val role: EventRole,
-        val status: FlightStatus?,
         val state: EventState,
         val localTime: ZonedDateTime,
         val arrivalDayOffset: String?,
@@ -130,7 +128,6 @@ object TimelineBuilder {
             entries += TimelineEntry.Event(
                 segment = segment,
                 role = role,
-                status = dossier.statusFor(segment),
                 state = stateOf(segment, nowMillis),
                 localTime = localTime,
                 arrivalDayOffset = if (role == EventRole.CHECK_OUT) {
@@ -182,8 +179,6 @@ object TimelineBuilder {
                     val verdict = ConnectionRisk.assess(
                         inbound = previous,
                         onward = next,
-                        inboundStatus = dossier.statusFor(previous),
-                        onwardStatus = dossier.statusFor(next),
                         checkedBags = checkedBags,
                     )
                     TimelineEntry.Link(

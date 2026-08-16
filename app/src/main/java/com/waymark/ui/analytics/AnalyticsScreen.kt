@@ -7,18 +7,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waymark.domain.logic.Geo
 import com.waymark.domain.logic.LatLon
@@ -37,14 +31,8 @@ import com.waymark.ui.components.Hairline
 import com.waymark.ui.components.Panel
 import com.waymark.ui.components.ScreenScaffold
 import com.waymark.ui.components.SectionHeader
-import com.waymark.ui.components.SegmentedToggle
 import com.waymark.ui.components.Stat
-import com.waymark.ui.map.ChartPlace
-import com.waymark.ui.map.ChartRoute
-import com.waymark.ui.map.MapProjection
-import com.waymark.ui.map.WorldMap
 import com.waymark.ui.theme.Waymark
-import com.waymark.ui.theme.WaymarkShapes
 import com.waymark.ui.theme.WaymarkSpacing
 import com.waymark.ui.trip.TripViewModel
 import java.time.Instant
@@ -69,66 +57,10 @@ fun AnalyticsScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = Waymark.colors
     val report = state.analytics
-    var projection by rememberSaveable { mutableStateOf(MapProjection.GLOBE) }
 
     val segments = state.dossier?.segments.orEmpty()
-    val places = remember(segments) {
-        segments
-            .flatMap { listOf(it.origin to it, it.destination to it) }
-            .filter { (place, _) -> place.hasCoordinates }
-            .distinctBy { (place, _) -> place.name }
-            .map { (place, segment) ->
-                ChartPlace(
-                    id = segment.id,
-                    label = place.shortLabel,
-                    position = LatLon(place.latitude, place.longitude),
-                    kind = when {
-                        place.code != null -> ChartPlace.Kind.STATION
-                        segment is Segment.Lodging -> ChartPlace.Kind.STAY
-                        else -> ChartPlace.Kind.STOP
-                    },
-                )
-            }
-    }
-    val routes = remember(segments, state.dossier?.statuses) {
-        segments
-            .filter { it.origin.hasCoordinates && it.destination.hasCoordinates }
-            .filter { it.origin.name != it.destination.name }
-            .map { segment ->
-                val status = state.dossier?.statusFor(segment)
-                ChartRoute(
-                    id = segment.id,
-                    from = LatLon(segment.origin.latitude, segment.origin.longitude),
-                    to = LatLon(segment.destination.latitude, segment.destination.longitude),
-                    flying = segment is Segment.Flight,
-                    aircraft = status?.position?.let { LatLon(it.latitude, it.longitude) },
-                    emphasis = status?.state?.isAirborne == true,
-                )
-            }
-    }
 
     ScreenScaffold(title = "The numbers", onBack = onBack) {
-        // — The world ————————————————————————————————————————————————
-        WorldMap(
-            places = places,
-            routes = routes,
-            projection = projection,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(340.dp)
-                .clip(WaymarkShapes.panel),
-        ) {
-            SegmentedToggle(
-                options = MapProjection.entries.map { it.label },
-                selectedIndex = MapProjection.entries.indexOf(projection),
-                onSelect = { projection = MapProjection.entries[it] },
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(WaymarkSpacing.snug)
-                    .width(150.dp),
-            )
-        }
-
         if (report == null || !report.hasDistance) {
             Footnote("Nothing to count yet. Add a flight and the numbers fill in.")
             return@ScreenScaffold
@@ -257,6 +189,59 @@ fun AnalyticsScreen(
                 label = "Ticked off",
                 value = "${report.ideasDone} of $considered",
             )
+        }
+
+        // — Every leg ————————————————————————————————————————————————
+        val legs = segments
+            .filter { it.origin.hasCoordinates && it.destination.hasCoordinates }
+            .filter { it.origin.name != it.destination.name }
+        if (legs.isNotEmpty()) {
+            SectionHeader("Every leg")
+            Panel(modifier = Modifier.fillMaxWidth()) {
+                legs.forEachIndexed { index, segment ->
+                    if (index > 0) {
+                        Spacer(Modifier.height(WaymarkSpacing.snug))
+                        Hairline()
+                        Spacer(Modifier.height(WaymarkSpacing.snug))
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "${segment.origin.shortLabel} → " +
+                                segment.destination.shortLabel,
+                            style = Waymark.type.bodySmall,
+                            color = colors.textBody,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            text = Geo.formatDistance(
+                                Geo.distanceKm(segment.origin, segment.destination)
+                            ),
+                            style = Waymark.type.dataSmall,
+                            color = colors.textDim,
+                        )
+                    }
+                    Text(
+                        text = listOf(
+                            TimeText.durationBetween(
+                                segment.startEpochMillis,
+                                segment.endEpochMillis,
+                            ),
+                            "${Geo.bearingDegrees(
+                                LatLon(segment.origin.latitude, segment.origin.longitude),
+                                LatLon(
+                                    segment.destination.latitude,
+                                    segment.destination.longitude,
+                                ),
+                            ).toInt()}°",
+                        ).joinToString("  ·  "),
+                        style = Waymark.type.hint,
+                        color = colors.textFaint,
+                    )
+                }
+            }
         }
 
         // — Carbon ————————————————————————————————————————————————————

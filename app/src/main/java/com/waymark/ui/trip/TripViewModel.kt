@@ -3,7 +3,7 @@ package com.waymark.ui.trip
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.waymark.data.catalog.DestinationInsights
-import com.waymark.data.repo.FlightRepository
+import com.waymark.data.repo.AlertRepository
 import com.waymark.data.catalog.TripFacts
 import com.waymark.data.repo.IdeaRepository
 import com.waymark.data.repo.PreparationRepository
@@ -12,7 +12,6 @@ import com.waymark.data.repo.VaultRepository
 import com.waymark.domain.logic.DayPlan
 import com.waymark.domain.logic.DocumentVerdict
 import com.waymark.domain.logic.DocumentWatch
-import com.waymark.domain.logic.FlightUpdate
 import com.waymark.domain.logic.CityGroup
 import com.waymark.domain.logic.IdeaBoard
 import com.waymark.domain.logic.IdeaSection
@@ -48,10 +47,17 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 
+/**
+ * Four tabs, not five.
+ *
+ * The map went to the menu alongside the numbers, the packing list and the
+ * destination notes. It is a thing you open to look at, not one of the four
+ * views you move between while planning — and five words across a phone left
+ * no room for any of them to breathe.
+ */
 enum class TripTab(val label: String) {
     TIMELINE("Timeline"),
     IDEAS("Ideas"),
-    MAP("Map"),
     PARTY("Party"),
     VAULT("Vault"),
 }
@@ -76,7 +82,6 @@ data class TripUiState(
     val packingProgress: List<PackingProgress> = emptyList(),
     val analytics: TripAnalyticsReport? = null,
     val travelerFilter: String? = null,
-    val refreshing: Boolean = false,
     val nowMillis: Long = System.currentTimeMillis(),
 ) {
     val insight: DestinationInsights.Insight?
@@ -109,13 +114,12 @@ class TripViewModel(
     private val tripId: String,
     private val trips: TripRepository,
     private val vault: VaultRepository,
-    private val flights: FlightRepository,
+    private val alerts: AlertRepository,
     private val ideas: IdeaRepository,
     private val preparations: PreparationRepository,
 ) : ViewModel() {
 
     private val travelerFilter = MutableStateFlow<String?>(null)
-    private val refreshing = MutableStateFlow(false)
     private val tabState = MutableStateFlow(TripTab.TIMELINE)
 
     val tab: StateFlow<TripTab> = tabState.asStateFlow()
@@ -129,12 +133,11 @@ class TripViewModel(
     }
 
     /**
-     * Filter, refresh flag, clock and the idea list, folded into one flow so
-     * the state combine stays within the five-source arity.
+     * Filter, clock, ideas and preparation, folded into one flow so the state
+     * combine stays within the five-source arity.
      */
     private data class Ambient(
         val filter: String?,
-        val refreshing: Boolean,
         val now: Long,
         val ideas: List<Idea>,
         val documents: List<TravelDocument>,
@@ -148,21 +151,20 @@ class TripViewModel(
 
     private val ambient = combine(
         travelerFilter,
-        refreshing,
         clock,
         ideas.observe(tripId),
         preparation,
-    ) { filter, isRefreshing, now, ideaList, (documents, packing) ->
-        Ambient(filter, isRefreshing, now, ideaList, documents, packing)
+    ) { filter, now, ideaList, (documents, packing) ->
+        Ambient(filter, now, ideaList, documents, packing)
     }
 
     val state: StateFlow<TripUiState> = combine(
         trips.observeDossier(tripId),
         vault.observeReservations(tripId),
         vault.observePasses(tripId),
-        flights.observeAlerts(),
+        alerts.observe(),
         ambient,
-    ) { dossier, reservations, passes, alerts, current ->
+    ) { dossier, reservations, passes, raised, current ->
         val instant = Instant.ofEpochMilli(current.now)
         val cities = dossier?.segments
             ?.sortedBy { it.startEpochMillis }
@@ -179,7 +181,7 @@ class TripViewModel(
             partyNotes = dossier?.let(PartySplitAnalyzer::warnings).orEmpty(),
             reservations = reservations,
             passes = passes,
-            alerts = alerts.filter { alert ->
+            alerts = raised.filter { alert ->
                 dossier?.segments?.any { it.id == alert.segmentId } == true
             },
             ideas = current.ideas,
@@ -200,7 +202,6 @@ class TripViewModel(
             packingProgress = packingProgress(dossier, current.packing),
             analytics = dossier?.let { TripAnalytics.report(it, current.ideas) },
             travelerFilter = current.filter,
-            refreshing = current.refreshing,
             nowMillis = current.now,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TripUiState())
@@ -213,30 +214,8 @@ class TripViewModel(
         travelerFilter.update { current -> if (current == travelerId) null else travelerId }
     }
 
-    /**
-     * Record what the traveler saw on the board. This is the only way a flight's
-     * state ever changes: there is no feed to poll, so nothing moves unless
-     * somebody reports it.
-     */
-    fun reportFlight(segmentId: String, update: FlightUpdate) {
-        val flight = state.value.flights.firstOrNull { it.id == segmentId } ?: return
-        viewModelScope.launch {
-            refreshing.value = true
-            try {
-                flights.record(flight, update)
-            } finally {
-                refreshing.value = false
-            }
-        }
-    }
-
-    /** Put a flight back on its booked times, forgetting any hand-entered state. */
-    fun clearFlightReport(segmentId: String) {
-        viewModelScope.launch { flights.clearStatus(segmentId) }
-    }
-
     fun acknowledgeAlerts(segmentId: String) {
-        viewModelScope.launch { flights.acknowledge(segmentId) }
+        viewModelScope.launch { alerts.acknowledge(segmentId) }
     }
 
     fun setTravelers(segmentId: String, travelerIds: Set<String>) {
@@ -245,6 +224,14 @@ class TripViewModel(
 
     fun deleteSegment(segmentId: String) {
         viewModelScope.launch { trips.deleteSegment(segmentId) }
+    }
+
+    /**
+     * Write an edited booking back. Called once, on Save — never per keystroke
+     * and never per tap, so a booking cannot drift while it is being read.
+     */
+    fun updateSegment(segment: Segment) {
+        viewModelScope.launch { trips.saveSegment(segment) }
     }
 
     fun addTraveler(fullName: String, nickname: String?) {

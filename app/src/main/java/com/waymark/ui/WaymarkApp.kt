@@ -19,6 +19,7 @@ import com.waymark.ui.add.AddPlanScreen
 import com.waymark.ui.add.AddPlanViewModel
 import com.waymark.ui.analytics.AnalyticsScreen
 import com.waymark.ui.insights.InsightsScreen
+import com.waymark.ui.map.MapScreen
 import com.waymark.ui.packing.PackingScreen
 import com.waymark.ui.pass.BoardingPassScreen
 import com.waymark.ui.segment.SegmentScreen
@@ -37,6 +38,7 @@ object Routes {
     const val INSIGHTS = "trip/{tripId}/insights"
     const val PACKING = "trip/{tripId}/packing"
     const val ANALYTICS = "trip/{tripId}/numbers"
+    const val MAP = "trip/{tripId}/map"
 
     fun trip(tripId: String) = "trip/$tripId"
     fun addFlight(tripId: String) = "trip/$tripId/add-flight"
@@ -46,6 +48,7 @@ object Routes {
     fun insights(tripId: String) = "trip/$tripId/insights"
     fun packing(tripId: String) = "trip/$tripId/packing"
     fun analytics(tripId: String) = "trip/$tripId/numbers"
+    fun map(tripId: String) = "trip/$tripId/map"
 }
 
 @Composable
@@ -80,6 +83,7 @@ fun WaymarkApp(
                 onOpenInsights = { navController.navigate(Routes.insights(tripId)) },
                 onOpenPacking = { navController.navigate(Routes.packing(tripId)) },
                 onOpenAnalytics = { navController.navigate(Routes.analytics(tripId)) },
+                onOpenMap = { navController.navigate(Routes.map(tripId)) },
             )
         }
 
@@ -174,6 +178,18 @@ fun WaymarkApp(
         }
 
         composable(
+            route = Routes.MAP,
+            arguments = listOf(navArgument("tripId") { type = NavType.StringType }),
+        ) { entry ->
+            val tripId = entry.requireTripId()
+            MapScreen(
+                viewModel = viewModel(factory = tripFactory(container, tripId)),
+                onBack = { navController.popBackStack() },
+                onOpenSegment = { navController.navigate(Routes.segment(tripId, it)) },
+            )
+        }
+
+        composable(
             route = Routes.INSIGHTS,
             arguments = listOf(navArgument("tripId") { type = NavType.StringType }),
         ) { entry ->
@@ -198,7 +214,7 @@ private fun tripFactory(container: AppContainer, tripId: String): ViewModelProvi
             tripId = tripId,
             trips = container.tripRepository,
             vault = container.vaultRepository,
-            flights = container.flightRepository,
+            alerts = container.alertRepository,
             ideas = container.ideaRepository,
             preparations = container.preparationRepository,
         )
