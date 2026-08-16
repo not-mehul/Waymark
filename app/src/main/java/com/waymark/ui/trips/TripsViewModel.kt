@@ -2,6 +2,7 @@ package com.waymark.ui.trips
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.waymark.data.repo.SampleSeeder
 import com.waymark.data.repo.TripRepository
 import com.waymark.domain.model.Trip
 import com.waymark.domain.model.TripStatus
@@ -25,7 +26,10 @@ data class TripsUiState(
     val total: Int get() = upcoming.size + active.size + past.size
 }
 
-class TripsViewModel(private val trips: TripRepository) : ViewModel() {
+class TripsViewModel(
+    private val trips: TripRepository,
+    private val seeder: SampleSeeder,
+) : ViewModel() {
 
     val state: StateFlow<TripsUiState> = trips.observeTrips()
         .map { all ->
@@ -61,6 +65,11 @@ class TripsViewModel(private val trips: TripRepository) : ViewModel() {
             )
             onCreated(id)
         }
+    }
+
+    /** Writes the worked example and opens it. Offered only on an empty shelf. */
+    fun loadExample(onLoaded: (String) -> Unit) {
+        viewModelScope.launch { onLoaded(seeder.seed()) }
     }
 
     fun deleteTrip(tripId: String) {

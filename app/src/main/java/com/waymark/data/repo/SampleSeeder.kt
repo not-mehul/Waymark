@@ -4,9 +4,17 @@ import com.waymark.data.catalog.SampleItinerary
 import java.time.LocalDate
 
 /**
- * Writes the worked example on first run only. It is anchored to the current
- * date so the sample trip is always about to happen — a timeline of last
- * year's flights would demonstrate nothing.
+ * The worked example: a week in London and Paris with flights, a hotel, a
+ * Eurostar, ideas, documents and a packing list already on it.
+ *
+ * This used to run itself on first launch, which meant every fresh install
+ * opened on somebody else's holiday and a real first trip began by deleting a
+ * fake one. It is offered instead — a second, quieter button on an empty shelf
+ * — so the demonstration is available to anyone who wants to look around the
+ * app before trusting it with a real itinerary, and invisible to everyone else.
+ *
+ * It is anchored to the current date so the sample trip is always about to
+ * happen: a timeline of last year's flights would demonstrate nothing.
  */
 class SampleSeeder(
     private val trips: TripRepository,
@@ -15,12 +23,8 @@ class SampleSeeder(
     private val preparations: PreparationRepository,
 ) {
 
-    suspend fun seedIfEmpty(today: LocalDate = LocalDate.now()) {
-        if (trips.tripCount() > 0) return
-        seed(today.plusDays(DAYS_UNTIL_DEPARTURE))
-    }
-
-    suspend fun seed(departure: LocalDate) {
+    /** Writes the example and returns the id of the trip it created. */
+    suspend fun seed(departure: LocalDate = LocalDate.now().plusDays(DAYS_UNTIL_DEPARTURE)): String {
         val bundle = SampleItinerary.build(departure)
         trips.saveTrip(bundle.trip)
         bundle.travelers.forEach { trips.addTraveler(bundle.trip.id, it) }
@@ -30,6 +34,7 @@ class SampleSeeder(
         ideas.saveAll(bundle.ideas)
         bundle.documents.forEach { preparations.saveDocument(it) }
         bundle.packing.forEach { preparations.savePackingItem(it) }
+        return bundle.trip.id
     }
 
     private companion object {

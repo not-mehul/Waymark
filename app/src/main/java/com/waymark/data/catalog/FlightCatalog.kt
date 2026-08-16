@@ -8,10 +8,22 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 /**
- * The bundled schedule. This is what makes "type a flight number, get a
- * populated segment" work on a plane, in a queue, or anywhere else the
- * network is a rumour. A network provider, when configured, takes precedence;
- * this is the floor, not the ceiling.
+ * Carrier names, and the handful of real schedules the worked example is built
+ * from.
+ *
+ * This was once the app's flight lookup: type `BA286`, get a populated segment,
+ * with the note that "a network provider, when configured, takes precedence".
+ * There is no network provider and there will not be one — every detail of a
+ * flight is typed in by the person flying — so nothing on the Add flight screen
+ * consults the schedules any more. Two things survived that decision and both
+ * are still earning their place:
+ *
+ * - [carrierName], which turns `BA` into `British Airways` for the vault label.
+ *   That is a reference table, not a lookup service, in the same sense that the
+ *   airport directory is.
+ * - [lookup] and [resolve], which the sample itinerary uses to build a
+ *   demonstration out of flights that genuinely exist, with real airports,
+ *   real terminals and real block times.
  */
 object FlightCatalog {
 
@@ -131,9 +143,9 @@ object FlightCatalog {
     fun carrierName(code: String): String = carriers[code.uppercase()] ?: code.uppercase()
 
     /**
-     * Resolve a flight number onto a date. Returns null when the catalog has
-     * never heard of the flight, which the UI turns into a manual-entry path
-     * rather than a dead end.
+     * Resolve a flight number onto a date, or null when the catalog has never
+     * heard of it. Used to build the worked example — not by the Add flight
+     * screen, which asks for every field.
      */
     fun lookup(input: String, date: LocalDate): FlightPlan? {
         val designator = FlightDesignator.parse(input) ?: return null
@@ -169,7 +181,7 @@ object FlightCatalog {
     private fun zone(place: Place): ZoneId =
         runCatching { ZoneId.of(place.timeZoneId) }.getOrDefault(ZoneId.of("UTC"))
 
-    /** Everything the catalog knows for a station — used by the route picker. */
+    /** Everything the catalog knows for a station. */
     fun departuresFrom(code: String): List<ScheduledFlight> =
         schedules.filter { it.originCode.equals(code, ignoreCase = true) }
             .sortedBy { it.departureLocal }

@@ -1,7 +1,7 @@
 package com.waymark.ui.trips
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,9 +20,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.waymark.BuildConfig
 import com.waymark.domain.logic.TimeText
 import com.waymark.domain.model.Trip
 import com.waymark.domain.model.TripStatus
@@ -34,6 +37,7 @@ import com.waymark.ui.components.WaymarkBackdrop
 import com.waymark.ui.components.WaymarkIcon
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.theme.Waymark
+import com.waymark.ui.theme.WaymarkShapes
 import com.waymark.ui.theme.WaymarkSpacing
 import java.time.Instant
 
@@ -53,6 +57,7 @@ fun TripsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var composing by rememberSaveable { mutableStateOf(false) }
+    var about by rememberSaveable { mutableStateOf(false) }
 
     WaymarkBackdrop {
         LazyColumn(
@@ -82,7 +87,20 @@ fun TripsScreen(
             }
 
             if (state.upcoming.isEmpty() && state.active.isEmpty()) {
-                item { EmptyShelf(loaded = state.loaded) }
+                item {
+                    EmptyShelf(
+                        loaded = state.loaded,
+                        // Offered only on a genuinely empty shelf: a traveler
+                        // who has trips of their own has no use for a demo, and
+                        // one who has just deleted their last trip does not
+                        // want somebody else's back in its place.
+                        onLoadExample = if (state.isEmpty) {
+                            { viewModel.loadExample(onOpenTrip) }
+                        } else {
+                            null
+                        },
+                    )
+                }
             } else {
                 if (grouped && state.upcoming.isNotEmpty()) item { SectionHeader("Ahead") }
                 items(state.upcoming, key = { it.id }) { trip ->
@@ -106,7 +124,14 @@ fun TripsScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+
+            // The version, where versions go, and the only way into About.
+            item { VersionLine(onClick = { about = true }) }
         }
+    }
+
+    if (about) {
+        AboutModal(onDismiss = { about = false })
     }
 
     if (composing) {
@@ -217,18 +242,64 @@ private fun TripCard(
     }
 }
 
+/** The version, and the door to About behind it. */
 @Composable
-private fun EmptyShelf(loaded: Boolean) {
-    Box(
+private fun VersionLine(onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = WaymarkSpacing.small),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = "Waymark ${BuildConfig.VERSION_NAME} · offline",
+            style = Waymark.type.hint,
+            color = Waymark.colors.textFaint,
+            modifier = Modifier
+                .clip(WaymarkShapes.control)
+                .clickable(role = Role.Button, onClick = onClick)
+                .padding(horizontal = WaymarkSpacing.small, vertical = WaymarkSpacing.snug),
+        )
+    }
+}
+
+/**
+ * What a fresh install opens on.
+ *
+ * Waymark used to write the London & Paris example into the database on first
+ * run, so the first thing a new traveler saw was a stranger's holiday that they
+ * had to delete before starting their own. The example is worth having — it is
+ * the only way to see the timeline, the map and the vault with something in
+ * them — so it is offered here rather than installed, one line quieter than the
+ * button that starts a real trip.
+ */
+@Composable
+private fun EmptyShelf(loaded: Boolean, onLoadExample: (() -> Unit)?) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = WaymarkSpacing.large),
-        contentAlignment = Alignment.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(WaymarkSpacing.small),
     ) {
         Text(
             text = if (loaded) "Nothing planned yet." else "Reading the vault…",
             style = Waymark.type.hint,
             color = Waymark.colors.textDim,
         )
+        if (loaded && onLoadExample != null) {
+            Text(
+                text = "Load the worked example",
+                style = Waymark.type.control,
+                color = Waymark.colors.accentAmber,
+                modifier = Modifier
+                    .clip(WaymarkShapes.control)
+                    .clickable(role = Role.Button, onClick = onLoadExample)
+                    .padding(
+                        horizontal = WaymarkSpacing.small,
+                        vertical = WaymarkSpacing.snug,
+                    ),
+            )
+        }
     }
 }

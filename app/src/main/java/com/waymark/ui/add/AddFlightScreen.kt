@@ -29,6 +29,7 @@ import com.waymark.ui.components.SectionHeader
 import com.waymark.ui.components.TimeField
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.components.WaymarkTextField
+import com.waymark.ui.components.rememberReminderPermission
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
 import java.time.Duration
@@ -50,6 +51,11 @@ fun AddFlightScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showDetail by rememberSaveable { mutableStateOf(false) }
+
+    // Saving a flight is the moment a reminder about a departure starts to
+    // mean something, so it is the moment the app asks to be allowed to send
+    // one. Nothing is asked for on the way in.
+    val reminders = rememberReminderPermission()
 
     ScreenScaffold(title = "Add flight", onBack = onDone, spacing = WaymarkSpacing.small) {
         Row(
@@ -216,7 +222,12 @@ fun AddFlightScreen(
         PrimaryButton(
             text = "Add to itinerary",
             icon = WaymarkIcons.Check,
-            onClick = { viewModel.save(onDone) },
+            onClick = {
+                viewModel.save {
+                    if (!reminders.granted) reminders.request()
+                    onDone()
+                }
+            },
             enabled = state.canSave,
             modifier = Modifier
                 .fillMaxWidth()

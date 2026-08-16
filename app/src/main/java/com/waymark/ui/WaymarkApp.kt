@@ -56,7 +56,9 @@ fun WaymarkApp(
 
         composable(Routes.TRIPS) {
             val viewModel: TripsViewModel = viewModel(
-                factory = factory { TripsViewModel(container.tripRepository) }
+                factory = factory {
+                    TripsViewModel(container.tripRepository, container.seeder)
+                }
             )
             TripsScreen(
                 viewModel = viewModel,

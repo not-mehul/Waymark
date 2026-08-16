@@ -25,7 +25,9 @@ class WaymarkApplication : Application() {
             // The directory first: a traveler who opens the app to add a flight
             // should find the field already able to resolve their airport.
             container.loadAirportDirectory()
-            container.seeder.seedIfEmpty()
+            // Nothing is written on first run. The worked example is offered on
+            // the empty shelf rather than installed on somebody's behalf.
+            //
             // Repairs databases written before deleting a booking cleaned up
             // the vault records that only existed because of it.
             container.tripRepository.pruneOrphans()

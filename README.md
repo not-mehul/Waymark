@@ -31,7 +31,13 @@ says" to keep current, because nobody is going to update an app at a gate. A
 booking is a record of something already arranged, so it opens **read only**;
 Edit turns the screen into a form with Save and Cancel, and nothing is written
 until Save. The one thing the app volunteers is a reminder that a flight you
-booked leaves in a few hours, which it knows from the itinerary and the clock.
+booked leaves in a few hours, which it knows from the itinerary and the clock —
+one notification channel, asked for once, when you save your first flight.
+
+**Nothing on first launch.** The shelf opens empty, with the worked example
+offered rather than installed. Somebody planning a real trip does not begin by
+deleting a stranger's holiday, and somebody who wants to see what a full
+itinerary looks like is one tap away from a week in London and Paris.
 
 **Keep the codes.** Confirmation codes, record locators, e-ticket numbers and
 boarding-pass payloads are sealed with AES-256-GCM under a key held in the
@@ -222,11 +228,11 @@ com.waymark
 │                   Geo (incl. orthographic globe), Bcbp, Code39
 ├── data/
 │   ├── catalog/    Station core list + world directory, coastline,
-│   │               destination notes and guide, sample trip
+│   │               destination notes and guide, the worked example
 │   ├── local/      Room entities, DAOs, codecs, SecretCipher (Keystore AES-GCM)
 │   └── repo/       TripRepository, VaultRepository, FlightRepository,
 │                   IdeaRepository, PreparationRepository
-├── alerts/         DepartureWatchWorker (WorkManager) + notification channels
+├── alerts/         DepartureWatchWorker (WorkManager) + the one notification channel
 ├── di/             AppContainer — the whole graph, readable top to bottom
 └── ui/
     ├── theme/      Tokens, type ramp, shapes, spacing
@@ -329,6 +335,27 @@ Then:
 The unit tests need no emulator and no device. There is nothing else to
 configure: no API key, no account, no service.
 
+### Releasing
+
+Waymark ships as a sideloaded APK — there is no store listing, and an app that
+asks for no network permission has nothing for a review to check. Publishing is
+a tag push:
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+`.github/workflows/release.yml` runs the unit suite, builds the release APK,
+signs it with the keystore held in the repository's secrets, and opens a draft
+GitHub release with the APK attached. **[RELEASING.md](RELEASING.md)** covers
+making the signing key, the four secrets, building signed on your own machine,
+and the short list of things worth checking on a real phone before tagging —
+the parts of an app that unit tests cannot reach.
+
+Release builds run R8 with resource shrinking. Without a keystore the build
+still completes and says so, and the artifact is named `-unsigned` so it cannot
+be mistaken for a shippable one.
+
 ---
 
 ## Tests
@@ -349,8 +376,8 @@ configure: no API key, no account, no service.
 - `BcbpTest` — 60-character mandatory section, build/parse round-trip
 - `TransitAndTimeTest` — estimates, mode selection, duration and zone-shift text
 - `FlightCatalogTest` — the station table's consistency (real time zones, no
-  duplicate codes, coordinates in range) and the worked-example schedule that
-  seeds the sample trip, including a westbound date-line crossing that lands the
+  duplicate codes, coordinates in range) and the worked-example schedule,
+  including a westbound date-line crossing that lands the
   previous day
 - `IdeaBoardTest` — section ordering, per-traveler filtering, suggestions that
   exclude what is already on the list, and promotion to a timeline segment
@@ -428,3 +455,13 @@ the IATA table supplied with the project, deduplicated and cleaned, with time
 zones resolved from coordinates at generation time. Destination notes and the
 city guide are hand-compiled. Everything else in the app was entered by
 whoever is using it.
+
+The same credits are in the app, under the version line at the foot of the trip
+shelf, so a reader who never sees this file can still find out what is bundled
+in the binary they installed.
+
+---
+
+## Licence
+
+[MIT](LICENSE). The bundled geographic data is public domain and credited above.

@@ -12,4 +12,10 @@ local.properties
 /app/release/
 *.apk
 *.aab
+
+# Signing material. None of this belongs in the repository — the key that
+# signs a release is the one thing that cannot be regenerated, and an app
+# signed by a different key cannot upgrade one signed by this one.
+keystore.properties
 *.keystore
+*.jks

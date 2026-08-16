@@ -533,6 +533,17 @@ object WaymarkIcons {
         lineTo(12f, 17.4f)
     }
 
+    /** A bell with a clapper under it: the one reminder the app sends. */
+    val Bell: ImageVector = stroked("bell") {
+        moveTo(6f, 17f)
+        lineTo(6f, 11f)
+        arcToRelative(6f, 6f, 0f, isMoreThanHalf = false, isPositiveArc = true, 12f, 0f)
+        lineTo(18f, 17f)
+        close()
+        moveTo(10.9f, 19.3f)
+        arcToRelative(1.6f, 1.6f, 0f, isMoreThanHalf = false, isPositiveArc = false, 2.2f, 0f)
+    }
+
     val Info: ImageVector = stroked("info") {
         circle(12f, 12f, 9f)
         moveTo(12f, 11f)
