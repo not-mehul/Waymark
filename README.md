@@ -190,12 +190,41 @@ everywhere it surfaces. It is not a claim about the actual aircraft.
 
 ## Building
 
+Needs a JDK 17 and an Android SDK with API 35. Gradle finds the SDK through
+`local.properties` or `ANDROID_HOME` — neither is in the repository, because
+both are specific to the machine.
+
+**With Android Studio installed** (the SDK usually sits in `~/Android/Sdk` on
+Linux, `~/Library/Android/sdk` on macOS):
+
 ```bash
-./gradlew :app:assembleDebug
-./gradlew :app:testDebugUnitTest
+echo "sdk.dir=$HOME/Android/Sdk" > local.properties
 ```
 
-Requires the Android SDK (compileSdk 35, minSdk 26, JDK 17).
+**Without Android Studio**, install the command-line tools once:
+
+```bash
+# Linux; see developer.android.com/studio#command-line-tools-only for the
+# current archive and the macOS equivalent.
+mkdir -p ~/Android/Sdk/cmdline-tools && cd ~/Android/Sdk/cmdline-tools
+curl -O https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+unzip commandlinetools-linux-*.zip && mv cmdline-tools latest
+
+export ANDROID_HOME=$HOME/Android/Sdk
+export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
+
+sdkmanager --licenses
+sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+```
+
+Then:
+
+```bash
+./gradlew :app:testDebugUnitTest    # the 133 unit tests
+./gradlew :app:assembleDebug        # the APK
+```
+
+The unit tests need no emulator and no device.
 
 Optional live flight feed — the app is fully functional without it:
 
