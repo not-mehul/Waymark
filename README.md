@@ -134,6 +134,19 @@ the original CSS.
 | Segmented control for a real choice, quiet rail for navigation | `SegmentedToggle` vs `TabRail` |
 | Motion is responsiveness, not decoration — 150–260 ms, eased out | `Motion`, and nothing outside it |
 
+### The mark
+
+A surveyor's north needle: two long triangles meeting on a vertical axis, the
+right half amber and the left half cream, with the axis running the full height
+of the glyph. It is the same shape in three places — `WaymarkIcons.Waymark` as
+a single stroked outline, the adaptive launcher foreground as two filled halves
+sized to the 66dp safe zone, and a monochrome layer that cuts the needle out of
+its own field so a themed-icon tint does not flatten it into a lozenge.
+
+It replaced a ring-and-chevron mark that was, on inspection, broken: the ring
+was centred at the top of the canvas and the chevron sat below it, so the two
+halves of the logo never met.
+
 ### Motion
 
 Every animation in the app comes from one file, `ui/components/Motion.kt`, and
@@ -146,6 +159,26 @@ the reader is waiting for.
 All of it is scaled by `Settings.Global.ANIMATOR_DURATION_SCALE`, so a device
 with animations turned off in accessibility settings — or in battery saver —
 gets the final state immediately, with no separate code path to forget about.
+
+### Dates and times
+
+Both pickers are drawn in the app's own idiom rather than taken from Material,
+which arrives with its own palette, shapes and ideas about elevation. The date
+picker is a Monday-first month grid; the time picker is the **whole clock laid
+out and tapped** — twenty-four hours over twelve minutes, six to a line, every
+value one tap away.
+
+The time picker got there by subtraction. It began as two dragged wheels with
+stepper arrows, which turned 16:20 into a drag you had to watch. Then it gained
+a row of shortcut chips at three-hour intervals — 06:00, 09:00, 12:00 — which
+is a guess about when people travel dressed up as a convenience, and no help at
+all for the times nobody publishes on the hour. Minutes still step by five,
+because departures are published in fives; the running time is the modal's own
+title, so the body is nothing but choices.
+
+Fields that open a picker are shaped *exactly* like fields that accept typing —
+same corner, same border, same 11dp of vertical padding — so a date sitting
+beside a flight number is the same height as it.
 
 ### Two deliberate departures
 

@@ -567,18 +567,26 @@ object WaymarkIcons {
     }
 
     /**
-     * The mark used for the app itself: a north arrow inside a ring, the
-     * figure at the centre of a compass rose. It replaces a version that ran a
-     * full diameter through the ring and then crossed it with a chevron, which
-     * at 18dp was three lines fighting over the same six pixels.
+     * The mark used for the app itself: a surveyor's north needle.
+     *
+     * Two long triangles meeting on a vertical axis — the figure at the centre
+     * of every compass rose ever printed on a chart, and the oldest way there
+     * is of drawing "this way". It is one closed outline and one line, which
+     * is as few strokes as a navigational mark can be made of, and it holds up
+     * at 18dp in a menu and at 108dp on a home screen without redrawing.
+     *
+     * It replaces a needle inside a ring: at icon size the ring and the needle
+     * competed, and the launcher version of it had the ring centred a third of
+     * the way up the canvas, so the two halves of the mark did not even meet.
      */
     val Waymark: ImageVector = stroked("waymark") {
-        circle(12f, 12f, 8.5f)
-        moveTo(12f, 6f)
-        lineTo(16.5f, 17.5f)
-        lineTo(12f, 14.8f)
-        lineTo(7.5f, 17.5f)
+        moveTo(12f, 3f)
+        lineTo(18.5f, 16f)
+        lineTo(12f, 21f)
+        lineTo(5.5f, 16f)
         close()
+        moveTo(12f, 3f)
+        lineTo(12f, 21f)
     }
 
     private fun stroked(name: String, path: PathBuilder.() -> Unit): ImageVector =

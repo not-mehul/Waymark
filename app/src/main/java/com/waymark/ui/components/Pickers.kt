@@ -3,7 +3,6 @@ package com.waymark.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,9 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.waymark.domain.logic.TimeText
 import com.waymark.ui.theme.Waymark
@@ -311,12 +307,21 @@ fun TimeField(
 }
 
 /**
- * Two columns, hours and minutes, dragged or tapped.
+ * The whole clock, laid out and tapped: twenty-four hours over twelve minutes.
  *
- * Minutes step by five, because departure times are published in fives and
- * scrolling sixty of them to find `:35` is a worse experience than never
- * offering `:37` at all. The stepper arrows exist because a drag on a small
- * column is fiddly with a bag over one shoulder.
+ * Two earlier versions of this were worse. The first was a pair of dragged
+ * wheels with stepper arrows, which turned "16:20" into eleven taps or a drag
+ * you had to watch. The second added a row of shortcut chips at three-hour
+ * intervals — 06:00, 09:00, 12:00 and so on — which is a guess about when
+ * people travel dressed up as a convenience, and gets in the way of the times
+ * nobody publishes on the hour.
+ *
+ * Every value is on screen and every value is one tap. Hours run 00–23 in the
+ * same six-wide grid the calendar uses, so the two pickers feel like the same
+ * control. Minutes step by five, because departures are published in fives and
+ * an app that offers `:37` is offering precision it will never be asked for.
+ * The running time is the modal's own title, which leaves the body to be
+ * nothing but the choices.
  */
 @Composable
 fun TimePickerModal(
@@ -327,47 +332,25 @@ fun TimePickerModal(
     var hour by remember(initial) { mutableStateOf(initial.hour) }
     var minute by remember(initial) { mutableStateOf(initial.minute / 5 * 5) }
 
-    WaymarkModal(title = "Pick a time", eyebrow = "Local clock", onDismiss = onDismiss) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Wheel(
-                value = hour,
-                count = 24,
-                label = "Hour",
-                onChange = { hour = it },
-            )
-            Text(
-                text = ":",
-                style = Waymark.type.verdict,
-                color = Waymark.colors.textFaint,
-                modifier = Modifier.padding(horizontal = WaymarkSpacing.small),
-            )
-            Wheel(
-                value = minute,
-                count = 60,
-                step = 5,
-                label = "Minute",
-                onChange = { minute = it },
-            )
-        }
-
-        // The common departures, one tap away.
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.tight),
-        ) {
-            listOf(6 to 0, 9 to 0, 12 to 0, 15 to 0, 18 to 0, 21 to 0).forEach { (h, m) ->
-                OptionChip(
-                    text = LocalTime.of(h, m).format(CLOCK),
-                    selected = hour == h && minute == m,
-                    onClick = { hour = h; minute = m },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
+    WaymarkModal(
+        title = LocalTime.of(hour, minute).format(CLOCK),
+        eyebrow = "Local clock",
+        onDismiss = onDismiss,
+    ) {
+        ClockGrid(
+            label = "Hour",
+            values = (0..23).toList(),
+            perRow = 6,
+            selected = hour,
+            onPick = { hour = it },
+        )
+        ClockGrid(
+            label = "Minute",
+            values = (0 until 60 step 5).toList(),
+            perRow = 6,
+            selected = minute,
+            onPick = { minute = it },
+        )
 
         PrimaryButton(
             text = "Choose",
@@ -378,71 +361,69 @@ fun TimePickerModal(
     }
 }
 
-/** One column of a time picker: drag it, or step it with the arrows. */
+/** A labelled block of clock values, [perRow] to a line, one of them lit. */
 @Composable
-private fun Wheel(
-    value: Int,
-    count: Int,
+private fun ClockGrid(
     label: String,
-    onChange: (Int) -> Unit,
-    step: Int = 1,
+    values: List<Int>,
+    perRow: Int,
+    selected: Int,
+    onPick: (Int) -> Unit,
 ) {
-    val colors = Waymark.colors
-    val steps = count / step
-
-    fun shift(by: Int) {
-        val index = ((value / step) + by).mod(steps)
-        onChange(index * step)
-    }
-
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(WaymarkSpacing.tight),
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
     ) {
         FieldLabel(label)
-        GhostIconButton(
-            icon = WaymarkIcons.ChevronUp,
-            contentDescription = "$label up",
-            onClick = { shift(1) },
-        )
-        Box(
-            modifier = Modifier
-                .width(74.dp)
-                .height(58.dp)
-                .clip(WaymarkShapes.control)
-                .background(colors.input)
-                .border(1.dp, colors.amber(0.4f), WaymarkShapes.control)
-                .pointerInput(step, count) {
-                    var travelled = 0f
-                    detectVerticalDragGestures(
-                        onDragEnd = { travelled = 0f },
-                    ) { change, delta ->
-                        change.consume()
-                        travelled -= delta
-                        // One notch per 22dp of travel: fast enough to cross a
-                        // day, slow enough to land on a specific minute.
-                        val notch = 22.dp.toPx()
-                        while (travelled >= notch) {
-                            shift(1); travelled -= notch
-                        }
-                        while (travelled <= -notch) {
-                            shift(-1); travelled += notch
-                        }
-                    }
-                },
-            contentAlignment = Alignment.Center,
+        // The rows sit tight against each other — a grid, not a stack of rows.
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Text(
-                text = value.toString().padStart(2, '0'),
-                style = Waymark.type.verdict,
-                color = colors.textHeading,
-                textAlign = TextAlign.Center,
-            )
+            values.chunked(perRow).forEach { line ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    line.forEach { value ->
+                        ClockCell(
+                            value = value,
+                            selected = value == selected,
+                            modifier = Modifier.weight(1f),
+                            onClick = { onPick(value) },
+                        )
+                    }
+                    // A short last line keeps its cells the width of the ones
+                    // above rather than stretching to fill the gap.
+                    repeat(perRow - line.size) { Spacer(Modifier.weight(1f)) }
+                }
+            }
         }
-        GhostIconButton(
-            icon = WaymarkIcons.ChevronDown,
-            contentDescription = "$label down",
-            onClick = { shift(-1) },
+    }
+}
+
+@Composable
+private fun ClockCell(
+    value: Int,
+    selected: Boolean,
+    modifier: Modifier,
+    onClick: () -> Unit,
+) {
+    val colors = Waymark.colors
+    Box(
+        modifier = modifier
+            // Roughly 45×38 on a narrow phone: a comfortable target, and the
+            // grid still fits above the fold with the button.
+            .height(38.dp)
+            .clip(WaymarkShapes.chip)
+            .background(if (selected) colors.accentBright else colors.panelFaint)
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = value.toString().padStart(2, '0'),
+            style = Waymark.type.dataSmall,
+            color = if (selected) colors.onAccent else colors.textBody,
         )
     }
 }
@@ -450,8 +431,12 @@ private fun Wheel(
 // — Shared ————————————————————————————————————————————————————————————————
 
 /**
- * A field that opens something instead of accepting typing. Shaped exactly
- * like [WaymarkTextField] so a form does not visibly change gear halfway down.
+ * A field that opens something instead of accepting typing.
+ *
+ * Shaped *exactly* like [WaymarkTextField] — same corner, same border, same
+ * 11dp of vertical padding — so a date sitting beside a flight number is the
+ * same height as it. It was 13dp, which is invisible on its own and obvious in
+ * a row of mixed fields.
  */
 @Composable
 private fun PickerField(
@@ -477,7 +462,7 @@ private fun PickerField(
                 .background(if (enabled) colors.input else colors.disabled)
                 .border(1.dp, colors.border, WaymarkShapes.control)
                 .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-                .padding(horizontal = WaymarkSpacing.small, vertical = 13.dp),
+                .padding(horizontal = WaymarkSpacing.small, vertical = 11.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
         ) {

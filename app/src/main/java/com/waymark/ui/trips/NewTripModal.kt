@@ -1,10 +1,8 @@
 package com.waymark.ui.trips
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -13,18 +11,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.waymark.ui.components.DateField
 import com.waymark.ui.components.MutedButton
-import com.waymark.ui.components.OptionChip
 import com.waymark.ui.components.PrimaryButton
+import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.components.WaymarkModal
 import com.waymark.ui.components.WaymarkTextField
-import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
 /**
- * A new itinerary needs four facts. Dates are typed as ISO — unambiguous,
- * short, and the same in every locale — with two shortcuts for the common case.
+ * A new itinerary needs four facts, and nothing more than four fields to
+ * collect them.
+ *
+ * There were two preset chips here — "A week out" and "A long weekend" — which
+ * were a guess at the trip somebody was about to plan, offered above the two
+ * date fields that already answer the question in two taps. The length of the
+ * trip is now the eyebrow above the title rather than a line of its own: it
+ * updates as the dates move, and it is a fact about what has been entered, not
+ * a field.
  */
 @Composable
 fun NewTripModal(
@@ -36,9 +40,11 @@ fun NewTripModal(
     var start by remember { mutableStateOf(LocalDate.now().plusWeeks(2)) }
     var end by remember { mutableStateOf(LocalDate.now().plusWeeks(2).plusDays(6)) }
 
+    val days = ChronoUnit.DAYS.between(start, end) + 1
+
     WaymarkModal(
         title = "New itinerary",
-        eyebrow = "Compose",
+        eyebrow = if (days == 1L) "One day" else "$days days",
         onDismiss = onDismiss,
     ) {
         WaymarkTextField(
@@ -56,7 +62,7 @@ fun NewTripModal(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.small)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
             DateField(
                 value = start,
                 onValueChange = { picked ->
@@ -79,41 +85,17 @@ fun NewTripModal(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
-            OptionChip(
-                text = "A week out",
-                selected = false,
-                onClick = {
-                    start = LocalDate.now().plusWeeks(1)
-                    end = start.plusDays(6)
-                },
-            )
-            OptionChip(
-                text = "A long weekend",
-                selected = false,
-                onClick = {
-                    start = LocalDate.now().plusWeeks(2)
-                    end = start.plusDays(3)
-                },
-            )
-        }
-
-        Text(
-            text = "${ChronoUnit.DAYS.between(start, end) + 1} days",
-            style = Waymark.type.hint,
-            color = Waymark.colors.textDim,
-        )
-
-        Column(verticalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
-            PrimaryButton(
-                text = "Create",
-                onClick = { onCreate(name, destination, start, end) },
-                enabled = name.isNotBlank() || destination.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
-            )
             MutedButton(
                 text = "Cancel",
                 onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.weight(1f),
+            )
+            PrimaryButton(
+                text = "Create",
+                icon = WaymarkIcons.Check,
+                onClick = { onCreate(name, destination, start, end) },
+                enabled = name.isNotBlank() || destination.isNotBlank(),
+                modifier = Modifier.weight(1f),
             )
         }
     }

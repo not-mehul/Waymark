@@ -141,6 +141,12 @@ private fun StepRail(
  * The footer every step shares: back on the left, the forward action on the
  * right, and nothing else. The forward action is "Next" until the last step,
  * where it commits.
+ *
+ * The two halves are the same width and the same height. An earlier version
+ * gave the forward button 1.4 of the row's width for emphasis, which — on top
+ * of `MutedButton` being four pixels shorter than `PrimaryButton` at the time
+ * — read as a mistake rather than as a hierarchy. The colour does the
+ * emphasis; the geometry stays even.
  */
 @Composable
 fun StepFooter(
@@ -171,7 +177,7 @@ fun StepFooter(
             icon = if (finishing) WaymarkIcons.Check else WaymarkIcons.ChevronRight,
             onClick = onForward,
             enabled = forwardEnabled,
-            modifier = Modifier.weight(if (onBack == null) 1f else 1.4f),
+            modifier = Modifier.weight(1f),
         )
     }
 }

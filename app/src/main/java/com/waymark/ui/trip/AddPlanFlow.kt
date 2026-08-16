@@ -17,7 +17,6 @@ import com.waymark.domain.model.Traveler
 import com.waymark.ui.components.ChoiceCard
 import com.waymark.ui.components.ChoiceChip
 import com.waymark.ui.components.DateField
-import com.waymark.ui.components.Footnote
 import com.waymark.ui.components.OptionChip
 import com.waymark.ui.components.PartyMark
 import com.waymark.ui.components.StepFlow
@@ -123,7 +122,6 @@ fun AddPlanFlow(
                         },
                     )
                 }
-                Footnote("Nothing is saved until the last step.")
             }
 
             1 -> {
@@ -201,27 +199,26 @@ fun AddPlanFlow(
 
             2 -> {
                 StepQuestion(if (draft.isStay) "Which nights?" else "When is it?")
-                Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
-                    DateField(
-                        value = draft.startDate,
-                        onValueChange = {
-                            draft = draft.copy(
-                                startDate = it,
-                                endDate = if (draft.endDate.isBefore(it)) it else draft.endDate,
-                            )
-                        },
-                        label = if (draft.isStay) "Check in" else "Date",
-                        modifier = Modifier.weight(1f),
-                    )
-                    TimeField(
-                        value = draft.startTime,
-                        onValueChange = { draft = draft.copy(startTime = it) },
-                        label = "From",
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
-                    if (draft.isStay) {
+
+                // Dates on one line, clock on the next. An earlier version put
+                // the date beside "From" and left "Until" to fall onto a line
+                // of its own at full width, which made a four-field step look
+                // like three fields and a mistake. Now every row is either two
+                // equal halves or one full-width field, whichever the kind
+                // needs.
+                if (draft.isStay) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
+                        DateField(
+                            value = draft.startDate,
+                            onValueChange = {
+                                draft = draft.copy(
+                                    startDate = it,
+                                    endDate = if (draft.endDate.isBefore(it)) it else draft.endDate,
+                                )
+                            },
+                            label = "Check in",
+                            modifier = Modifier.weight(1f),
+                        )
                         DateField(
                             value = draft.endDate,
                             onValueChange = { draft = draft.copy(endDate = it) },
@@ -230,6 +227,24 @@ fun AddPlanFlow(
                             modifier = Modifier.weight(1f),
                         )
                     }
+                } else {
+                    DateField(
+                        value = draft.startDate,
+                        onValueChange = {
+                            draft = draft.copy(startDate = it, endDate = it)
+                        },
+                        label = "Date",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
+                    TimeField(
+                        value = draft.startTime,
+                        onValueChange = { draft = draft.copy(startTime = it) },
+                        label = "From",
+                        modifier = Modifier.weight(1f),
+                    )
                     TimeField(
                         value = draft.endTime,
                         onValueChange = { draft = draft.copy(endTime = it) },

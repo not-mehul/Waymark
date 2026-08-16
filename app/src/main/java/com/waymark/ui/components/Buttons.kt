@@ -134,7 +134,11 @@ fun SecondaryButton(
     }
 }
 
-/** Quietest of the three. Border only, dim text. */
+/**
+ * Quietest of the three. Border only, dim text — but the *same height* as the
+ * others: it used to carry `snug` padding where the rest carried `small`, so a
+ * Back and a Next side by side differed by four pixels top and bottom.
+ */
 @Composable
 fun MutedButton(
     text: String,
@@ -166,14 +170,14 @@ fun MutedButton(
                 role = Role.Button,
                 onClick = onClick,
             )
-            .padding(horizontal = WaymarkSpacing.medium, vertical = WaymarkSpacing.snug),
+            .padding(horizontal = WaymarkSpacing.medium, vertical = WaymarkSpacing.small),
         contentAlignment = Alignment.Center,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
         ) {
-            icon?.let { WaymarkIcon(it, tint = tint, size = 14.dp) }
+            icon?.let { WaymarkIcon(it, tint = tint, size = 15.dp) }
             Text(text = text.uppercase(), style = Waymark.type.buttonLabel, color = tint)
         }
     }

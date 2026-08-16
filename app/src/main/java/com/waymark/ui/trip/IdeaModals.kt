@@ -16,7 +16,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.ui.components.ChoiceCard
-import com.waymark.ui.components.Footnote
 import com.waymark.ui.components.DateField
 import com.waymark.ui.components.FieldLabel
 import com.waymark.ui.components.MutedButton
@@ -143,11 +142,6 @@ fun AddIdeaModal(
                 )
             }
         }
-        // The first step has no footer at all: picking a card moves on, and
-        // there is nowhere behind it to go.
-        if (current == 0) {
-            Footnote("Nothing is saved until the last step.")
-        }
     }
 }
 
@@ -180,7 +174,7 @@ fun ScheduleIdeaModal(
                 value = date,
                 onValueChange = { date = it },
                 label = "Date",
-                modifier = Modifier.weight(1.3f),
+                modifier = Modifier.weight(1f),
             )
             TimeField(
                 value = time,

@@ -1,25 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    A surveyor's north needle: two long triangles meeting on a vertical axis,
+    the figure at the centre of a compass rose.
+
+    Drawn as two filled halves rather than strokes so it stays solid at every
+    density, and sized to the 66dp safe zone of the 108dp adaptive canvas — the
+    previous foreground put its ring at y 0–52 and its chevron at y 34–78, so
+    the two halves of the mark never met.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Bearing needle inside a ring: the mark used throughout the app. -->
+
+    <!-- The lit half: tip, right wing, tail. -->
     <path
-        android:strokeColor="#D4A574"
-        android:strokeWidth="3"
-        android:fillColor="#00000000"
-        android:pathData="M54,26 m-26,0 a26,26 0 1,1 52,0 a26,26 0 1,1 -52,0" />
+        android:fillColor="#D4A574"
+        android:pathData="M54,26 L75,64 L54,82 Z" />
+
+    <!-- The shaded half, in cream, so the needle reads as a solid with a
+         highlight rather than as a flat diamond. -->
     <path
-        android:strokeColor="#F5ECD9"
-        android:strokeWidth="3.5"
-        android:strokeLineJoin="round"
-        android:strokeLineCap="round"
-        android:fillColor="#00000000"
-        android:pathData="M42,66 L54,34 L66,66" />
-    <path
-        android:strokeColor="#9FB3A0"
-        android:strokeWidth="3"
-        android:strokeLineCap="round"
-        android:fillColor="#00000000"
-        android:pathData="M54,34 L54,78" />
+        android:fillColor="#F5ECD9"
+        android:pathData="M54,26 L33,64 L54,82 Z" />
 </vector>
