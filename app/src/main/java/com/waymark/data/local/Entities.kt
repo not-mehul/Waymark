@@ -152,36 +152,6 @@ data class IdeaEntity(
 )
 
 /**
- * Passports, visas, insurance — the records that decide whether a trip
- * happens at all.
- */
-@Entity(
-    tableName = "documents",
-    foreignKeys = [
-        ForeignKey(
-            entity = TravelerEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["travelerId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
-    indices = [Index("travelerId"), Index("expiresOnEpochDay")],
-)
-data class DocumentEntity(
-    @PrimaryKey val id: String,
-    val travelerId: String,
-    val kind: String,
-    val label: String,
-    val number: String,
-    val issuer: String?,
-    val issuedOnEpochDay: Long?,
-    val expiresOnEpochDay: Long?,
-    val note: String?,
-    val fileUri: String?,
-    val updatedAtMillis: Long,
-)
-
-/**
  * Reminders already raised, so a flight that is still four hours out does not
  * buzz the traveler's pocket on every check.
  */

@@ -20,7 +20,6 @@ class MarkdownExportTest {
     private val payload = MarkdownExport.Payload(
         dossier = dossier,
         ideas = bundle.ideas,
-        documents = bundle.documents,
         analytics = TripAnalytics.report(dossier, bundle.ideas),
     )
     private val markdown = MarkdownExport.render(payload)
@@ -36,30 +35,20 @@ class MarkdownExportTest {
 
     @Test
     fun `every section a trip has content for is present`() {
-        listOf("## Itinerary", "## On the list", "## Documents", "## Bookings")
+        listOf("## Itinerary", "## On the list", "## Bookings")
             .forEach { heading ->
                 assertTrue("missing $heading", markdown.contains(heading))
             }
     }
 
-    /**
-     * A booking reference is the reason to send somebody an itinerary, so it
-     * travels. A passport number is not, so it does not.
-     */
+    /** A booking reference is the reason to send somebody an itinerary. */
     @Test
-    fun `booking references are exported and document numbers are not`() {
+    fun `every booking reference is exported`() {
         val codes = bundle.segments.mapNotNull { it.confirmationCode }
         assertTrue("fixture has no booking references", codes.isNotEmpty())
         codes.forEach { code ->
             assertTrue("missing $code", markdown.contains(code))
         }
-
-        val numbers = bundle.documents.map { it.number }.filter { it.isNotBlank() }
-        assertTrue("fixture has no document numbers", numbers.isNotEmpty())
-        numbers.forEach { number ->
-            assertFalse("leaked $number", markdown.contains(number))
-        }
-        assertTrue(markdown.contains("Passport"))
     }
 
     @Test

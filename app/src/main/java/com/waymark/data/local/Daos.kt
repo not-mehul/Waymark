@@ -76,14 +76,15 @@ interface SegmentDao {
     @Query("SELECT * FROM segments WHERE id = :segmentId")
     suspend fun find(segmentId: String): SegmentEntity?
 
+    /** Everything that starts inside a window — the reminder worker's read. */
     @Query(
         """
         SELECT * FROM segments
-        WHERE kind = 'FLIGHT' AND endEpochMillis > :fromMillis AND startEpochMillis < :toMillis
+        WHERE startEpochMillis BETWEEN :fromMillis AND :toMillis
         ORDER BY startEpochMillis
         """
     )
-    suspend fun flightsInWindow(fromMillis: Long, toMillis: Long): List<SegmentEntity>
+    suspend fun startingInWindow(fromMillis: Long, toMillis: Long): List<SegmentEntity>
 
     @Upsert
     suspend fun upsert(segment: SegmentEntity)
@@ -127,25 +128,6 @@ interface IdeaDao {
         """
     )
     suspend fun releaseSegment(segmentId: String)
-}
-
-@Dao
-interface DocumentDao {
-
-    @Query("SELECT * FROM documents ORDER BY expiresOnEpochDay IS NULL, expiresOnEpochDay")
-    fun observeAll(): Flow<List<DocumentEntity>>
-
-    @Query("SELECT * FROM documents WHERE travelerId IN (:travelerIds)")
-    fun observeFor(travelerIds: List<String>): Flow<List<DocumentEntity>>
-
-    @Query("SELECT * FROM documents WHERE id = :id")
-    suspend fun find(id: String): DocumentEntity?
-
-    @Upsert
-    suspend fun upsert(document: DocumentEntity)
-
-    @Query("DELETE FROM documents WHERE id = :id")
-    suspend fun delete(id: String)
 }
 
 @Dao

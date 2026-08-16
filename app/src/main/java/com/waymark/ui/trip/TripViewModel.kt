@@ -3,18 +3,19 @@ package com.waymark.ui.trip
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.waymark.data.catalog.Airports
+import com.waymark.data.local.ReminderStore
 import com.waymark.data.repo.AlertRepository
 import com.waymark.data.repo.IdeaRepository
-import com.waymark.data.repo.PreparationRepository
 import com.waymark.data.repo.TripRepository
 import com.waymark.domain.logic.DayPlan
-import com.waymark.domain.logic.DocumentVerdict
-import com.waymark.domain.logic.DocumentWatch
 import com.waymark.domain.logic.CityGroup
 import com.waymark.domain.logic.IdeaBoard
 import com.waymark.domain.logic.IdeaSection
 import com.waymark.domain.logic.IdeaTally
+import com.waymark.domain.logic.Lead
 import com.waymark.domain.logic.PartySplitAnalyzer
+import com.waymark.domain.logic.ReminderCategory
+import com.waymark.domain.logic.ReminderPreferences
 import com.waymark.domain.logic.SplitWindow
 import com.waymark.domain.logic.TimelineBuilder
 import com.waymark.domain.logic.TimelineEntry
@@ -26,7 +27,6 @@ import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
 import com.waymark.domain.model.Place
 import com.waymark.domain.model.Segment
-import com.waymark.domain.model.TravelDocument
 import com.waymark.domain.model.TripDossier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -67,9 +67,8 @@ data class TripUiState(
     val ideaTally: IdeaTally = IdeaTally(0, 0, 0, 0),
     val ideasByCity: List<CityGroup> = emptyList(),
     val dayPlan: DayPlan = DayPlan(emptyList(), emptyList()),
-    val documents: List<DocumentVerdict> = emptyList(),
-    val missingPassportFor: List<String> = emptyList(),
     val analytics: TripAnalyticsReport? = null,
+    val reminders: ReminderPreferences = ReminderPreferences.DEFAULT,
     val travelerFilter: String? = null,
     val nowMillis: Long = System.currentTimeMillis(),
 ) {
@@ -95,7 +94,7 @@ class TripViewModel(
     private val trips: TripRepository,
     private val alerts: AlertRepository,
     private val ideas: IdeaRepository,
-    private val preparations: PreparationRepository,
+    private val reminders: ReminderStore,
 ) : ViewModel() {
 
     private val travelerFilter = MutableStateFlow<String?>(null)
@@ -111,21 +110,21 @@ class TripViewModel(
         }
     }
 
-    /** Filter, clock, ideas and documents, folded into one flow. */
+    /** Filter, clock, ideas and reminder settings, folded into one flow. */
     private data class Ambient(
         val filter: String?,
         val now: Long,
         val ideas: List<Idea>,
-        val documents: List<TravelDocument>,
+        val reminders: ReminderPreferences,
     )
 
     private val ambient = combine(
         travelerFilter,
         clock,
         ideas.observe(tripId),
-        preparations.observeDocuments(),
-    ) { filter, now, ideaList, documents ->
-        Ambient(filter, now, ideaList, documents)
+        reminders.observe(),
+    ) { filter, now, ideaList, reminderPreferences ->
+        Ambient(filter, now, ideaList, reminderPreferences)
     }
 
     val state: StateFlow<TripUiState> = combine(
@@ -160,12 +159,8 @@ class TripViewModel(
                     .orEmpty(),
             ),
             dayPlan = IdeaBoard.byDay(current.ideas),
-            documents = partyDocuments(dossier, current.documents, instant),
-            missingPassportFor = dossier?.party?.travelers
-                ?.map { it.id }
-                ?.let { DocumentWatch.travelersMissingPassport(it, current.documents) }
-                .orEmpty(),
             analytics = dossier?.let { TripAnalytics.report(it, current.ideas) },
+            reminders = current.reminders,
             travelerFilter = current.filter,
             nowMillis = current.now,
         )
@@ -177,6 +172,17 @@ class TripViewModel(
 
     fun filterBy(travelerId: String?) {
         travelerFilter.update { current -> if (current == travelerId) null else travelerId }
+    }
+
+    /**
+     * Set how long before a category of booking to be reminded.
+     *
+     * Written straight through rather than held in the view model: this is a
+     * preference about the person, not about the trip on screen, and the
+     * background worker reads the same store.
+     */
+    fun setReminderLead(category: ReminderCategory, lead: Lead) {
+        reminders.set(category, lead)
     }
 
     fun acknowledgeAlerts(segmentId: String) {
@@ -404,36 +410,6 @@ class TripViewModel(
         }
     }
 
-    // — Documents —————————————————————————————————————————————————————————
-
-    fun addDocument(
-        travelerId: String,
-        kind: com.waymark.domain.model.DocumentKind,
-        label: String,
-        number: String,
-        issuer: String?,
-        expiresOn: LocalDate?,
-        note: String?,
-    ) {
-        if (number.isBlank()) return
-        viewModelScope.launch {
-            preparations.addDocument(
-                travelerId = travelerId,
-                kind = kind,
-                label = label,
-                number = number,
-                issuer = issuer,
-                issuedOn = null,
-                expiresOn = expiresOn,
-                note = note,
-            )
-        }
-    }
-
-    fun deleteDocument(id: String) {
-        viewModelScope.launch { preparations.deleteDocument(id) }
-    }
-
     fun pencilIdeaFor(ideaId: String, date: LocalDate?) {
         viewModelScope.launch { ideas.setPlannedDay(ideaId, date) }
     }
@@ -449,19 +425,4 @@ class TripViewModel(
         }
         return days
     }
-
-    private fun partyDocuments(
-        dossier: TripDossier?,
-        documents: List<TravelDocument>,
-        now: Instant,
-    ): List<DocumentVerdict> {
-        val partyIds = dossier?.party?.travelers?.map { it.id }?.toSet() ?: return emptyList()
-        val zone = com.waymark.domain.model.Segment.zoneOrUtc(dossier.trip.homeZoneId)
-        return DocumentWatch.assessAll(
-            documents = documents.filter { it.travelerId in partyIds },
-            tripEnd = dossier.trip.endDate(),
-            today = now.atZone(zone).toLocalDate(),
-        )
-    }
-
 }

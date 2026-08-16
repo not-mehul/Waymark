@@ -5,7 +5,6 @@ import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
 import com.waymark.domain.model.Segment
-import com.waymark.domain.model.TravelDocument
 import com.waymark.domain.model.TripDossier
 import com.waymark.domain.model.chronological
 import java.time.LocalDate
@@ -19,11 +18,8 @@ import java.time.LocalDate
  * line that says the thing a traveler needs at that moment.
  *
  * Booking references travel with it — a confirmation code is the reason to
- * send somebody an itinerary in the first place, and there is no vault left to
- * keep it behind. **Document numbers do not.** A passport number is a
- * different class of thing from a hotel reference, and an itinerary pasted
- * into a group chat should not carry one; the export names the document and
- * states its expiry, which is the part anyone else needs to know.
+ * send somebody an itinerary in the first place, and there is nothing left in
+ * the app that is more sensitive than that.
  */
 object MarkdownExport {
 
@@ -31,7 +27,6 @@ object MarkdownExport {
     data class Payload(
         val dossier: TripDossier,
         val ideas: List<Idea> = emptyList(),
-        val documents: List<TravelDocument> = emptyList(),
         val analytics: TripAnalyticsReport? = null,
     )
 
@@ -64,7 +59,6 @@ object MarkdownExport {
 
         itinerary(payload)
         ideas(payload)
-        documents(payload)
         references(payload)
         numbers(payload)
 
@@ -176,27 +170,6 @@ object MarkdownExport {
         }
         if (notes.isNotEmpty()) append(" — ${notes.joinToString(", ")}")
         idea.note?.let { append("  \n  $it") }
-    }
-
-    private fun StringBuilder.documents(payload: Payload) {
-        if (payload.documents.isEmpty()) return
-
-        appendLine()
-        appendLine("## Documents")
-        appendLine()
-        appendLine("Document numbers are deliberately left out.")
-        appendLine()
-
-        payload.documents
-            .sortedWith(compareBy({ it.travelerId }, { it.kind.ordinal }))
-            .forEach { document ->
-                val owner = payload.dossier.party.byId(document.travelerId)?.displayName
-                append("- **${document.kind.label}**")
-                owner?.let { append(" — $it") }
-                document.issuer?.let { append(", issued by $it") }
-                document.expiresOn?.let { append(", expires ${TimeText.dayCompact(it)}") }
-                appendLine()
-            }
     }
 
     /** Every booking that carries a reference, with the reference. */

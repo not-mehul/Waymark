@@ -5,6 +5,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -85,7 +87,14 @@ fun WaymarkModal(
                         indication = null,
                         onClick = {},
                     )
-                    .padding(WaymarkSpacing.large),
+                    .padding(WaymarkSpacing.large)
+                    // A modal grows with its content until it would run off the
+                    // screen, and then scrolls. The reminder sheet is the one
+                    // that made this necessary — four categories of lead time
+                    // is taller than a small phone in landscape — but a card
+                    // that silently loses its bottom edge is a bug waiting for
+                    // any of them.
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(WaymarkSpacing.medium),
             ) {
                 Row(

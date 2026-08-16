@@ -30,9 +30,14 @@ saves nothing at all.
 says" to keep current, because nobody is going to update an app at a gate. A
 booking is a record of something already arranged, so it opens **read only**;
 Edit turns the screen into a form with Save and Cancel, and nothing is written
-until Save. The one thing the app volunteers is a reminder that a flight you
-booked leaves in a few hours, which it knows from the itinerary and the clock —
-one notification channel, asked for once, when you save your first flight.
+until Save.
+
+**Be told before it starts.** The one thing the app volunteers is that
+something you entered is about to happen, which it knows from the itinerary and
+the clock. **Every category has its own lead time** and any of them can be
+switched off: flights three hours out, trains and transfers an hour, a booked
+table an hour, a hotel check-in not at all — until you say otherwise. One
+notification channel, asked for once, when you save your first flight.
 
 **Nothing on first launch.** The shelf opens empty, with the worked example
 offered rather than installed. Somebody planning a real trip does not begin by
@@ -78,23 +83,15 @@ an idea onto the timeline with a date and a duration, where it becomes an
 ordinary booking; removing that booking puts it back on the list rather than
 losing it.
 
-**Keep the documents straight.** Passports, visas and insurance sit under the
-travelers who carry them. Waymark checks each one against the trip, including
-the rule a plain expiry date hides: most borders want a passport valid six
-months beyond arrival, so a passport that outlives the return flight by four
-months is still a problem.
-
 **Count it.** A numbers screen: distance by mode, the shape of each day, where
 the hours go, nights per city, and a carbon estimate that shows its factors
 rather than asserting a figure, above the same globe you can turn with a finger.
 
 **Take it with you.** One tap exports the whole trip as markdown — days as
-headings, every booking as a line, the idea list as checkboxes, the documents
-and booking references as an index — and hands it to the system share sheet.
-Booking references travel with it, because a confirmation code is the reason to
-send somebody an itinerary. **Document numbers do not**: a passport number is a
-different class of thing from a hotel reference, and an itinerary pasted into a
-group chat should not carry one.
+headings, every booking as a line, the idea list as checkboxes, the booking
+references as an index — and hands it to the system share sheet. References
+travel with it, because a confirmation code is the reason to send somebody an
+itinerary in the first place.
 
 **Land informed.** What the money is, what the plug is, what number to call and
 which way to look before crossing — for **every country** a bundled station can
@@ -217,18 +214,17 @@ own value; legend text wears a text token, never the series colour.
 ```
 com.waymark
 ├── domain/
-│   ├── model/      Trip, Traveler, Segment (sealed), TravelDocument, Idea
+│   ├── model/      Trip, Traveler, Segment (sealed), Idea, DisruptionAlert
 │   └── logic/      TimelineBuilder, ConnectionRisk, TransitEstimator,
-│                   PartySplitAnalyzer, IdeaBoard, DocumentWatch, TimeAtPlace,
+│                   PartySplitAnalyzer, IdeaBoard, TimeAtPlace, ReminderPlanner,
 │                   TripAnalytics, MarkdownExport, LabelPlacer,
 │                   Geo (incl. orthographic globe)
 ├── data/
 │   ├── catalog/    Station core list + world directory, country facts,
 │   │               coastline, the worked example
-│   ├── local/      Room entities, DAOs, codecs, migrations
-│   └── repo/       TripRepository, IdeaRepository, PreparationRepository,
-│                   AlertRepository, SampleSeeder
-├── alerts/         DepartureWatchWorker (WorkManager) + the one notification channel
+│   ├── local/      Room entities, DAOs, codecs, migrations, ReminderStore
+│   └── repo/       TripRepository, IdeaRepository, AlertRepository, SampleSeeder
+├── alerts/         The reminder worker (WorkManager) + the one notification channel
 ├── di/             AppContainer — the whole graph, readable top to bottom
 └── ui/
     ├── theme/      Tokens, type ramp, shapes, spacing
@@ -333,7 +329,7 @@ sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 Then:
 
 ```bash
-./gradlew :app:testDebugUnitTest    # the 159 unit tests
+./gradlew :app:testDebugUnitTest    # the 158 unit tests
 ./gradlew :app:assembleDebug        # the APK
 ```
 
@@ -365,7 +361,7 @@ be mistaken for a shippable one.
 
 ## Tests
 
-159 JVM unit tests over the domain and catalog layers:
+158 JVM unit tests over the domain and catalog layers:
 
 - `FlightDesignatorTest` — parsing `BA286`, `ba 286`, `BAW286`, `3U8888`, `U2 1234`
 - `GeoTest` — great-circle distances against published figures, arc symmetry,
@@ -376,6 +372,11 @@ be mistaken for a shippable one.
   day breaks, traveler filtering, the now marker, and **two travelers on
   parallel flights not being read as one broken connection**
 - `PartySplitAnalyzerTest` — the split window and per-traveler coverage
+- `ReminderPlannerTest` — that every category can raise one rather than only
+  flights, that a category switched off raises nothing, the window boundaries at
+  both ends, and **that the signature is stable as the clock closes in** so a
+  booking is announced once rather than at every check — but changes when the
+  booking moves, because the time did
 - `TransitAndTimeTest` — estimates, mode selection, duration and zone-shift text
 - `FlightCatalogTest` — the station table's consistency (real time zones, no
   duplicate codes, coordinates in range) and the worked-example schedule,
@@ -390,8 +391,6 @@ be mistaken for a shippable one.
 - `TimeAtPlaceTest` — that the worked example resolves to London then Paris,
   that a two-hour connection is not a destination, and that a trip with one
   movement has nowhere to have stayed
-- `DocumentWatchTest` — expiry, the six-month passport margin, severity
-  ordering, travelers with no passport recorded
 - `TripAnalyticsTest` — distance splits that add up, day loads that cannot
   exceed a day, carbon against the published factors
 - `GlobeProjectionTest` — orthographic projection inside the unit disc, the
@@ -409,9 +408,9 @@ be mistaken for a shippable one.
   lazy country-to-zone table gets wrong, and **a check that each station's UTC
   offset agrees with its longitude**, which is what catches a transposed
   latitude and longitude
-- `MarkdownExportTest` — including where the line is drawn: **every booking
-  reference in the fixture appears in the document and no document number
-  does**
+- `MarkdownExportTest` — sections, chronology, checkbox states, a filename safe
+  on any filesystem, and that **every booking reference in the fixture appears
+  in the exported document**
 - `LabelPlacerTest` — no two labels overlapping, no label covering a foreign
   mark, everything inside the viewport, priority winning a contested slot, and
   forty marks in one cluster yielding some labels rather than all or none

@@ -24,7 +24,11 @@ import com.waymark.domain.model.DisruptionAlert
  * schedule feed. It does not watch anything now, so a traveler scrolling their
  * notification settings would have found two switches for a feature that
  * cannot happen and none for the reminder that can. What is left is honest:
- * something you booked is about to depart.
+ * something you booked is about to start.
+ *
+ * One channel rather than one per category, because Android's channel switches
+ * and Waymark's own lead times would then be two places to turn the same thing
+ * off, and the one inside the app is the one that can say "three hours".
  */
 object Notifications {
 
@@ -43,10 +47,10 @@ object Notifications {
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_DEPARTURES,
-                "Departure reminders",
+                "Reminders",
                 NotificationManager.IMPORTANCE_HIGH,
             ).apply {
-                description = "A few hours before a flight you have entered"
+                description = "Before a booking you have entered starts"
             }
         )
 

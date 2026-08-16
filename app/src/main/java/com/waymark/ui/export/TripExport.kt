@@ -73,7 +73,6 @@ object TripExport {
     ) = MarkdownExport.Payload(
         dossier = dossier,
         ideas = state.ideas,
-        documents = state.documents.map { it.document },
         analytics = state.analytics,
     )
 }

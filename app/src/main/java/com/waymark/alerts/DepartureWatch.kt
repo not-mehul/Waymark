@@ -8,9 +8,8 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.waymark.WaymarkApplication
 import com.waymark.data.local.Mappers
-import com.waymark.domain.logic.TimeText
+import com.waymark.domain.logic.ReminderPlanner
 import com.waymark.domain.model.DisruptionAlert
-import com.waymark.domain.model.Segment
 import java.util.concurrent.TimeUnit
 
 /**
@@ -19,9 +18,15 @@ import java.util.concurrent.TimeUnit
  *
  * Waymark has no feed to poll, so this worker does not go looking for delays —
  * it reads the clock against the itinerary already on the device and posts a
- * single reminder as each departure comes into range. Reminders are recorded
- * on the same table as disruption alerts, so each one fires once no matter how
- * often the worker runs.
+ * reminder as each booking comes into range. It used to do that for flights
+ * only, which made "reminders" a promise the app kept for a quarter of what it
+ * stored: a Eurostar, a hotel check-in and a booked table all passed unremarked.
+ * Every kind of booking is watched now, each on its own lead time, and any of
+ * them can be switched off.
+ *
+ * The deciding is in [ReminderPlanner], which is plain Kotlin and tested. What
+ * is left here is the plumbing: read the window, ask what is due, and post the
+ * ones that have not been posted before.
  */
 class DepartureWatchWorker(
     context: Context,
@@ -32,41 +37,31 @@ class DepartureWatchWorker(
         val container = (applicationContext as? WaymarkApplication)?.container
             ?: return Result.success()
 
-        val now = System.currentTimeMillis()
-        val flights = container.database.segmentDao()
-            .flightsInWindow(fromMillis = now, toMillis = now + LOOK_AHEAD_MILLIS)
-            .map(Mappers::toSegment)
-            .filterIsInstance<Segment.Flight>()
+        val preferences = container.reminderStore.current()
+        val lookAhead = ReminderPlanner.lookAheadMillis(preferences)
+        if (lookAhead <= 0L) return Result.success()
 
         return runCatching {
-            flights.forEach { flight ->
-                val minutesOut = ((flight.startEpochMillis - now) / 60_000L).toInt()
+            val now = System.currentTimeMillis()
+            val segments = container.database.segmentDao()
+                .startingInWindow(fromMillis = now, toMillis = now + lookAhead)
+                .map(Mappers::toSegment)
+
+            ReminderPlanner.due(segments, preferences, now).forEach { reminder ->
                 val alert = DisruptionAlert(
-                    segmentId = flight.id,
-                    designator = flight.designator,
-                    headline = "${flight.designator} departs in ${TimeText.duration(minutesOut)}",
-                    detail = buildString {
-                        append(flight.origin.shortLabel)
-                        flight.departureTerminal?.let { append(", terminal $it") }
-                        flight.departureGate?.let { append(", gate $it") }
-                        append(" → ${flight.destination.shortLabel}")
-                    },
+                    segmentId = reminder.segmentId,
+                    label = reminder.label,
+                    headline = reminder.headline,
+                    detail = reminder.detail,
                     severity = DisruptionAlert.Severity.NOTICE,
                     raisedAtMillis = now,
                 )
-                // One reminder per flight per departure date: the signature
-                // deliberately omits the countdown so a later run does not
-                // announce the same flight again with a smaller number.
                 container.alertRepository
-                    .raiseOnce("departure|${flight.id}|${flight.startEpochMillis}", alert, now)
+                    .raiseOnce(reminder.signature, alert, now)
                     ?.let { Notifications.post(applicationContext, it) }
             }
             Result.success()
         }.getOrElse { Result.retry() }
-    }
-
-    private companion object {
-        const val LOOK_AHEAD_MILLIS = 4L * 60 * 60 * 1000
     }
 }
 
@@ -74,14 +69,22 @@ object DepartureWatch {
 
     private const val WORK_NAME = "waymark.departure-watch"
 
+    /**
+     * Every fifteen minutes, which is WorkManager's floor for periodic work and
+     * the reason the shortest lead time offered is also fifteen minutes: a
+     * reminder cannot be more punctual than the check that raises it.
+     */
     fun schedule(context: Context) {
         // No constraints at all: this reads local storage and the clock, so
         // there is nothing to wait for — not a network, not a charger.
-        val request = PeriodicWorkRequestBuilder<DepartureWatchWorker>(30, TimeUnit.MINUTES).build()
+        val request = PeriodicWorkRequestBuilder<DepartureWatchWorker>(15, TimeUnit.MINUTES).build()
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             WORK_NAME,
-            ExistingPeriodicWorkPolicy.KEEP,
+            // REPLACE rather than KEEP: the period changed from thirty minutes
+            // to fifteen, and an install that already has the old request
+            // enqueued would otherwise keep it forever.
+            ExistingPeriodicWorkPolicy.UPDATE,
             request,
         )
     }

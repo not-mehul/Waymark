@@ -40,7 +40,9 @@ fun TripMenu(
     onOpenMap: () -> Unit,
     onExport: () -> Unit,
     onEdit: () -> Unit,
+    onReminders: () -> Unit,
     onDelete: () -> Unit,
+    reminderSummary: String,
 ) {
     WaymarkModal(title = "This trip", onDismiss = onDismiss) {
         MenuRow(WaymarkIcons.Map, "The map", "Every leg, on a chart or a globe") {
@@ -61,20 +63,18 @@ fun TripMenu(
 
         Hairline()
 
-        // The only switch in the app that lives outside it: whether Android
-        // will let Waymark say "this leaves in three hours". Shown here so a
-        // traveler who declined once has somewhere to go back to.
-        val reminders = LocalReminderPermission.current
+        val permission = LocalReminderPermission.current
         MenuRow(
             icon = WaymarkIcons.Bell,
-            title = "Departure reminders",
-            detail = if (reminders.granted) {
-                "On · a few hours before a flight"
+            title = "Reminders",
+            detail = if (permission.granted) {
+                reminderSummary
             } else {
-                "Off · tap to allow notifications"
+                "Blocked by Android · tap to fix"
             },
-            onClick = { reminders.request() },
-        )
+        ) {
+            onDismiss(); onReminders()
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),

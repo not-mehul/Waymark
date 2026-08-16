@@ -4,10 +4,10 @@ import android.content.Context
 import android.util.Log
 import com.waymark.data.catalog.AirportDirectory
 import com.waymark.data.catalog.Airports
+import com.waymark.data.local.ReminderStore
 import com.waymark.data.local.WaymarkDatabase
 import com.waymark.data.repo.AlertRepository
 import com.waymark.data.repo.IdeaRepository
-import com.waymark.data.repo.PreparationRepository
 import com.waymark.data.repo.SampleSeeder
 import com.waymark.data.repo.TripRepository
 import kotlinx.coroutines.Dispatchers
@@ -26,13 +26,12 @@ class AppContainer(context: Context) {
 
     val database: WaymarkDatabase by lazy { WaymarkDatabase.get(appContext) }
 
+    val reminderStore: ReminderStore by lazy { ReminderStore(appContext) }
+
     val tripRepository: TripRepository by lazy { TripRepository(database) }
     val alertRepository: AlertRepository by lazy { AlertRepository(database) }
     val ideaRepository: IdeaRepository by lazy { IdeaRepository(database) }
-    val preparationRepository: PreparationRepository by lazy { PreparationRepository(database) }
-    val seeder: SampleSeeder by lazy {
-        SampleSeeder(tripRepository, ideaRepository, preparationRepository)
-    }
+    val seeder: SampleSeeder by lazy { SampleSeeder(tripRepository, ideaRepository) }
 
     /**
      * Read the world directory of stations into memory.

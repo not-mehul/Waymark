@@ -4,8 +4,6 @@ import com.waymark.domain.model.GroundMode
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
-import com.waymark.domain.model.DocumentKind
-import com.waymark.domain.model.TravelDocument
 import com.waymark.domain.model.Place
 import com.waymark.domain.model.SeatPreference
 import com.waymark.domain.model.Segment
@@ -32,7 +30,6 @@ object SampleItinerary {
         val travelers: List<Traveler>,
         val segments: List<Segment>,
         val ideas: List<Idea>,
-        val documents: List<TravelDocument>,
     )
 
     private val london = ZoneId.of("Europe/London")
@@ -387,49 +384,11 @@ object SampleItinerary {
             ),
         )
 
-        // One passport comfortably valid, one inside the six-month margin —
-        // the case the expiry rule exists to catch.
-        val returnDay = homeward.end.toLocalDate()
-        val documents = listOf(
-            TravelDocument(
-                id = "doc-mara-passport",
-                travelerId = mara.id,
-                kind = DocumentKind.PASSPORT,
-                label = "Passport",
-                number = "509384711",
-                issuer = "United States",
-                issuedOn = returnDay.minusYears(6),
-                expiresOn = returnDay.plusYears(4),
-            ),
-            TravelDocument(
-                id = "doc-julian-passport",
-                travelerId = julian.id,
-                kind = DocumentKind.PASSPORT,
-                label = "Passport",
-                number = "488120953",
-                issuer = "United States",
-                issuedOn = returnDay.minusYears(9),
-                expiresOn = returnDay.plusMonths(4),
-                note = "Renewal takes six to eight weeks at the moment.",
-            ),
-            TravelDocument(
-                id = "doc-shared-insurance",
-                travelerId = mara.id,
-                kind = DocumentKind.INSURANCE,
-                label = "Travel insurance, both travelers",
-                number = "TI-88240-EU",
-                issuer = "Meridian Cover",
-                expiresOn = returnDay.plusMonths(7),
-                note = "Medical to \u00a35m, cancellation to \u00a32,500 each.",
-            ),
-        )
-
         return Bundle(
             trip = trip,
             travelers = listOf(mara, julian),
             segments = segments,
             ideas = ideas,
-            documents = documents,
         )
     }
 

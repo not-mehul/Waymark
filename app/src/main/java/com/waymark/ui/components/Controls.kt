@@ -248,7 +248,13 @@ private fun ToggleGlyph(icon: ImageVector, centre: Dp, tint: Color) {
     }
 }
 
-/** A quiet status line: icon, headline, detail. Used for delays and notices. */
+/**
+ * A quiet status line: icon, headline, detail.
+ *
+ * [onClick] is for the case where the notice is also the fix — "Android is not
+ * letting Waymark notify you" is worth tapping. Without one the banner is inert
+ * and carries no button role, so a reader is not invited to press a statement.
+ */
 @Composable
 fun NoticeBanner(
     icon: ImageVector,
@@ -256,6 +262,7 @@ fun NoticeBanner(
     detail: String? = null,
     modifier: Modifier = Modifier,
     critical: Boolean = false,
+    onClick: (() -> Unit)? = null,
 ) {
     val colors = Waymark.colors
     Row(
@@ -267,6 +274,13 @@ fun NoticeBanner(
                 1.dp,
                 if (critical) colors.danger.copy(alpha = 0.4f) else colors.amber(0.35f),
                 WaymarkShapes.panel,
+            )
+            .then(
+                if (onClick == null) {
+                    Modifier
+                } else {
+                    Modifier.clickable(role = Role.Button, onClick = onClick)
+                }
             )
             .padding(WaymarkSpacing.small),
         horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.small),

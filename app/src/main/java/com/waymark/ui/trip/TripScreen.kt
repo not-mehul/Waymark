@@ -60,6 +60,7 @@ fun TripScreen(
     var addingPlan by remember { mutableStateOf(false) }
     var confirmingDelete by remember { mutableStateOf(false) }
     var editingTrip by remember { mutableStateOf(false) }
+    var editingReminders by remember { mutableStateOf(false) }
 
     WaymarkBackdrop {
         Column(
@@ -153,8 +154,6 @@ fun TripScreen(
                     onAddTraveler = viewModel::addTraveler,
                     onRemoveTraveler = viewModel::removeTraveler,
                     onFilterTraveler = viewModel::filterBy,
-                    onAddDocument = viewModel::addDocument,
-                    onDeleteDocument = viewModel::deleteDocument,
                 )
             }
         }
@@ -168,7 +167,9 @@ fun TripScreen(
             onOpenMap = onOpenMap,
             onExport = { TripExport.share(context, state) },
             onEdit = { editingTrip = true },
+            onReminders = { editingReminders = true },
             onDelete = { confirmingDelete = true },
+            reminderSummary = state.reminders.summary(),
         )
     }
 
@@ -181,6 +182,14 @@ fun TripScreen(
                 viewModel.addPlan(it)
                 addingPlan = false
             },
+        )
+    }
+
+    if (editingReminders) {
+        RemindersModal(
+            preferences = state.reminders,
+            onSet = viewModel::setReminderLead,
+            onDismiss = { editingReminders = false },
         )
     }
 

@@ -160,7 +160,7 @@ private fun tripFactory(container: AppContainer, tripId: String): ViewModelProvi
             trips = container.tripRepository,
             alerts = container.alertRepository,
             ideas = container.ideaRepository,
-            preparations = container.preparationRepository,
+            reminders = container.reminderStore,
         )
     }
 

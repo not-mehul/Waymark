@@ -34,7 +34,7 @@ class AlertRepository(database: WaymarkDatabase) {
             RaisedAlertEntity(
                 signature = signature,
                 segmentId = alert.segmentId,
-                designator = alert.designator,
+                designator = alert.label,
                 headline = alert.headline,
                 detail = alert.detail,
                 severity = alert.severity.name,

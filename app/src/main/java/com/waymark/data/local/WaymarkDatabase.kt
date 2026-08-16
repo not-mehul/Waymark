@@ -14,7 +14,6 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TripMemberEntity::class,
         SegmentEntity::class,
         IdeaEntity::class,
-        DocumentEntity::class,
         RaisedAlertEntity::class,
     ],
     version = 3,
@@ -26,7 +25,6 @@ abstract class WaymarkDatabase : RoomDatabase() {
     abstract fun travelerDao(): TravelerDao
     abstract fun segmentDao(): SegmentDao
     abstract fun ideaDao(): IdeaDao
-    abstract fun documentDao(): DocumentDao
     abstract fun alertDao(): AlertDao
 
     companion object {
@@ -61,21 +59,21 @@ abstract class WaymarkDatabase : RoomDatabase() {
         }
 
         /**
-         * Version 3 removes the vault and the packing list.
+         * Version 3 removes the vault, the packing list and travel documents.
          *
          * Booking references stop being rows in a separate encrypted table and
          * become columns on the booking they belong to, which is where a person
          * looks for them. The trip itself — its days, its bookings, its party,
-         * its ideas, its documents — comes through untouched.
+         * its ideas — comes through untouched.
          *
          * **What does not come through are the encrypted values themselves.**
-         * Confirmation codes, ticket numbers, document numbers and boarding-pass
-         * payloads were sealed with an AES key held in the Android Keystore, and
-         * the code that could open them is what this version deletes. Carrying
-         * them over would mean keeping the whole cipher alive to run once inside
-         * a migration — Keystore work in the one place in the app that must not
-         * fail — to rescue values that can be typed again in a few seconds. The
-         * columns are created empty and the sealed tables are dropped.
+         * Confirmation codes, ticket numbers and boarding-pass payloads were
+         * sealed with an AES key held in the Android Keystore, and the code that
+         * could open them is what this version deletes. Carrying them over would
+         * mean keeping the whole cipher alive to run once inside a migration —
+         * Keystore work in the one place in the app that must not fail — to
+         * rescue values that can be typed again in a few seconds. The columns
+         * are created empty and the sealed tables are dropped.
          */
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -101,49 +99,10 @@ abstract class WaymarkDatabase : RoomDatabase() {
                 db.execSQL("DROP TABLE IF EXISTS boarding_passes")
                 db.execSQL("DROP TABLE IF EXISTS packing_items")
 
-                // `documents.numberSealed` becomes `documents.number`. SQLite
-                // could not rename a column until 3.25, which is Android 11 —
-                // above this app's floor — so the table is rebuilt instead.
-                // Sealed numbers cannot be read here, so the column starts
-                // empty and the rest of the document survives.
-                db.execSQL(
-                    """
-                    CREATE TABLE documents_v3 (
-                        id TEXT NOT NULL PRIMARY KEY,
-                        travelerId TEXT NOT NULL,
-                        kind TEXT NOT NULL,
-                        label TEXT NOT NULL,
-                        number TEXT NOT NULL,
-                        issuer TEXT,
-                        issuedOnEpochDay INTEGER,
-                        expiresOnEpochDay INTEGER,
-                        note TEXT,
-                        fileUri TEXT,
-                        updatedAtMillis INTEGER NOT NULL,
-                        FOREIGN KEY(travelerId) REFERENCES travelers(id) ON DELETE CASCADE
-                    )
-                    """.trimIndent()
-                )
-                db.execSQL(
-                    """
-                    INSERT INTO documents_v3
-                        (id, travelerId, kind, label, number, issuer,
-                         issuedOnEpochDay, expiresOnEpochDay, note, fileUri, updatedAtMillis)
-                    SELECT id, travelerId, kind, label, '', issuer,
-                           issuedOnEpochDay, expiresOnEpochDay, note, fileUri, updatedAtMillis
-                    FROM documents
-                    """.trimIndent()
-                )
-                db.execSQL("DROP TABLE documents")
-                db.execSQL("ALTER TABLE documents_v3 RENAME TO documents")
-                db.execSQL(
-                    "CREATE INDEX IF NOT EXISTS index_documents_travelerId " +
-                        "ON documents(travelerId)"
-                )
-                db.execSQL(
-                    "CREATE INDEX IF NOT EXISTS index_documents_expiresOnEpochDay " +
-                        "ON documents(expiresOnEpochDay)"
-                )
+                // Passports, visas and insurance are not something this app
+                // tracks. The table goes with the vault that held their
+                // numbers rather than being carried forward empty.
+                db.execSQL("DROP TABLE IF EXISTS documents")
             }
         }
     }

@@ -1,7 +1,6 @@
 package com.waymark.data.local
 
 import com.waymark.domain.model.DisruptionAlert
-import com.waymark.domain.model.DocumentKind
 import com.waymark.domain.model.GroundMode
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
@@ -11,7 +10,6 @@ import com.waymark.domain.model.PriceBand
 import com.waymark.domain.model.SeatPreference
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.SegmentKind
-import com.waymark.domain.model.TravelDocument
 import com.waymark.domain.model.Traveler
 import com.waymark.domain.model.Trip
 
@@ -240,37 +238,9 @@ object Mappers {
         addedAtMillis = idea.addedAtMillis,
     )
 
-    fun toDocument(entity: DocumentEntity): TravelDocument = TravelDocument(
-        id = entity.id,
-        travelerId = entity.travelerId,
-        kind = runCatching { DocumentKind.valueOf(entity.kind) }.getOrDefault(DocumentKind.OTHER),
-        label = entity.label,
-        number = entity.number,
-        issuer = entity.issuer,
-        issuedOn = entity.issuedOnEpochDay?.let(java.time.LocalDate::ofEpochDay),
-        expiresOn = entity.expiresOnEpochDay?.let(java.time.LocalDate::ofEpochDay),
-        note = entity.note,
-        fileUri = entity.fileUri,
-        updatedAtMillis = entity.updatedAtMillis,
-    )
-
-    fun toEntity(document: TravelDocument): DocumentEntity = DocumentEntity(
-        id = document.id,
-        travelerId = document.travelerId,
-        kind = document.kind.name,
-        label = document.label,
-        number = document.number,
-        issuer = document.issuer,
-        issuedOnEpochDay = document.issuedOn?.toEpochDay(),
-        expiresOnEpochDay = document.expiresOn?.toEpochDay(),
-        note = document.note,
-        fileUri = document.fileUri,
-        updatedAtMillis = document.updatedAtMillis,
-    )
-
     fun toAlert(entity: RaisedAlertEntity): DisruptionAlert = DisruptionAlert(
         segmentId = entity.segmentId,
-        designator = entity.designator,
+        label = entity.designator,
         headline = entity.headline,
         detail = entity.detail,
         severity = runCatching { DisruptionAlert.Severity.valueOf(entity.severity) }

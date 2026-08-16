@@ -136,6 +136,8 @@ cover layout. Before a release, on a real phone:
 - **Adding a flight** resolves both airport codes, computes block time, and
   asks for notification permission once when you save. Then open the booking
   and check its record locator and ticket numbers read back.
+- **Reminders** — the trip menu shows the lead times, each category can be
+  changed or switched off, and the sheet says so when Android is blocking them.
 - **Editing a flight** offers aircraft, cabin, terminals, seats and ticket
   numbers, and keeps them after Save.
 - **Destination notes** name the place the trip actually spends its days, not
@@ -143,4 +145,4 @@ cover layout. Before a release, on a real phone:
 - **Both themes**, checked on one screen with a chart on it.
 - **Delete a trip**, and confirm nothing of it is left on the shelf.
 - **An upgrade over an older install** still opens: database version 3 drops
-  the vault and packing tables and keeps the itinerary.
+  the vault, packing and document tables and keeps the itinerary.
