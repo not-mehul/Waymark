@@ -73,7 +73,10 @@ object AirportDirectory {
             code = code,
             name = name.ifEmpty { code },
             city = city,
-            country = parts[3].trim().uppercase(),
+            // The file carries ISO 3166-1 alpha-2; everything downstream —
+            // the analytics screen's country list, the destination notes —
+            // wants a name. "PF" is not a country a reader recognises.
+            country = Countries.forCode(parts[3])?.name ?: parts[3].trim().uppercase(),
             latitude = latitude,
             longitude = longitude,
             timeZoneId = zone,

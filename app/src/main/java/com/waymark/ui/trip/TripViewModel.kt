@@ -3,7 +3,6 @@ package com.waymark.ui.trip
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.waymark.data.catalog.Airports
-import com.waymark.data.catalog.DestinationInsights
 import com.waymark.data.repo.AlertRepository
 import com.waymark.data.repo.IdeaRepository
 import com.waymark.data.repo.PreparationRepository
@@ -74,15 +73,6 @@ data class TripUiState(
     val travelerFilter: String? = null,
     val nowMillis: Long = System.currentTimeMillis(),
 ) {
-    val insight: DestinationInsights.Insight?
-        get() = dossier?.segments
-            ?.asSequence()
-            ?.mapNotNull { segment ->
-                DestinationInsights.forCity(segment.destination.city)
-                    ?: DestinationInsights.forAirport(segment.destination.code)
-            }
-            ?.lastOrNull()
-
     val flights: List<Segment.Flight>
         get() = dossier?.segments?.filterIsInstance<Segment.Flight>().orEmpty()
 

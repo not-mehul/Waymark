@@ -1,7 +1,5 @@
 package com.waymark.domain.logic
 
-import com.waymark.data.catalog.DestinationGuide
-import com.waymark.data.catalog.DestinationGuide.toIdea
 import com.waymark.data.catalog.SampleItinerary
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
@@ -121,20 +119,6 @@ class IdeaBoardTest {
         assertEquals(setOf("trav-julian"), segment.travelerIds)
     }
 
-    @Test
-    fun `nearby finds saved ideas within reach and orders them by distance`() {
-        val bloomsbury = Place(
-            name = "Hotel", city = "London",
-            latitude = 51.5205, longitude = -0.1265, timeZoneId = "Europe/London",
-        )
-        val near = IdeaBoard.nearby(ideas, bloomsbury, withinKm = 5.0)
-        assertTrue(near.isNotEmpty())
-        assertEquals(near.sortedBy { it.second }, near)
-        assertTrue(near.all { it.second <= 5.0 })
-        assertTrue(near.all { it.first.status == IdeaStatus.SAVED })
-        // A dish has no coordinates and cannot be "near" anything.
-        assertTrue(near.none { it.first.kind == IdeaKind.EAT && it.first.place == null })
-    }
 
     @Test
     fun `fitsIn respects the time available including getting there`() {

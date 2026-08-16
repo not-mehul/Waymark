@@ -2,7 +2,7 @@
 
 An Android travel-logistics app: every flight, stay, transfer and booking for a
 trip — for one traveler or a party that splits up — on one timeline, one vector
-chart, and one encrypted vault. It works with the radio off.
+chart. It works with the radio off.
 
 Kotlin, Jetpack Compose, Room, WorkManager. Single module, no third-party
 runtime dependencies beyond AndroidX.
@@ -39,13 +39,13 @@ offered rather than installed. Somebody planning a real trip does not begin by
 deleting a stranger's holiday, and somebody who wants to see what a full
 itinerary looks like is one tap away from a week in London and Paris.
 
-**Keep the codes.** Confirmation codes, record locators, e-ticket numbers and
-boarding-pass payloads are sealed with AES-256-GCM under a key held in the
-Android Keystore. They are masked in the UI until the device authenticates the
-reader.
-
-**Carry the passes.** Boarding passes are stored locally with their IATA BCBP
-payload, rendered on a screen that holds itself bright and awake.
+**Keep the codes where you can read them.** A confirmation code, a record
+locator and a ticket number are fields on the booking that carries them, shown
+in the open on the booking screen. They were a separate encrypted table behind
+a fingerprint for a while, which is a ceremony rather than a protection on a
+device that holds nothing else encrypted and has no network to leak anything
+to — and a code you cannot read without authenticating is a code you cannot
+read at a check-in desk with a bag in one hand.
 
 **Travel as a group.** Travelers are profiles attached to a trip and assigned
 per segment. When two people are on different bookings — one on the morning
@@ -78,36 +78,33 @@ an idea onto the timeline with a date and a duration, where it becomes an
 ordinary booking; removing that booking puts it back on the list rather than
 losing it.
 
-**Keep the documents straight.** Passports, visas and insurance live in the
-vault with their numbers sealed and their dates in the clear — because a
-warning that needs a fingerprint before it can fire is a warning that arrives
-at the airport. Waymark checks each one against the trip, including the rule a
-plain expiry date hides: most borders want a passport valid six months beyond
-arrival, so a passport that outlives the return flight by four months is still
-a problem.
-
-**Pack from the itinerary.** A first draft the app writes itself: counts scaled
-to the nights, an adaptor only where the sockets differ from home, a swimsuit
-only where something on the trip involves water, a power bank only on long
-haul. Per traveler plus a shared list, with meters for who is ready.
+**Keep the documents straight.** Passports, visas and insurance sit under the
+travelers who carry them. Waymark checks each one against the trip, including
+the rule a plain expiry date hides: most borders want a passport valid six
+months beyond arrival, so a passport that outlives the return flight by four
+months is still a problem.
 
 **Count it.** A numbers screen: distance by mode, the shape of each day, where
 the hours go, nights per city, and a carbon estimate that shows its factors
 rather than asserting a figure, above the same globe you can turn with a finger.
 
 **Take it with you.** One tap exports the whole trip as markdown — days as
-headings, every booking as a line, the idea list and the packing list as
-checkboxes, the documents and bookings as an index — and hands it to the system
-share sheet. **No secret is ever exported.** Confirmation codes, e-ticket
-numbers and passport numbers stay sealed on the device; what leaves is the
-shape of the record, so a reader can see that the hotel is booked and under
-whose name without the code travelling with it.
+headings, every booking as a line, the idea list as checkboxes, the documents
+and booking references as an index — and hands it to the system share sheet.
+Booking references travel with it, because a confirmation code is the reason to
+send somebody an itinerary. **Document numbers do not**: a passport number is a
+different class of thing from a hotel reference, and an itinerary pasted into a
+group chat should not carry one.
 
-**Land informed.** Bundled destination notes — currency, plug, emergency
-number, airport transfer, transit, tipping, seasons, neighbourhoods — and a
-bundled guide per city: what to see, where to eat, what to order. Suggestions
-appear on the Ideas board for the cities this trip actually visits, and
-anything already on the list stops being suggested.
+**Land informed.** What the money is, what the plug is, what number to call and
+which way to look before crossing — for **every country** a bundled station can
+be in, not for nine hand-written cities.
+
+The destinations are measured rather than assumed. Waymark sums the time
+between landing somewhere and leaving it again, ranks the results, and calls
+the longest one the destination; anywhere else with a day or more in it is one
+too. A trip to Japan that connects through Doha for two hours is not a trip to
+Qatar, which is what taking the last arrival used to make of it.
 
 ---
 
@@ -157,7 +154,7 @@ halves of the logo never met.
 Every animation in the app comes from one file, `ui/components/Motion.kt`, and
 there are four of them: content settles in on a screen's first composition,
 list rows stagger down the column, a value animates to its target rather than
-jumping, and the packing tick draws itself along its own two strokes. Buttons
+jumping, and a tick draws itself along its own two strokes. Buttons
 give 3% under a finger. Nothing bounces, nothing spins, nothing animates that
 the reader is waiting for.
 
@@ -220,27 +217,27 @@ own value; legend text wears a text token, never the series colour.
 ```
 com.waymark
 ├── domain/
-│   ├── model/      Trip, Traveler, Segment (sealed), Reservation, FlightStatus
+│   ├── model/      Trip, Traveler, Segment (sealed), TravelDocument, Idea
 │   └── logic/      TimelineBuilder, ConnectionRisk, TransitEstimator,
-│                   PartySplitAnalyzer, IdeaBoard, DocumentWatch, PackingPlanner,
-│                   TripAnalytics, FlightUpdate, MarkdownExport, LabelPlacer,
-│                   Geo (incl. orthographic globe), Bcbp, Code39
+│                   PartySplitAnalyzer, IdeaBoard, DocumentWatch, TimeAtPlace,
+│                   TripAnalytics, MarkdownExport, LabelPlacer,
+│                   Geo (incl. orthographic globe)
 ├── data/
-│   ├── catalog/    Station core list + world directory, coastline,
-│   │               destination notes and guide, the worked example
-│   ├── local/      Room entities, DAOs, codecs, SecretCipher (Keystore AES-GCM)
-│   └── repo/       TripRepository, VaultRepository, FlightRepository,
-│                   IdeaRepository, PreparationRepository
+│   ├── catalog/    Station core list + world directory, country facts,
+│   │               coastline, the worked example
+│   ├── local/      Room entities, DAOs, codecs, migrations
+│   └── repo/       TripRepository, IdeaRepository, PreparationRepository,
+│                   AlertRepository, SampleSeeder
 ├── alerts/         DepartureWatchWorker (WorkManager) + the one notification channel
 ├── di/             AppContainer — the whole graph, readable top to bottom
 └── ui/
     ├── theme/      Tokens, type ramp, shapes, spacing
-    ├── components/ Panel, buttons, chips, toggles, modal, icons, backdrop
+    ├── components/ Panel, buttons, chips, toggles, modal, icons, backdrop,
+    │               Pickers (date, time), ChoiceCards, TabRail, StepFlow
     ├── charts/     BarSeries, DayLoadChart, Meter, RingFigure, SplitBar
     ├── map/        WorldMap — one component, flat and orthographic projections
     ├── export/     Markdown export and the share intent
-    ├── components/ …including Pickers (date, time), ChoiceCards, TabRail
-    ├── trips/ trip/ add/ segment/ pass/ insights/ packing/ analytics/ vault/
+    └── trips/ trip/ add/ segment/ insights/ analytics/
 ```
 
 **The domain layer is plain Kotlin.** No Android imports, no Compose, no Room —
@@ -250,27 +247,36 @@ tests below run in a third of a second.
 **Persistence.** One Room database. Segments live in a single table with a
 `kind` discriminator; the alternative — a table per kind — buys nothing and
 costs four joins on the busiest read in the app. Composite values (places,
-traveler sets, secrets) go through explicit codecs rather than a JSON
-dependency.
+traveler sets, seat and ticket maps) go through explicit codecs rather than a
+JSON dependency.
 
-**Encryption.** `SecretCipher` seals with AES-256-GCM under a Keystore key. The
-key is *not* bound to user authentication: the departure reminder and the
-boarding-pass screen must work on a phone nobody is holding. What is gated —
-by `BiometricPrompt`, with graceful fallback where nothing is enrolled — is the
-moment a code becomes readable on screen.
+**Nothing is encrypted, deliberately.** There was an AES-256-GCM vault under an
+Android Keystore key, with a `BiometricPrompt` in front of the moment a code
+became readable. It is gone. The threat it defended against was somebody
+holding the unlocked phone — which is the same person the app is for — and the
+cost was that a confirmation code could not be read at a desk without a free
+hand for a fingerprint. Nothing here is sent anywhere, so what protects a code
+is the device's own lock screen, as it does for everything else on it.
 
 **Flight data comes from the traveler, and only from the traveler.** There is
 no provider interface, no network client, and no status subsystem; the manifest
 declares no `INTERNET` permission, so the app *cannot* call anything even by
 mistake. A booking holds the times it was given, and changing them means
-editing the booking.
+editing the booking — which now reaches every field the Add flight screen
+collects, rather than only the times.
 
-**Deleting.** Removing a booking also removes the reservation and boarding
-passes that only existed because of it — they carry a foreign key to the trip
-but only a plain column to the segment, so nothing cascades and leaving them
-behind put deleted flights' codes back in the vault. Removing a whole trip
-cascades through the database and sweeps the alert table, which sits outside
-the graph on purpose. A sweep on start-up repairs anything a previous version
+**A connection is something one traveler makes.** The timeline walks each
+traveler's own itinerary separately and merges the results. Where the party
+agrees on what comes before a booking, that link carries its verdict; where
+they disagree — the definition of a split — no link is drawn, because there is
+no single connection to judge. Walking one chronological line over the whole
+party is how the app used to pair one person's arrival with another person's
+departure and announce an impossible connection on a correct itinerary.
+
+**Deleting.** Removing a booking releases any idea that was promoted onto it,
+so the idea returns to the list rather than vanishing with the segment.
+Removing a whole trip cascades through the database and sweeps the alert table,
+which sits outside the graph on purpose. A sweep on start-up repairs anything a previous version
 orphaned. Trip deletion asks for the trip's name to be typed: it is the only
 irreversible thing the app can do, and the only friction of its kind.
 
@@ -327,7 +333,7 @@ sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 Then:
 
 ```bash
-./gradlew :app:testDebugUnitTest    # the 181 unit tests
+./gradlew :app:testDebugUnitTest    # the 159 unit tests
 ./gradlew :app:assembleDebug        # the APK
 ```
 
@@ -359,35 +365,33 @@ be mistaken for a shippable one.
 
 ## Tests
 
-181 JVM unit tests over the domain and catalog layers:
+159 JVM unit tests over the domain and catalog layers:
 
 - `FlightDesignatorTest` — parsing `BA286`, `ba 286`, `BAW286`, `3U8888`, `U2 1234`
-- `Code39Test` — symbology invariants (nine elements, three wide, two wide bars
-  and one wide space per alphanumeric), which is how a typo in the pattern table
-  gets caught
 - `GeoTest` — great-circle distances against published figures, arc symmetry,
   Mercator round-trip, antimeridian detection
 - `ConnectionRiskTest` — minimum connection times, terminal changes,
   immigration, inter-carrier bag re-check, a delay eating a connection
 - `TimelineBuilderTest` — ordering, one entry per segment (two for lodging),
-  day breaks, traveler filtering, the now marker
-- `PartySplitAnalyzerTest` — the split window, coverage, warnings
-- `BcbpTest` — 60-character mandatory section, build/parse round-trip
+  day breaks, traveler filtering, the now marker, and **two travelers on
+  parallel flights not being read as one broken connection**
+- `PartySplitAnalyzerTest` — the split window and per-traveler coverage
 - `TransitAndTimeTest` — estimates, mode selection, duration and zone-shift text
 - `FlightCatalogTest` — the station table's consistency (real time zones, no
   duplicate codes, coordinates in range) and the worked-example schedule,
   including a westbound date-line crossing that lands the
   previous day
-- `IdeaBoardTest` — section ordering, per-traveler filtering, suggestions that
-  exclude what is already on the list, and promotion to a timeline segment
-- `DestinationGuideTest` — guide integrity, including a check that every
-  coordinate lands within 120 km of its city's airport, which is what catches a
-  transposed latitude and longitude
+- `IdeaBoardTest` — section ordering, per-traveler filtering, and promotion to
+  a timeline segment
+- `CountriesTest` — every row well formed and unique, and the one that decides
+  whether the feature works at all: **every country in the bundled station
+  directory has notes**, so there is no airport you can enter and get a blank
+  screen for
+- `TimeAtPlaceTest` — that the worked example resolves to London then Paris,
+  that a two-hour connection is not a destination, and that a trip with one
+  movement has nowhere to have stayed
 - `DocumentWatchTest` — expiry, the six-month passport margin, severity
   ordering, travelers with no passport recorded
-- `PackingPlannerTest` — counts that scale with the nights and **never fall as
-  a trip lengthens**, adaptors only where sockets differ, climate by latitude
-  and hemisphere
 - `TripAnalyticsTest` — distance splits that add up, day loads that cannot
   exceed a day, carbon against the published factors
 - `GlobeProjectionTest` — orthographic projection inside the unit disc, the
@@ -405,8 +409,9 @@ be mistaken for a shippable one.
   lazy country-to-zone table gets wrong, and **a check that each station's UTC
   offset agrees with its longitude**, which is what catches a transposed
   latitude and longitude
-- `MarkdownExportTest` — including the one that matters: **no secret value from
-  the fixture appears anywhere in the exported document**
+- `MarkdownExportTest` — including where the line is drawn: **every booking
+  reference in the fixture appears in the document and no document number
+  does**
 - `LabelPlacerTest` — no two labels overlapping, no label covering a foreign
   mark, everything inside the viewport, priority winning a contested slot, and
   forty marks in one cluster yielding some labels rather than all or none
@@ -423,11 +428,10 @@ Places where the app says less than it could:
 - **Nothing here is live, and the app says so.** Every flight time, gate and
   terminal was typed in by a traveler. Waymark holds no network permission, so
   there is no version of it that quietly starts calling a service.
-- **Offline cuts both ways.** Nothing is backed up off the device — Android
-  backup is switched off, because a restored copy of the vault would be
-  ciphertext under a key that never left the old phone. A trip lives on one
-  phone until it is exported as markdown. The About sheet says this too, rather
-  than leaving it to be discovered.
+- **Offline cuts both ways.** Nothing is backed up off the device. A trip lives
+  on one phone until it is exported as markdown, and a lost phone is a lost
+  trip. The About sheet says this too, rather than leaving it to be discovered
+  after the fact.
 - **The coastline is 1:110m and coarse.** Italy is a boot and Florida is a
   peninsula; it is not a navigational chart and no place is drawn to a
   resolution finer than about fifty kilometres. It is a basemap for reading a
@@ -437,16 +441,16 @@ Places where the app says less than it could:
   letters used to be — "Kōchi Ryōma" arrived as `K����chi Ry����ma` — so the
   runs are stripped rather than guessed at. Codes, coordinates and time zones
   are unaffected, and the municipality is usually intact.
-- **The barcode is Code 39 of the short reference**, not the full BCBP payload:
-  sixty characters in a one-dimensional symbology is too dense to scan off a
-  phone. Airlines use a 2D symbol for that, and an imported pass image is shown
-  in preference to the rendered one.
 - **The carbon figure is a model, and says so on screen**, with its per-mode
   factors printed beside it. Lodging and meals are excluded rather than guessed.
-- **The guide is a briefing, not a guidebook.** Nine cities, a handful of
-  entries each, bundled and offline. Where a place is listed, its coordinates
-  are accurate to the block; where a dish is listed, it carries no coordinates,
-  because a dish is not a place.
+- **The country notes are four facts, not a guidebook.** Money, plug,
+  emergency number, which side of the road — chosen because they are true of a
+  whole country, do not go stale between releases, and are not somebody's
+  opinion. There used to be a bundled city guide with neighbourhoods to stay in
+  and dishes to order; it covered nine cities, it was one person's taste, and an
+  offline app has no way to correct it. Emergency numbers are the commonly
+  published primary number, and several countries run separate lines for
+  police, fire and ambulance.
 
 ---
 
@@ -455,8 +459,10 @@ Places where the app says less than it could:
 Coastlines are derived from [Natural Earth](https://www.naturalearthdata.com)
 1:110m land polygons, which are in the public domain. The station directory is
 the IATA table supplied with the project, deduplicated and cleaned, with time
-zones resolved from coordinates at generation time. Destination notes and the
-city guide are hand-compiled. Everything else in the app was entered by
+zones resolved from coordinates at generation time, and ISO country codes
+expanded to names by the bundled country table. That table — currency, socket
+type, mains voltage, emergency number and driving side for 240 countries and
+territories — is hand-compiled. Everything else in the app was entered by
 whoever is using it.
 
 The same credits are in the app, under the version line at the foot of the trip

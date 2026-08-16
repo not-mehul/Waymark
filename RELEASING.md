@@ -125,16 +125,22 @@ For `v1.1.0` that means `versionCode = 2`, `versionName = "1.1.0"`.
 ## What to check before tagging
 
 The unit suite covers the parts of the app that can be tested without a device
-— all the date arithmetic, the timeline builder, the packing planner, the
-label placer, the markdown export, the airport and coastline assets. It does
-not cover layout. Before a release, on a real phone:
+— all the date arithmetic, the timeline builder, the country table, the label
+placer, the markdown export, the airport and coastline assets. It does not
+cover layout. Before a release, on a real phone:
 
 - **A first launch is empty.** The shelf offers "New itinerary" and, quieter,
   "Load the worked example". Nothing is written until you choose.
-- **The worked example loads** and its timeline, map, numbers and vault all
-  have something in them.
+- **The worked example loads** and its timeline, map and numbers all have
+  something in them.
 - **Adding a flight** resolves both airport codes, computes block time, and
-  asks for notification permission once when you save.
-- **The vault** asks for biometrics before revealing a code.
+  asks for notification permission once when you save. Then open the booking
+  and check its record locator and ticket numbers read back.
+- **Editing a flight** offers aircraft, cabin, terminals, seats and ticket
+  numbers, and keeps them after Save.
+- **Destination notes** name the place the trip actually spends its days, not
+  the last airport it touched.
 - **Both themes**, checked on one screen with a chart on it.
-- **Delete a trip**, and confirm the vault has nothing left over from it.
+- **Delete a trip**, and confirm nothing of it is left on the shelf.
+- **An upgrade over an older install** still opens: database version 3 drops
+  the vault and packing tables and keeps the itinerary.

@@ -32,7 +32,9 @@ class AirportDirectoryTest {
         val heathrow = parsed.first { it.code == "LHR" }
         assertEquals(51.4706, heathrow.latitude, 0.0001)
         assertEquals(-0.4619, heathrow.longitude, 0.0001)
-        assertEquals("GB", heathrow.country)
+        // The file carries "GB"; the parser expands it, because "GB" is not a
+        // country anybody reads.
+        assertEquals("United Kingdom", heathrow.country)
     }
 
     @Test

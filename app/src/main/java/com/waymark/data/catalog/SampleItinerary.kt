@@ -329,16 +329,53 @@ object SampleItinerary {
         // A few things on the list with no date on them yet — the half of a
         // trip a booking cannot hold.
         val ideas = listOf(
-            guideIdea("idea-wallace", tripId, "London", "The Wallace Collection"),
-            guideIdea("idea-canal", tripId, "London", "Regent's Canal: Angel to Broadway Market")
-                .copy(interestedTravelerIds = setOf(julian.id)),
-            guideIdea("idea-beigel", tripId, "London", "Salt beef beigel, Brick Lane"),
-            guideIdea("idea-roast", tripId, "London", "A proper Sunday roast")
-                .copy(status = IdeaStatus.DONE),
-            guideIdea("idea-rodin", tripId, "Paris", "Musée Rodin")
-                .copy(interestedTravelerIds = setOf(mara.id)),
-            guideIdea("idea-aligre", tripId, "Paris", "Marché d'Aligre"),
-            guideIdea("idea-nata", tripId, "Paris", "Jambon-beurre"),
+            idea(
+                id = "idea-wallace", tripId = tripId, city = "London",
+                title = "The Wallace Collection",
+                kind = IdeaKind.SEE, minutes = 90,
+                note = "A house full of paintings, free, and never busy.",
+                latitude = 51.5175, longitude = -0.1527,
+            ),
+            idea(
+                id = "idea-canal", tripId = tripId, city = "London",
+                title = "Regent's Canal: Angel to Broadway Market",
+                kind = IdeaKind.DO, minutes = 75,
+                note = "Flat the whole way. Locks, houseboats, and a market at the end.",
+                latitude = 51.5330, longitude = -0.1030,
+            ).copy(interestedTravelerIds = setOf(julian.id)),
+            idea(
+                id = "idea-beigel", tripId = tripId, city = "London",
+                title = "Salt beef beigel, Brick Lane",
+                kind = IdeaKind.EAT, minutes = 20,
+                note = "Open at every hour there is.",
+                latitude = 51.5240, longitude = -0.0716,
+            ),
+            idea(
+                id = "idea-roast", tripId = tripId, city = "London",
+                title = "A proper Sunday roast",
+                kind = IdeaKind.EAT, minutes = 120,
+                note = "Book it. The good ones are gone by Friday.",
+            ).copy(status = IdeaStatus.DONE),
+            idea(
+                id = "idea-rodin", tripId = tripId, city = "Paris",
+                title = "Musée Rodin",
+                kind = IdeaKind.SEE, minutes = 90,
+                note = "Go for the garden as much as the sculpture.",
+                latitude = 48.8553, longitude = 2.3158, zone = paris,
+            ).copy(interestedTravelerIds = setOf(mara.id)),
+            idea(
+                id = "idea-aligre", tripId = tripId, city = "Paris",
+                title = "Marché d'Aligre",
+                kind = IdeaKind.SHOP, minutes = 60,
+                note = "Mornings only, and closed on Mondays.",
+                latitude = 48.8500, longitude = 2.3782, zone = paris,
+            ),
+            idea(
+                id = "idea-nata", tripId = tripId, city = "Paris",
+                title = "Jambon-beurre",
+                kind = IdeaKind.EAT, minutes = 15,
+                note = "A baguette, ham and butter. The whole point is the bread.",
+            ),
             Idea(
                 id = "idea-bookshop",
                 tripId = tripId,
@@ -427,13 +464,48 @@ object SampleItinerary {
         operatedBy = carrierName,
     )
 
-    /** Pull one entry out of the bundled guide, by city and title. */
-    private fun guideIdea(id: String, tripId: String, city: String, title: String): Idea {
-        val entry = requireNotNull(
-            DestinationGuide.forCity(city).firstOrNull { it.title == title }
-        ) { "The bundled guide must contain \"$title\" for $city" }
-        return with(DestinationGuide) { entry.toIdea(id = id, tripId = tripId, city = city) }
-    }
+    /**
+     * One line on the ideas board. These used to be pulled out of a bundled
+     * city guide by title, which meant the worked example could only mention
+     * places the guide already knew — and the guide was nine cities of
+     * hand-written opinion that had no business shipping in an offline app.
+     * The example carries its own.
+     */
+    private fun idea(
+        id: String,
+        tripId: String,
+        city: String,
+        title: String,
+        kind: IdeaKind,
+        minutes: Int,
+        note: String,
+        latitude: Double = 0.0,
+        longitude: Double = 0.0,
+        zone: ZoneId = london,
+    ): Idea = Idea(
+        id = id,
+        tripId = tripId,
+        title = title,
+        kind = kind,
+        city = city,
+        note = note,
+        typicalMinutes = minutes,
+        // Coordinates where the thing is somewhere rather than something. The
+        // map plots saved ideas beside the bookings, so a worked example with
+        // none of them demonstrates half a map; a sandwich is not a place and
+        // carries none.
+        place = if (latitude == 0.0 && longitude == 0.0) {
+            null
+        } else {
+            Place(
+                name = title,
+                city = city,
+                latitude = latitude,
+                longitude = longitude,
+                timeZoneId = zone.id,
+            )
+        },
+    )
 
     private fun experience(
         id: String,

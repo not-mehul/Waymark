@@ -16,7 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.waymark.data.catalog.DestinationInsights
+import com.waymark.data.catalog.Countries
 import com.waymark.domain.logic.ConnectionRisk
 import com.waymark.domain.logic.Geo
 import com.waymark.domain.logic.TimeText
@@ -241,12 +241,10 @@ fun SegmentScreen(
 
         ConnectionPanel(segment, state.dossier?.segments.orEmpty())
 
-        val insight = DestinationInsights.forAirport(segment.destination.code)
-            ?: DestinationInsights.forCity(segment.destination.city)
-        insight?.let {
+        Countries.of(segment.destination)?.let { country ->
             Footnote(
-                "${it.city}: ${it.currency} · ${it.plugTypes} · " +
-                    "emergency ${it.emergencyNumber}"
+                "${country.name}: ${country.currency} · ${country.power} · " +
+                    "emergency ${country.emergencyNumber}"
             )
         }
     }

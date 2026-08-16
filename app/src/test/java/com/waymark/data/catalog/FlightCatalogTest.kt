@@ -80,11 +80,12 @@ class FlightCatalogTest {
     }
 
     @Test
-    fun `destination notes are keyed to cities the catalog serves`() {
-        val london = requireNotNull(DestinationInsights.forAirport("LHR"))
-        assertEquals("London", london.city)
-        assertTrue(london.emergencyNumber.isNotBlank())
-        assertTrue(london.neighbourhoods.isNotEmpty())
-        assertNull(DestinationInsights.forCity("Atlantis"))
+    fun `country notes resolve from a station's own country field`() {
+        val heathrow = requireNotNull(Airports.find("LHR"))
+        val country = requireNotNull(Countries.of(heathrow.toPlace()))
+        assertEquals("GB", country.code)
+        assertEquals("GBP", country.currencyCode)
+        assertTrue(country.drivesOnLeft)
+        assertNull(Countries.forName("Atlantis"))
     }
 }

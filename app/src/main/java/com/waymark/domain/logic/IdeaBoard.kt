@@ -187,28 +187,7 @@ object IdeaBoard {
         .filter { it.plannedDate == date && it.status != IdeaStatus.DISMISSED }
         .sumOf { it.typicalMinutes ?: DEFAULT_MINUTES }
 
-    /**
-     * Ideas worth doing from where the traveler currently is: everything saved,
-     * with a location, sorted by distance. This is the "we have three hours,
-     * what is near" question.
-     */
-    fun nearby(
-        ideas: List<Idea>,
-        from: Place,
-        withinKm: Double = 5.0,
-        limit: Int = 6,
-    ): List<Pair<Idea, Double>> {
-        if (!from.hasCoordinates) return emptyList()
-        return ideas
-            .asSequence()
-            .filter { it.status == IdeaStatus.SAVED && it.hasLocation }
-            .map { it to Geo.distanceKm(from, it.place!!) }
-            .filter { (_, distance) -> distance <= withinKm }
-            .sortedBy { (_, distance) -> distance }
-            .take(limit)
-            .toList()
-    }
-
+    
     /**
      * Ideas that fit a gap in the day, by their own duration estimate plus the
      * walk there. Used to fill the free-time blocks the timeline already names.
