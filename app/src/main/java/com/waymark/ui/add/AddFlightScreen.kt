@@ -22,6 +22,7 @@ import com.waymark.domain.model.Segment
 import com.waymark.ui.components.DateField
 import com.waymark.ui.components.EmptyLine
 import com.waymark.ui.components.FieldLabel
+import com.waymark.ui.components.LocalReminderPermission
 import com.waymark.ui.components.OptionChip
 import com.waymark.ui.components.PartyMark
 import com.waymark.ui.components.PrimaryButton
@@ -30,7 +31,6 @@ import com.waymark.ui.components.SectionHeader
 import com.waymark.ui.components.TimeField
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.components.WaymarkTextField
-import com.waymark.ui.components.rememberReminderPermission
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
 import java.time.Duration
@@ -55,7 +55,7 @@ fun AddFlightScreen(
     // Saving a flight is the moment a reminder about a departure starts to
     // mean something, so it is the moment the app asks to be allowed to send
     // one. Nothing is asked for on the way in.
-    val reminders = rememberReminderPermission()
+    val reminders = LocalReminderPermission.current
 
     ScreenScaffold(title = "Add flight", onBack = onDone, spacing = WaymarkSpacing.small) {
         Row(

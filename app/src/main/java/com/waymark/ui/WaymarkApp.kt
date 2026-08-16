@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.waymark.di.AppContainer
+import com.waymark.ui.components.ProvideReminderPermission
 import com.waymark.ui.add.AddFlightScreen
 import com.waymark.ui.add.AddFlightViewModel
 import com.waymark.ui.analytics.AnalyticsScreen
@@ -45,7 +46,7 @@ object Routes {
 fun WaymarkApp(
     container: AppContainer,
     navController: NavHostController = rememberNavController(),
-) {
+) = ProvideReminderPermission {
     NavHost(navController = navController, startDestination = Routes.TRIPS) {
 
         composable(Routes.TRIPS) {

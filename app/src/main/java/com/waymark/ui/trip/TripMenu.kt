@@ -15,11 +15,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.waymark.ui.components.Hairline
+import com.waymark.ui.components.LocalReminderPermission
 import com.waymark.ui.components.ThemeToggle
 import com.waymark.ui.components.WaymarkIcon
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.components.WaymarkModal
-import com.waymark.ui.components.rememberReminderPermission
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
 
@@ -64,7 +64,7 @@ fun TripMenu(
         // The only switch in the app that lives outside it: whether Android
         // will let Waymark say "this leaves in three hours". Shown here so a
         // traveler who declined once has somewhere to go back to.
-        val reminders = rememberReminderPermission()
+        val reminders = LocalReminderPermission.current
         MenuRow(
             icon = WaymarkIcons.Bell,
             title = "Departure reminders",
