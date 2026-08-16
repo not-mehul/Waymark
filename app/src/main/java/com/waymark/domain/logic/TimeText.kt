@@ -38,21 +38,71 @@ object TimeText {
         else -> "${start.format(monthDay)} ${start.year} – ${end.format(monthDay)} ${end.year}"
     }
 
-    /** "2h 40m", "45m", "−15m" for negatives. */
+    /**
+     * A span, in the units a person would actually use for it.
+     *
+     * Precision has to fall away as the span grows or the number stops meaning
+     * anything: a connection is "2h 40m", but a fortnight in Italy is not
+     * "336h", and a two-month sabbatical is certainly not "1440h". Each
+     * threshold drops the smallest unit and picks up a larger one.
+     *
+     * | Span | Reads as |
+     * | --- | --- |
+     * | under a day | `2h 40m`, `45m` |
+     * | a day to a week | `3d 4h` |
+     * | a week to four weeks | `2w 3d` |
+     * | four weeks or more | `2mo 1w 3d` |
+     *
+     * Terms that are zero are dropped, so a clean fortnight is `2w`, not
+     * `2w 0d`. Negatives keep their sign: a connection can be short by twenty
+     * minutes.
+     */
     fun duration(minutes: Int): String {
         val sign = if (minutes < 0) "−" else ""
         val total = abs(minutes)
-        val hours = total / 60
-        val mins = total % 60
-        return when {
-            hours == 0 -> "$sign${mins}m"
-            mins == 0 -> "$sign${hours}h"
-            else -> "$sign${hours}h ${mins}m"
+        val days = total / MINUTES_PER_DAY
+
+        val terms: List<Pair<Int, String>> = when {
+            days >= DAYS_PER_MONTH -> listOf(
+                days / DAYS_PER_MONTH to "mo",
+                (days % DAYS_PER_MONTH) / DAYS_PER_WEEK to "w",
+                days % DAYS_PER_WEEK to "d",
+            )
+
+            days >= DAYS_PER_WEEK -> listOf(
+                days / DAYS_PER_WEEK to "w",
+                days % DAYS_PER_WEEK to "d",
+            )
+
+            days >= 1 -> listOf(
+                days to "d",
+                (total % MINUTES_PER_DAY) / 60 to "h",
+            )
+
+            else -> listOf(
+                total / 60 to "h",
+                total % 60 to "m",
+            )
         }
+
+        val written = terms.filter { it.first > 0 }.joinToString(" ") { "${it.first}${it.second}" }
+        // Everything rounded away — a zero span, or forty seconds.
+        return sign + written.ifEmpty { "0${terms.last().second}" }
     }
 
     fun durationBetween(startMillis: Long, endMillis: Long): String =
         duration(((endMillis - startMillis) / 60_000L).toInt())
+
+    private const val MINUTES_PER_DAY = 24 * 60
+    private const val DAYS_PER_WEEK = 7
+
+    /**
+     * A "month" here is four weeks, not a calendar month. A duration is a
+     * length, not a range between two dates, so it has no particular month to
+     * be the length of — and 28 days keeps `1mo` meaning the same thing in
+     * January as in February.
+     */
+    private const val DAYS_PER_MONTH = 28
 
     /** "in 3h 10m", "12m ago", "now". */
     fun relative(targetMillis: Long, nowMillis: Long = System.currentTimeMillis()): String {

@@ -46,7 +46,6 @@ fun TripScreen(
     viewModel: TripViewModel,
     onBack: () -> Unit,
     onAddFlight: () -> Unit,
-    onAddPlan: () -> Unit,
     onOpenSegment: (String) -> Unit,
     onOpenPass: (String) -> Unit,
     onOpenInsights: () -> Unit,
@@ -60,6 +59,8 @@ fun TripScreen(
     val context = LocalContext.current
     var scheduling by remember { mutableStateOf<Idea?>(null) }
     var menuOpen by remember { mutableStateOf(false) }
+    var addingPlan by remember { mutableStateOf(false) }
+    var confirmingDelete by remember { mutableStateOf(false) }
 
     WaymarkBackdrop {
         Column(
@@ -134,7 +135,7 @@ fun TripScreen(
                     onSelectSegment = onOpenSegment,
                     onFilterTraveler = viewModel::filterBy,
                     onAddFlight = onAddFlight,
-                    onAddPlan = onAddPlan,
+                    onAddPlan = { addingPlan = true },
                 )
 
                 TripTab.IDEAS -> IdeasTab(
@@ -175,6 +176,31 @@ fun TripScreen(
             onOpenInsights = onOpenInsights,
             onOpenMap = onOpenMap,
             onExport = { TripExport.share(context, state) },
+            onDelete = { confirmingDelete = true },
+        )
+    }
+
+    if (addingPlan) {
+        AddPlanFlow(
+            party = state.dossier?.party?.travelers.orEmpty(),
+            defaultDate = state.dossier?.trip?.startDate() ?: java.time.LocalDate.now(),
+            onDismiss = { addingPlan = false },
+            onSave = {
+                viewModel.addPlan(it)
+                addingPlan = false
+            },
+        )
+    }
+
+    if (confirmingDelete) {
+        DeleteTripModal(
+            trip = state.dossier?.trip,
+            bookings = state.dossier?.segments?.size ?: 0,
+            onDismiss = { confirmingDelete = false },
+            onConfirm = {
+                confirmingDelete = false
+                viewModel.deleteTrip(onDeleted = onBack)
+            },
         )
     }
 

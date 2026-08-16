@@ -25,7 +25,6 @@ import com.waymark.domain.logic.Bcbp
 import com.waymark.domain.logic.TimeText
 import com.waymark.domain.model.Segment
 import com.waymark.ui.components.FieldLabel
-import com.waymark.ui.components.Footnote
 import com.waymark.ui.components.Hairline
 import com.waymark.ui.components.Panel
 import com.waymark.ui.components.ScreenScaffold
@@ -215,11 +214,6 @@ fun BoardingPassScreen(
 
         Spacer(Modifier.height(WaymarkSpacing.small))
 
-        Footnote(
-            "A Code 39 symbol of the reference, for gates that will scan one. Where " +
-                "the airline needs its own two-dimensional symbol, import its pass " +
-                "image and that is shown here instead."
-        )
     }
 }
 

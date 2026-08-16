@@ -264,11 +264,7 @@ fun AnalyticsScreen(
             )
         }
 
-        Footnote(
-            "One hue throughout: these charts carry magnitude in length and identity " +
-                "in labels, because the palette's two accents are too close to tell " +
-                "apart by colour alone."
-        )
+        Footnote("Length carries magnitude; labels carry identity.")
     }
 }
 

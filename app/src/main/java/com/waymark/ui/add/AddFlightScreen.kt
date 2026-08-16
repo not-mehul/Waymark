@@ -21,7 +21,6 @@ import com.waymark.domain.logic.TimeText
 import com.waymark.ui.components.DateField
 import com.waymark.ui.components.EmptyLine
 import com.waymark.ui.components.FieldLabel
-import com.waymark.ui.components.Footnote
 import com.waymark.ui.components.OptionChip
 import com.waymark.ui.components.PartyMark
 import com.waymark.ui.components.PrimaryButton
@@ -105,9 +104,6 @@ fun AddFlightScreen(
             )
         }
 
-        // The one thing worth saying about times, said where the times are.
-        Footnote("Local to each airport. An arrival earlier than the departure lands the next day.")
-
         state.blockSummary()?.let { summary ->
             Text(
                 text = summary,
@@ -173,7 +169,6 @@ fun AddFlightScreen(
                 label = "Record locator",
                 placeholder = "K7QH2P",
                 mono = true,
-                hint = "Encrypted on this device; masked until you ask for it.",
                 modifier = Modifier.fillMaxWidth(),
             )
 

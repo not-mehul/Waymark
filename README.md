@@ -20,6 +20,12 @@ that a 16:20 out of San Francisco lands the following morning, and to show the
 block time back as you set it, which is the quickest way to catch a time
 entered against the wrong airport.
 
+**Add things one question at a time.** A plan or an idea is entered through a
+short flow rather than a form: what kind of thing, then what it is, then when,
+then the reference numbers somebody has to go and find in an email. Any earlier
+step can be tapped to go back and corrected, and closing the sheet at any point
+saves nothing at all.
+
 **And then leave it alone.** There is no live tracking and no "what the board
 says" to keep current, because nobody is going to update an app at a gate. A
 booking is a record of something already arranged, so it opens **read only**;
@@ -56,7 +62,8 @@ beside their marks, so a cluster of hotels in one city does not print on top of
 itself; a label with nowhere to go is dropped and its mark stays.
 
 **Keep a list.** Not everything on a trip has a time on it. The Ideas board
-holds four kinds — **See, Eat, Do, Shop** — with no date attached —
+holds four kinds — **See, Eat, Do, Shop** — added a question at a time, with
+no date attached —
 saved, scheduled, or ticked off — readable three ways: by kind, by place, or by
 the day it is pencilled in for. A day is a date without a clock time, which is
 how planning actually happens; the board totals each day's estimates and says
@@ -123,11 +130,26 @@ the original CSS.
 | Modal: amber hairline, corner brackets, fade + settle | `WaymarkModal`, `Modifier.cornerBrackets` |
 | Theme switch with sliding amber knob, `role="switch"` | `ThemeToggle`, 220 ms eased |
 | Warm-brown shadows in Dawn, softened | `shadow` + `shadowStrength = 0.4f` |
-| Motion is responsiveness, not decoration | 150–220 ms transitions; nothing animates on load |
 | Voice: restrained, no marketing, italic asides | `Footnote`, and every string in the app |
 | Segmented control for a real choice, quiet rail for navigation | `SegmentedToggle` vs `TabRail` |
+| Motion is responsiveness, not decoration — 150–260 ms, eased out | `Motion`, and nothing outside it |
 
-Two deliberate departures, both documented at the call site:
+### Motion
+
+Every animation in the app comes from one file, `ui/components/Motion.kt`, and
+there are four of them: content settles in on a screen's first composition,
+list rows stagger down the column, a value animates to its target rather than
+jumping, and the packing tick draws itself along its own two strokes. Buttons
+give 3% under a finger. Nothing bounces, nothing spins, nothing animates that
+the reader is waiting for.
+
+All of it is scaled by `Settings.Global.ANIMATOR_DURATION_SCALE`, so a device
+with animations turned off in accessibility settings — or in battery saver —
+gets the final state immediately, with no separate code path to forget about.
+
+### Two deliberate departures
+
+Both documented at the call site:
 
 - **Backdrop blur.** Compose has no cheap backdrop blur below API 31, so panel
   translucency carries the recession instead of a per-frame render effect. The
@@ -205,6 +227,15 @@ declares no `INTERNET` permission, so the app *cannot* call anything even by
 mistake. A booking holds the times it was given, and changing them means
 editing the booking.
 
+**Deleting.** Removing a booking also removes the reservation and boarding
+passes that only existed because of it — they carry a foreign key to the trip
+but only a plain column to the segment, so nothing cascades and leaving them
+behind put deleted flights' codes back in the vault. Removing a whole trip
+cascades through the database and sweeps the alert table, which sits outside
+the graph on purpose. A sweep on start-up repairs anything a previous version
+orphaned. Trip deletion asks for the trip's name to be typed: it is the only
+irreversible thing the app can do, and the only friction of its kind.
+
 **The station directory.** `assets/airports.txt` holds 8,831 IATA stations —
 the supplied table, with the 259 closed fields dropped and 26 duplicate codes
 resolved in favour of the larger, better-described row. **Time zones were
@@ -258,7 +289,7 @@ sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 Then:
 
 ```bash
-./gradlew :app:testDebugUnitTest    # the 171 unit tests
+./gradlew :app:testDebugUnitTest    # the 181 unit tests
 ./gradlew :app:assembleDebug        # the APK
 ```
 
@@ -269,7 +300,7 @@ configure: no API key, no account, no service.
 
 ## Tests
 
-171 JVM unit tests over the domain and catalog layers:
+181 JVM unit tests over the domain and catalog layers:
 
 - `FlightDesignatorTest` — parsing `BA286`, `ba 286`, `BAW286`, `3U8888`, `U2 1234`
 - `Code39Test` — symbology invariants (nine elements, three wide, two wide bars
@@ -302,6 +333,10 @@ configure: no API key, no account, no service.
   exceed a day, carbon against the published factors
 - `GlobeProjectionTest` — orthographic projection inside the unit disc, the
   horizon as the culling boundary, and a centroid that survives the antimeridian
+- `DurationTextTest` — how a span reads at every scale: hours and minutes under
+  a day, then days, then weeks and days, then months, weeks and days; zero terms
+  dropped; and a property that the leading unit only ever coarsens as the span
+  grows
 - `AirportDirectoryTest` — the generated format, interned zones, a station with
   no municipality falling back to its own name, and a malformed line being
   skipped rather than taking the directory down with it

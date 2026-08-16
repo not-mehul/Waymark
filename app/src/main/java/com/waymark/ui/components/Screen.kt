@@ -81,7 +81,11 @@ fun ScreenScaffold(
                 action?.invoke()
             }
 
-            content()
+            Column(
+                modifier = Modifier.settleIn(),
+                verticalArrangement = Arrangement.spacedBy(spacing),
+                content = content,
+            )
 
             if (scrolling) Spacer(Modifier.height(WaymarkSpacing.section))
         }

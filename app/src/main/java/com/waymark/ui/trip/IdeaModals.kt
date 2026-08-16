@@ -16,11 +16,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.ui.components.ChoiceCard
+import com.waymark.ui.components.Footnote
 import com.waymark.ui.components.DateField
 import com.waymark.ui.components.FieldLabel
 import com.waymark.ui.components.MutedButton
 import com.waymark.ui.components.OptionChip
 import com.waymark.ui.components.PrimaryButton
+import com.waymark.ui.components.StepFlow
+import com.waymark.ui.components.StepFooter
+import com.waymark.ui.components.StepQuestion
 import com.waymark.ui.components.TimeField
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.components.WaymarkModal
@@ -30,69 +34,120 @@ import com.waymark.ui.theme.WaymarkSpacing
 import java.time.LocalDate
 import java.time.LocalTime
 
-/** Add something the traveler heard about, rather than something the guide offered. */
+/**
+ * Add something the traveler heard about, one question at a time.
+ *
+ * Three steps: what kind, what it is, and — only when a trip touches more than
+ * one city — where. The note rides along with the name because "the bookshop
+ * off Charing Cross Road" and "Anna said the upstairs room" are one thought.
+ */
 @Composable
 fun AddIdeaModal(
     cities: List<String>,
     onDismiss: () -> Unit,
     onAdd: (title: String, kind: IdeaKind, city: String, note: String?) -> Unit,
 ) {
+    var step by remember { mutableStateOf(0) }
+    var kind by remember { mutableStateOf<IdeaKind?>(null) }
     var title by remember { mutableStateOf("") }
-    var kind by remember { mutableStateOf(IdeaKind.SEE) }
-    var city by remember { mutableStateOf(cities.firstOrNull().orEmpty()) }
     var note by remember { mutableStateOf("") }
+    var city by remember { mutableStateOf(cities.firstOrNull().orEmpty()) }
 
-    WaymarkModal(title = "Add an idea", eyebrow = "The list", onDismiss = onDismiss) {
-        WaymarkTextField(
-            value = title,
-            onValueChange = { title = it },
-            label = "What",
-            placeholder = "The bookshop off Charing Cross Road",
-            modifier = Modifier.fillMaxWidth(),
-        )
+    val needsCity = cities.size > 1
+    val steps = if (needsCity) listOf("Kind", "What", "Where") else listOf("Kind", "What")
+    val last = steps.lastIndex
 
-        FieldLabel("What kind")
-        // Four cards, each carrying the sentence that makes the word obvious.
-        // The old six chips read "See · Eat · Table · Walk · Do · Shop", which
-        // required already knowing what the app meant by "Table".
-        IdeaKind.entries.forEach { option ->
-            ChoiceCard(
-                title = option.label,
-                detail = option.hint,
-                icon = iconFor(option),
-                selected = kind == option,
-                onClick = { kind = option },
-            )
-        }
+    StepFlow(
+        steps = steps,
+        index = step,
+        title = "Add to the list",
+        onStep = { step = it },
+        onDismiss = onDismiss,
+    ) { current ->
+        when (current) {
+            0 -> {
+                StepQuestion("What sort of thing is it?")
+                IdeaKind.entries.forEach { option ->
+                    ChoiceCard(
+                        title = option.label,
+                        detail = option.hint,
+                        icon = iconFor(option),
+                        selected = kind == option,
+                        // Choosing is the answer; there is nothing else on
+                        // this step to confirm.
+                        onClick = { kind = option; step = 1 },
+                    )
+                }
+            }
 
-        if (cities.size > 1) {
-            FieldLabel("Where")
-            Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
-                cities.take(4).forEach { option ->
-                    OptionChip(
-                        text = option,
+            1 -> {
+                StepQuestion(
+                    when (kind) {
+                        IdeaKind.EAT -> "What is it, and where did you hear about it?"
+                        IdeaKind.SHOP -> "What are you looking for?"
+                        else -> "What is it?"
+                    }
+                )
+                WaymarkTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    placeholder = when (kind) {
+                        IdeaKind.EAT -> "Cacio e pepe at Da Enzo"
+                        IdeaKind.SHOP -> "The paper shop near the Pantheon"
+                        IdeaKind.DO -> "Cooking class in Trastevere"
+                        else -> "Sir John Soane's Museum"
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                WaymarkTextField(
+                    value = note,
+                    onValueChange = { note = it },
+                    placeholder = "Anything worth remembering",
+                    singleLine = false,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                StepFooter(
+                    onBack = { step = 0 },
+                    forwardLabel = if (needsCity) "Next" else "Add",
+                    forwardEnabled = title.isNotBlank(),
+                    finishing = !needsCity,
+                    onForward = {
+                        if (needsCity) {
+                            step = 2
+                        } else {
+                            onAdd(title, kind ?: IdeaKind.SEE, city, note.ifBlank { null })
+                        }
+                    },
+                )
+            }
+
+            else -> {
+                StepQuestion("Which city?")
+                cities.forEach { option ->
+                    ChoiceCard(
+                        title = option,
+                        detail = "",
+                        icon = WaymarkIcons.MapPin,
                         selected = city.equals(option, ignoreCase = true),
                         onClick = { city = option },
                     )
                 }
+                StepFooter(
+                    onBack = { step = 1 },
+                    forwardLabel = "Add",
+                    forwardEnabled = city.isNotBlank(),
+                    finishing = true,
+                    onForward = {
+                        onAdd(title, kind ?: IdeaKind.SEE, city, note.ifBlank { null })
+                    },
+                )
             }
         }
-
-        WaymarkTextField(
-            value = note,
-            onValueChange = { note = it },
-            label = "Why",
-            placeholder = "Who recommended it, what to order",
-            singleLine = false,
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        PrimaryButton(
-            text = "Add to the list",
-            onClick = { onAdd(title, kind, city, note.ifBlank { null }) },
-            enabled = title.isNotBlank(),
-            modifier = Modifier.fillMaxWidth(),
-        )
+        // The first step has no footer at all: picking a card moves on, and
+        // there is nowhere behind it to go.
+        if (current == 0) {
+            Footnote("Nothing is saved until the last step.")
+        }
     }
 }
 

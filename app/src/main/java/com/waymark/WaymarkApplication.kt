@@ -26,6 +26,9 @@ class WaymarkApplication : Application() {
             // should find the field already able to resolve their airport.
             container.loadAirportDirectory()
             container.seeder.seedIfEmpty()
+            // Repairs databases written before deleting a booking cleaned up
+            // the vault records that only existed because of it.
+            container.tripRepository.pruneOrphans()
         }
     }
 }

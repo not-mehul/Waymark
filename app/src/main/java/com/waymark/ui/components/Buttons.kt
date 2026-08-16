@@ -44,6 +44,7 @@ fun PrimaryButton(
 
     Box(
         modifier = modifier
+            .pressGive(pressed && enabled)
             .glow(
                 color = colors.accentAmber,
                 alpha = if (!enabled) 0f else if (pressed) 0.38f else 0.25f,
@@ -173,6 +174,52 @@ fun MutedButton(
             horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
         ) {
             icon?.let { WaymarkIcon(it, tint = tint, size = 14.dp) }
+            Text(text = text.uppercase(), style = Waymark.type.buttonLabel, color = tint)
+        }
+    }
+}
+
+/**
+ * The destructive action. Outlined in the danger token rather than filled:
+ * a filled red button is the loudest thing on a screen, and deleting a trip
+ * should be findable, not tempting.
+ */
+@Composable
+fun DangerButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    icon: ImageVector? = null,
+) {
+    val colors = Waymark.colors
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val tint = if (enabled) colors.danger else colors.textFaint
+
+    Box(
+        modifier = modifier
+            .clip(WaymarkShapes.control)
+            .background(if (pressed && enabled) colors.dangerWash else Color.Transparent)
+            .border(
+                BorderStroke(1.dp, if (enabled) colors.danger.copy(alpha = 0.6f) else colors.borderFaint),
+                WaymarkShapes.control,
+            )
+            .clickable(
+                enabled = enabled,
+                interactionSource = interaction,
+                indication = null,
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .padding(horizontal = WaymarkSpacing.medium, vertical = WaymarkSpacing.small),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
+        ) {
+            icon?.let { WaymarkIcon(it, tint = tint, size = 15.dp) }
             Text(text = text.uppercase(), style = Waymark.type.buttonLabel, color = tint)
         }
     }

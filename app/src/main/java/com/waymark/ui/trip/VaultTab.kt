@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.dp
 import com.waymark.domain.logic.TimeText
 import com.waymark.domain.model.Reservation
 import com.waymark.domain.model.SegmentKind
-import com.waymark.ui.components.Footnote
 import com.waymark.ui.components.FieldLabel
 import com.waymark.ui.components.GhostIconButton
 import com.waymark.ui.components.MutedButton
@@ -155,10 +154,7 @@ fun VaultTab(
 
         Spacer(Modifier.height(WaymarkSpacing.medium))
 
-        Footnote(
-            "Codes are sealed with a key held in this device's secure hardware. A copy " +
-                "of the database, taken off the phone, reads as noise."
-        )
+
         Spacer(Modifier.height(WaymarkSpacing.section))
     }
 }

@@ -17,7 +17,6 @@ import com.waymark.data.catalog.DestinationGuide
 import com.waymark.data.catalog.DestinationInsights
 import com.waymark.domain.model.IdeaKind
 import com.waymark.ui.components.FieldLabel
-import com.waymark.ui.components.Footnote
 import com.waymark.ui.components.Hairline
 import com.waymark.ui.components.Panel
 import com.waymark.ui.components.ScreenScaffold
@@ -167,7 +166,7 @@ fun InsightsScreen(
             }
         }
 
-        Footnote("Bundled with the app. A briefing, not a guidebook.")
+
     }
 }
 

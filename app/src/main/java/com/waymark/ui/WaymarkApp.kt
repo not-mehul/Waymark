@@ -15,8 +15,6 @@ import androidx.navigation.navArgument
 import com.waymark.di.AppContainer
 import com.waymark.ui.add.AddFlightScreen
 import com.waymark.ui.add.AddFlightViewModel
-import com.waymark.ui.add.AddPlanScreen
-import com.waymark.ui.add.AddPlanViewModel
 import com.waymark.ui.analytics.AnalyticsScreen
 import com.waymark.ui.insights.InsightsScreen
 import com.waymark.ui.map.MapScreen
@@ -32,7 +30,6 @@ object Routes {
     const val TRIPS = "trips"
     const val TRIP = "trip/{tripId}"
     const val ADD_FLIGHT = "trip/{tripId}/add-flight"
-    const val ADD_PLAN = "trip/{tripId}/add-plan"
     const val SEGMENT = "trip/{tripId}/segment/{segmentId}"
     const val PASS = "trip/{tripId}/pass/{passId}"
     const val INSIGHTS = "trip/{tripId}/insights"
@@ -42,7 +39,6 @@ object Routes {
 
     fun trip(tripId: String) = "trip/$tripId"
     fun addFlight(tripId: String) = "trip/$tripId/add-flight"
-    fun addPlan(tripId: String) = "trip/$tripId/add-plan"
     fun segment(tripId: String, segmentId: String) = "trip/$tripId/segment/$segmentId"
     fun pass(tripId: String, passId: String) = "trip/$tripId/pass/$passId"
     fun insights(tripId: String) = "trip/$tripId/insights"
@@ -77,7 +73,6 @@ fun WaymarkApp(
                 viewModel = viewModel(factory = tripFactory(container, tripId)),
                 onBack = { navController.popBackStack() },
                 onAddFlight = { navController.navigate(Routes.addFlight(tripId)) },
-                onAddPlan = { navController.navigate(Routes.addPlan(tripId)) },
                 onOpenSegment = { navController.navigate(Routes.segment(tripId, it)) },
                 onOpenPass = { navController.navigate(Routes.pass(tripId, it)) },
                 onOpenInsights = { navController.navigate(Routes.insights(tripId)) },
@@ -105,23 +100,6 @@ fun WaymarkApp(
                 viewModel = viewModel,
                 onDone = { navController.popBackStack() },
             )
-        }
-
-        composable(
-            route = Routes.ADD_PLAN,
-            arguments = listOf(navArgument("tripId") { type = NavType.StringType }),
-        ) { entry ->
-            val tripId = entry.requireTripId()
-            val viewModel: AddPlanViewModel = viewModel(
-                factory = factory {
-                    AddPlanViewModel(
-                        tripId = tripId,
-                        trips = container.tripRepository,
-                        vault = container.vaultRepository,
-                    )
-                }
-            )
-            AddPlanScreen(viewModel = viewModel, onDone = { navController.popBackStack() })
         }
 
         composable(

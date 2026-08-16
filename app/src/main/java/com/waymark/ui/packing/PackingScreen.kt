@@ -1,7 +1,9 @@
 package com.waymark.ui.packing
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,9 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,6 +20,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -29,8 +32,8 @@ import com.waymark.domain.model.PackingCategory
 import com.waymark.domain.model.PackingItem
 import com.waymark.ui.charts.Meter
 import com.waymark.ui.components.FieldLabel
-import com.waymark.ui.components.Footnote
 import com.waymark.ui.components.GhostIconButton
+import com.waymark.ui.components.Motion
 import com.waymark.ui.components.MutedButton
 import com.waymark.ui.components.OptionChip
 import com.waymark.ui.components.Panel
@@ -38,10 +41,11 @@ import com.waymark.ui.components.PartyMark
 import com.waymark.ui.components.PrimaryButton
 import com.waymark.ui.components.ScreenScaffold
 import com.waymark.ui.components.SectionHeader
-import com.waymark.ui.components.WaymarkIcon
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.components.WaymarkModal
 import com.waymark.ui.components.WaymarkTextField
+import com.waymark.ui.components.animatedValue
+import com.waymark.ui.components.drawProgress
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkShapes
 import com.waymark.ui.theme.WaymarkSpacing
@@ -181,10 +185,7 @@ fun PackingScreen(
             )
         }
 
-        Footnote(
-            "The shared list is for what one of you carries for both. Nothing is " +
-                "added twice, and every suggested line can be deleted."
-        )
+
     }
 
     if (adding) {
@@ -215,23 +216,7 @@ private fun PackingRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.small),
     ) {
-        // The tick box: a two-pixel square, filled when packed.
-        Box(
-            modifier = Modifier
-                .size(20.dp)
-                .clip(WaymarkShapes.chip)
-                .background(if (item.packed) colors.accentAmber else colors.input)
-                .border(
-                    1.dp,
-                    if (item.packed) colors.accentAmber else colors.border,
-                    WaymarkShapes.chip,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (item.packed) {
-                WaymarkIcon(WaymarkIcons.Check, tint = colors.onAccent, size = 13.dp)
-            }
-        }
+        TickBox(packed = item.packed)
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -256,6 +241,65 @@ private fun PackingRow(
         )
     }
 }
+
+/**
+ * The tick draws itself along its own two strokes rather than appearing.
+ *
+ * This is the one piece of pure delight in the app, and it is here because
+ * packing is the one screen a traveler taps forty times in a row — the
+ * feedback is doing real work, not decorating.
+ */
+@Composable
+private fun TickBox(packed: Boolean) {
+    val colors = Waymark.colors
+    val drawn by drawProgress(packed, durationMillis = Motion.QUICK * 2)
+    val fill by animatedValue(if (packed) 1f else 0f, durationMillis = Motion.QUICK)
+
+    Canvas(modifier = Modifier.size(20.dp)) {
+        val corner = CornerRadius(2.dp.toPx(), 2.dp.toPx())
+        drawRoundRect(
+            color = androidx.compose.ui.graphics.lerp(colors.input, colors.accentAmber, fill),
+            cornerRadius = corner,
+        )
+        drawRoundRect(
+            color = androidx.compose.ui.graphics.lerp(colors.border, colors.accentAmber, fill),
+            cornerRadius = corner,
+            style = Stroke(width = 1.dp.toPx()),
+        )
+        if (drawn <= 0f) return@Canvas
+
+        // Two segments of the check, drawn in sequence: the short down-stroke
+        // first, then the long up-stroke.
+        val start = Offset(size.width * 0.26f, size.height * 0.52f)
+        val elbow = Offset(size.width * 0.44f, size.height * 0.70f)
+        val end = Offset(size.width * 0.76f, size.height * 0.32f)
+        val split = 0.36f
+
+        val width = 2.dp.toPx()
+        if (drawn <= split) {
+            drawLine(
+                color = colors.onAccent,
+                start = start,
+                end = lerp(start, elbow, drawn / split),
+                strokeWidth = width,
+                cap = StrokeCap.Round,
+            )
+        } else {
+            drawLine(colors.onAccent, start, elbow, width, StrokeCap.Round)
+            drawLine(
+                color = colors.onAccent,
+                start = elbow,
+                end = lerp(elbow, end, (drawn - split) / (1f - split)),
+                strokeWidth = width,
+                cap = StrokeCap.Round,
+            )
+        }
+    }
+}
+
+/** Straight-line interpolation between two points. */
+private fun lerp(from: Offset, to: Offset, fraction: Float): Offset =
+    Offset(from.x + (to.x - from.x) * fraction, from.y + (to.y - from.y) * fraction)
 
 @Composable
 private fun AddPackingItemModal(

@@ -112,6 +112,20 @@ interface ReservationDao {
 
     @Query("DELETE FROM reservations WHERE id = :id")
     suspend fun delete(id: String)
+
+    @Query("DELETE FROM reservations WHERE segmentId = :segmentId")
+    suspend fun deleteForSegment(segmentId: String)
+
+    /**
+     * Records whose segment no longer exists. A reservation is tied to a trip
+     * by foreign key but only to a segment by a plain column, so deleting a
+     * booking used to leave its codes behind in the vault.
+     */
+    @Query(
+        "DELETE FROM reservations WHERE segmentId IS NOT NULL " +
+            "AND segmentId NOT IN (SELECT id FROM segments)"
+    )
+    suspend fun pruneOrphans()
 }
 
 @Dao
@@ -131,6 +145,12 @@ interface BoardingPassDao {
 
     @Query("DELETE FROM boarding_passes WHERE id = :id")
     suspend fun delete(id: String)
+
+    @Query("DELETE FROM boarding_passes WHERE segmentId = :segmentId")
+    suspend fun deleteForSegment(segmentId: String)
+
+    @Query("DELETE FROM boarding_passes WHERE segmentId NOT IN (SELECT id FROM segments)")
+    suspend fun pruneOrphans()
 }
 
 @Dao
@@ -228,4 +248,8 @@ interface AlertDao {
 
     @Query("DELETE FROM raised_alerts WHERE raisedAtMillis < :beforeMillis")
     suspend fun prune(beforeMillis: Long)
+
+    /** Alerts about segments that no longer exist; this table has no foreign key. */
+    @Query("DELETE FROM raised_alerts WHERE segmentId NOT IN (SELECT id FROM segments)")
+    suspend fun pruneOrphans()
 }

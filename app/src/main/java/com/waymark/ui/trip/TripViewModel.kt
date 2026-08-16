@@ -2,6 +2,7 @@ package com.waymark.ui.trip
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.waymark.data.catalog.Airports
 import com.waymark.data.catalog.DestinationInsights
 import com.waymark.data.repo.AlertRepository
 import com.waymark.data.catalog.TripFacts
@@ -31,6 +32,7 @@ import com.waymark.domain.model.IdeaStatus
 import com.waymark.domain.model.PackingCategory
 import com.waymark.domain.model.PackingItem
 import com.waymark.domain.model.PackingProgress
+import com.waymark.domain.model.Place
 import com.waymark.domain.model.Reservation
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.TravelDocument
@@ -46,6 +48,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 /**
  * Four tabs, not five.
@@ -224,6 +228,123 @@ class TripViewModel(
 
     fun deleteSegment(segmentId: String) {
         viewModelScope.launch { trips.deleteSegment(segmentId) }
+    }
+
+    /**
+     * Turn a completed [PlanDraft] into a segment.
+     *
+     * A station code resolves to a real airport; anything else becomes a named
+     * place in the trip's own zone with no coordinates, because the map draws
+     * what it knows and says nothing about what it does not.
+     */
+    fun addPlan(draft: PlanDraft) {
+        if (!draft.named) return
+        val zoneId = state.value.dossier?.trip?.homeZoneId ?: ZoneId.systemDefault().id
+        val origin = resolvePlace(draft.where, draft.title, zoneId)
+        val destination = if (draft.isGround) {
+            resolvePlace(draft.destination, draft.destination, zoneId)
+        } else {
+            origin
+        }
+
+        val startZone = Segment.zoneOrUtc(origin.timeZoneId)
+        val endZone = Segment.zoneOrUtc(destination.timeZoneId)
+        val start = ZonedDateTime.of(draft.startDate, draft.startTime, startZone)
+        var end = ZonedDateTime.of(
+            if (draft.isStay) draft.endDate else draft.startDate,
+            draft.endTime,
+            endZone,
+        )
+        if (!end.toInstant().isAfter(start.toInstant())) end = end.plusDays(1)
+
+        val id = TripRepository.newId("seg")
+        val segment: Segment = when (draft.kind) {
+            com.waymark.domain.model.SegmentKind.LODGING -> Segment.Lodging(
+                id = id,
+                tripId = tripId,
+                propertyName = draft.title.trim(),
+                origin = origin,
+                startEpochMillis = start.toInstant().toEpochMilli(),
+                endEpochMillis = end.toInstant().toEpochMilli(),
+                startZoneId = startZone.id,
+                endZoneId = startZone.id,
+                travelerIds = draft.travelerIds,
+                note = draft.note.ifBlank { null },
+            )
+
+            com.waymark.domain.model.SegmentKind.GROUND -> Segment.Ground(
+                id = id,
+                tripId = tripId,
+                mode = draft.mode,
+                origin = origin,
+                destination = destination,
+                startEpochMillis = start.toInstant().toEpochMilli(),
+                endEpochMillis = end.toInstant().toEpochMilli(),
+                startZoneId = startZone.id,
+                endZoneId = endZone.id,
+                travelerIds = draft.travelerIds,
+                note = draft.note.ifBlank { null },
+                provider = draft.vendor.ifBlank { null },
+            )
+
+            else -> Segment.Experience(
+                id = id,
+                tripId = tripId,
+                name = draft.title.trim(),
+                category = "Booking",
+                origin = origin,
+                startEpochMillis = start.toInstant().toEpochMilli(),
+                endEpochMillis = end.toInstant().toEpochMilli(),
+                startZoneId = startZone.id,
+                endZoneId = startZone.id,
+                travelerIds = draft.travelerIds,
+                note = draft.note.ifBlank { null },
+            )
+        }
+
+        viewModelScope.launch {
+            val reservation = draft.confirmationCode.takeIf { it.isNotBlank() }?.let { code ->
+                vault.recordFor(
+                    segment = segment,
+                    label = draft.title.trim(),
+                    vendor = draft.vendor.ifBlank { "Direct booking" },
+                    confirmationCode = code,
+                )
+            }
+            trips.saveSegment(segment.withReservation(reservation?.id))
+        }
+    }
+
+    private fun Segment.withReservation(reservationId: String?): Segment =
+        if (reservationId == null) {
+            this
+        } else {
+            when (this) {
+                is Segment.Flight -> copy(reservationId = reservationId)
+                is Segment.Lodging -> copy(reservationId = reservationId)
+                is Segment.Ground -> copy(reservationId = reservationId)
+                is Segment.Experience -> copy(reservationId = reservationId)
+            }
+        }
+
+    private fun resolvePlace(query: String, fallbackName: String, zoneId: String): Place {
+        Airports.find(query)?.let { return it.toPlace() }
+        Airports.search(query, limit = 1).firstOrNull()
+            ?.takeIf { query.length >= 3 }
+            ?.let { return it.toPlace() }
+        return Place(
+            name = query.ifBlank { fallbackName }.trim().ifBlank { "Unnamed place" },
+            city = "",
+            timeZoneId = zoneId,
+        )
+    }
+
+    /** Remove the trip and everything on it. The caller navigates away. */
+    fun deleteTrip(onDeleted: () -> Unit) {
+        viewModelScope.launch {
+            trips.deleteTrip(tripId)
+            onDeleted()
+        }
     }
 
     /**

@@ -15,7 +15,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.waymark.domain.logic.DocumentUrgency
 import com.waymark.domain.logic.DocumentVerdict
@@ -25,6 +24,7 @@ import com.waymark.ui.components.FieldLabel
 import com.waymark.ui.components.GhostIconButton
 import com.waymark.ui.components.NoticeBanner
 import com.waymark.ui.components.OptionChip
+import com.waymark.ui.components.OptionalDateField
 import com.waymark.ui.components.Panel
 import com.waymark.ui.components.PartyMark
 import com.waymark.ui.components.PrimaryButton
@@ -36,7 +36,6 @@ import com.waymark.ui.components.WaymarkTextField
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
 import java.time.LocalDate
-import java.time.format.DateTimeParseException
 
 /**
  * Passports, visas, insurance — the records that decide whether a trip happens
@@ -201,12 +200,11 @@ private fun AddDocumentModal(
     var label by remember { mutableStateOf("") }
     var number by remember { mutableStateOf("") }
     var issuer by remember { mutableStateOf("") }
-    var expiresText by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
-
-    val expires = runCatching { LocalDate.parse(expiresText.trim()) }
-        .getOrElse { if (it is DateTimeParseException) null else null }
-    val dateUsable = expiresText.isBlank() || expires != null
+    // A passport nobody has entered an expiry for is the common case on the
+    // way in, so the date starts unset rather than defaulting to today and
+    // quietly claiming the document has already lapsed.
+    var expires by remember { mutableStateOf<LocalDate?>(null) }
 
     WaymarkModal(title = "Add document", eyebrow = "Vault", onDismiss = onDismiss) {
         if (party.size > 1) {
@@ -245,9 +243,7 @@ private fun AddDocumentModal(
             value = number,
             onValueChange = { number = it },
             label = "Number",
-            placeholder = "Sealed on this device",
             mono = true,
-            hint = "Encrypted with a key held in secure hardware.",
             modifier = Modifier.fillMaxWidth(),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
@@ -258,13 +254,10 @@ private fun AddDocumentModal(
                 placeholder = "United Kingdom",
                 modifier = Modifier.weight(1f),
             )
-            WaymarkTextField(
-                value = expiresText,
-                onValueChange = { expiresText = it },
+            OptionalDateField(
+                value = expires,
+                onValueChange = { expires = it },
                 label = "Expires",
-                placeholder = "2031-04-12",
-                mono = true,
-                keyboardType = KeyboardType.Number,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -275,14 +268,6 @@ private fun AddDocumentModal(
             placeholder = "Where the paper copy is",
             modifier = Modifier.fillMaxWidth(),
         )
-
-        if (!dateUsable) {
-            Text(
-                text = "Dates read as year-month-day.",
-                style = Waymark.type.hint,
-                color = Waymark.colors.danger,
-            )
-        }
 
         PrimaryButton(
             text = "Seal it",
@@ -297,7 +282,7 @@ private fun AddDocumentModal(
                     note.ifBlank { null },
                 )
             },
-            enabled = travelerId.isNotBlank() && number.isNotBlank() && dateUsable,
+            enabled = travelerId.isNotBlank() && number.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
         )
     }

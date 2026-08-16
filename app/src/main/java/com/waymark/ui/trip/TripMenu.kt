@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -38,6 +39,7 @@ fun TripMenu(
     onOpenInsights: () -> Unit,
     onOpenMap: () -> Unit,
     onExport: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     WaymarkModal(title = "This trip", onDismiss = onDismiss) {
         MenuRow(WaymarkIcons.Map, "The map", "Every leg, on a chart or a globe") {
@@ -73,6 +75,20 @@ fun TripMenu(
             )
             ThemeToggle()
         }
+
+        Hairline()
+
+        // Last, and the only row that speaks in the danger token — a
+        // destructive action should not sit in the same visual rank as
+        // "Packing".
+        MenuRow(
+            icon = WaymarkIcons.Trash,
+            title = "Delete this trip",
+            detail = "Everything on it goes with it",
+            tint = Waymark.colors.danger,
+        ) {
+            onDismiss(); onDelete()
+        }
     }
 }
 
@@ -81,6 +97,7 @@ private fun MenuRow(
     icon: ImageVector,
     title: String,
     detail: String,
+    tint: Color? = null,
     onClick: () -> Unit,
 ) {
     val colors = Waymark.colors
@@ -92,9 +109,9 @@ private fun MenuRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.small),
     ) {
-        WaymarkIcon(icon, tint = colors.accentAmber, size = 17.dp)
+        WaymarkIcon(icon, tint = tint ?: colors.accentAmber, size = 17.dp)
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = Waymark.type.bodySmall, color = colors.textBody)
+            Text(text = title, style = Waymark.type.bodySmall, color = tint ?: colors.textBody)
             Text(text = detail, style = Waymark.type.hint, color = colors.textDim)
         }
         WaymarkIcon(WaymarkIcons.ArrowRight, tint = colors.textFaint, size = 14.dp)

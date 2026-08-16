@@ -105,6 +105,8 @@ fun DatePickerModal(
     onPick: (LocalDate) -> Unit,
     earliest: LocalDate? = null,
     latest: LocalDate? = null,
+    /** Offered only where the field is genuinely optional. */
+    onClear: (() -> Unit)? = null,
 ) {
     val colors = Waymark.colors
     var month by remember(initial) { mutableStateOf(YearMonth.from(initial)) }
@@ -177,6 +179,9 @@ fun DatePickerModal(
             onClick = { onPick(selected) },
             modifier = Modifier.fillMaxWidth(),
         )
+        onClear?.let {
+            MutedButton(text = "Clear", onClick = it, modifier = Modifier.fillMaxWidth())
+        }
     }
 }
 
@@ -213,6 +218,56 @@ private fun DayCell(
                 selected -> colors.onAccent
                 !enabled -> colors.textFaint
                 else -> colors.textBody
+            },
+        )
+    }
+}
+
+/**
+ * A date that may legitimately be absent — a passport whose expiry nobody has
+ * looked up yet.
+ *
+ * Unset shows a dash rather than today's date, because defaulting to today
+ * would quietly assert that the document expired this morning. Once set it can
+ * be cleared again from the same control.
+ */
+@Composable
+fun OptionalDateField(
+    value: LocalDate?,
+    onValueChange: (LocalDate?) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    earliest: LocalDate? = null,
+    latest: LocalDate? = null,
+) {
+    var open by remember { mutableStateOf(false) }
+
+    PickerField(
+        label = label,
+        value = value?.let { TimeText.dayCompact(it) } ?: "Not set",
+        detail = value?.year?.toString(),
+        icon = WaymarkIcons.Calendar,
+        enabled = true,
+        muted = value == null,
+        modifier = modifier,
+        onClick = { open = true },
+    )
+
+    if (open) {
+        DatePickerModal(
+            initial = value ?: LocalDate.now().plusYears(5),
+            earliest = earliest,
+            latest = latest,
+            onClear = if (value == null) null else {
+                {
+                    onValueChange(null)
+                    open = false
+                }
+            },
+            onDismiss = { open = false },
+            onPick = {
+                onValueChange(it)
+                open = false
             },
         )
     }

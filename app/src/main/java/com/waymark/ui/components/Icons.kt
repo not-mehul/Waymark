@@ -490,27 +490,36 @@ object WaymarkIcons {
         lineTo(17.5f, 5f)
     }
 
+    /**
+     * The reveal control in the vault, and the most-tapped icon in the app.
+     *
+     * The first version was 19 units wide and 7 tall — a ratio of nearly 3:1 —
+     * with a pupil almost as tall as the eye containing it. At 18dp that is a
+     * dark blob in a lens, not an eye. This one is 17 by 11, which is roughly
+     * the proportion of a real eye, and the pupil is small enough to sit in it
+     * with white either side.
+     */
     val Eye: ImageVector = stroked("eye") {
-        moveTo(2.5f, 12f)
-        arcToRelative(11f, 7.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, 19f, 0f)
-        arcToRelative(11f, 7.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, -19f, 0f)
+        moveTo(3.5f, 12f)
+        arcToRelative(9f, 8f, 0f, isMoreThanHalf = false, isPositiveArc = true, 17f, 0f)
+        arcToRelative(9f, 8f, 0f, isMoreThanHalf = false, isPositiveArc = true, -17f, 0f)
         close()
-        circle(12f, 12f, 3.2f)
+        circle(12f, 12f, 2.8f)
     }
 
     /**
-     * The same eye with a rule through it. The previous version drew half an
-     * arc with an unrelated radius, which read as a stray curve rather than as
-     * the eye it was meant to be hiding.
+     * The same eye, closed and struck through. The pupil is gone rather than
+     * crossed out: a slash over a pupil produced three lines meeting in the
+     * middle of a nine-pixel circle, which at icon size was a smudge. An eye
+     * with no pupil and a rule across it reads instantly.
      */
     val EyeOff: ImageVector = stroked("eye-off") {
-        moveTo(2.5f, 12f)
-        arcToRelative(11f, 7.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, 19f, 0f)
-        arcToRelative(11f, 7.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, -19f, 0f)
+        moveTo(3.5f, 12f)
+        arcToRelative(9f, 8f, 0f, isMoreThanHalf = false, isPositiveArc = true, 17f, 0f)
+        arcToRelative(9f, 8f, 0f, isMoreThanHalf = false, isPositiveArc = true, -17f, 0f)
         close()
-        circle(12f, 12f, 3.2f)
-        moveTo(4f, 20f)
-        lineTo(20f, 4f)
+        moveTo(4.5f, 19.5f)
+        lineTo(19.5f, 4.5f)
     }
 
     val Alert: ImageVector = stroked("alert") {

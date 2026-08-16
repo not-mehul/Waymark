@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.waymark.domain.logic.Measure
 import com.waymark.ui.components.FieldLabel
+import com.waymark.ui.components.animatedValue
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
 import kotlin.math.max
@@ -221,6 +223,10 @@ fun Meter(
     tint: Color? = null,
 ) {
     val colors = Waymark.colors
+    // The bar grows to its value rather than appearing at it: ticking an item
+    // off a packing list should visibly move the needle.
+    val filled by animatedValue(fraction.coerceIn(0f, 1f))
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(WaymarkSpacing.tight),
@@ -243,7 +249,7 @@ fun Meter(
                 size = Size(size.width, size.height),
                 cornerRadius = corner,
             )
-            val width = size.width * fraction.coerceIn(0f, 1f)
+            val width = size.width * filled
             if (width > 0.5f) {
                 drawRoundRect(
                     color = tint ?: colors.accentSage,

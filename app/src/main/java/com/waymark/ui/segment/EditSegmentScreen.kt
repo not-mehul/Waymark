@@ -110,15 +110,10 @@ fun EditSegmentScreen(
         }
 
         Footnote(
-            buildString {
-                append("Each end keeps its own local clock. ")
-                append("As entered: ${TimeText.durationBetween(
-                    start.toInstant().toEpochMilli(),
-                    end.toInstant().toEpochMilli(),
-                )}")
-                if (overnight) append(", landing the next day")
-                append(".")
-            }
+            TimeText.durationBetween(
+                start.toInstant().toEpochMilli(),
+                end.toInstant().toEpochMilli(),
+            ) + if (overnight) ", landing the next day" else ""
         )
 
         if (party.size > 1) {

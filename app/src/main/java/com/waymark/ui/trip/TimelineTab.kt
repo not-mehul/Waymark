@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,6 +31,7 @@ import com.waymark.domain.logic.TimelineEntry
 import com.waymark.domain.model.Segment
 import com.waymark.ui.components.Panel
 import com.waymark.ui.components.PartyFilterBar
+import com.waymark.ui.components.settleIn
 import com.waymark.ui.components.PartyMark
 import com.waymark.ui.components.SecondaryButton
 import com.waymark.ui.components.WaymarkIcon
@@ -80,18 +81,22 @@ fun TimelineTab(
             }
         }
 
-        items(state.timeline, key = { entryKey(it) }) { entry ->
-            when (entry) {
-                is TimelineEntry.DayBreak -> DayBreakRow(entry)
-                is TimelineEntry.Now -> NowRow(entry)
-                is TimelineEntry.Link -> LinkRow(entry)
-                is TimelineEntry.Event -> EventRow(
-                    entry = entry,
-                    dossierPartyInitials = state.dossier?.party?.travelers
-                        ?.associate { it.id to it.initials }
-                        .orEmpty(),
-                    onClick = { onSelectSegment(entry.segment.id) },
-                )
+        itemsIndexed(state.timeline, key = { _, entry -> entryKey(entry) }) { index, entry ->
+            // A short stagger down the column, capped inside settleIn so a
+            // forty-entry itinerary does not take a second to appear.
+            Column(modifier = Modifier.settleIn(order = index)) {
+                when (entry) {
+                    is TimelineEntry.DayBreak -> DayBreakRow(entry)
+                    is TimelineEntry.Now -> NowRow(entry)
+                    is TimelineEntry.Link -> LinkRow(entry)
+                    is TimelineEntry.Event -> EventRow(
+                        entry = entry,
+                        dossierPartyInitials = state.dossier?.party?.travelers
+                            ?.associate { it.id to it.initials }
+                            .orEmpty(),
+                        onClick = { onSelectSegment(entry.segment.id) },
+                    )
+                }
             }
         }
 
