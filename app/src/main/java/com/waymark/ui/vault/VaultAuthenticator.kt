@@ -53,7 +53,9 @@ class VaultAuthenticator(private val activity: FragmentActivity?) {
             host,
             ContextCompat.getMainExecutor(host),
             object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationSucceeded(result: AuthenticationResult) {
+                override fun onAuthenticationSucceeded(
+                    result: BiometricPrompt.AuthenticationResult,
+                ) {
                     onResult(true)
                 }
 
