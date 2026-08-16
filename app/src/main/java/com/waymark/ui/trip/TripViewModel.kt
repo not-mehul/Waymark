@@ -5,11 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.waymark.data.catalog.Airports
 import com.waymark.data.catalog.DestinationInsights
 import com.waymark.data.repo.AlertRepository
-import com.waymark.data.catalog.TripFacts
 import com.waymark.data.repo.IdeaRepository
 import com.waymark.data.repo.PreparationRepository
 import com.waymark.data.repo.TripRepository
-import com.waymark.data.repo.VaultRepository
 import com.waymark.domain.logic.DayPlan
 import com.waymark.domain.logic.DocumentVerdict
 import com.waymark.domain.logic.DocumentWatch
@@ -17,23 +15,17 @@ import com.waymark.domain.logic.CityGroup
 import com.waymark.domain.logic.IdeaBoard
 import com.waymark.domain.logic.IdeaSection
 import com.waymark.domain.logic.IdeaTally
-import com.waymark.domain.logic.PackingPlanner
 import com.waymark.domain.logic.PartySplitAnalyzer
 import com.waymark.domain.logic.SplitWindow
 import com.waymark.domain.logic.TimelineBuilder
 import com.waymark.domain.logic.TimelineEntry
 import com.waymark.domain.logic.TripAnalytics
 import com.waymark.domain.logic.TripAnalyticsReport
-import com.waymark.domain.model.BoardingPass
 import com.waymark.domain.model.DisruptionAlert
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
-import com.waymark.domain.model.PackingCategory
-import com.waymark.domain.model.PackingItem
-import com.waymark.domain.model.PackingProgress
 import com.waymark.domain.model.Place
-import com.waymark.domain.model.Reservation
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.TravelDocument
 import com.waymark.domain.model.TripDossier
@@ -52,18 +44,17 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 /**
- * Four tabs, not five.
+ * Three tabs.
  *
- * The map went to the menu alongside the numbers, the packing list and the
- * destination notes. It is a thing you open to look at, not one of the four
- * views you move between while planning — and five words across a phone left
- * no room for any of them to breathe.
+ * The map and the numbers went to the menu — things you open to look at, not
+ * views you move between while planning. The vault went entirely: with nothing
+ * encrypted any more, a booking's reference belongs on the booking, and a
+ * passport belongs to the traveler who carries it.
  */
 enum class TripTab(val label: String) {
     TIMELINE("Timeline"),
     IDEAS("Ideas"),
     PARTY("Party"),
-    VAULT("Vault"),
 }
 
 data class TripUiState(
@@ -71,19 +62,14 @@ data class TripUiState(
     val timeline: List<TimelineEntry> = emptyList(),
     val splits: List<SplitWindow> = emptyList(),
     val partyNotes: List<String> = emptyList(),
-    val reservations: List<Reservation> = emptyList(),
-    val passes: List<BoardingPass> = emptyList(),
     val alerts: List<DisruptionAlert> = emptyList(),
     val ideas: List<Idea> = emptyList(),
     val ideaSections: List<IdeaSection> = emptyList(),
     val ideaTally: IdeaTally = IdeaTally(0, 0, 0, 0),
-    val suggestions: List<Idea> = emptyList(),
     val ideasByCity: List<CityGroup> = emptyList(),
     val dayPlan: DayPlan = DayPlan(emptyList(), emptyList()),
     val documents: List<DocumentVerdict> = emptyList(),
     val missingPassportFor: List<String> = emptyList(),
-    val packing: List<PackingItem> = emptyList(),
-    val packingProgress: List<PackingProgress> = emptyList(),
     val analytics: TripAnalyticsReport? = null,
     val travelerFilter: String? = null,
     val nowMillis: Long = System.currentTimeMillis(),
@@ -111,13 +97,12 @@ data class TripUiState(
 }
 
 /**
- * One view model behind all five tabs: they are views of the same dossier, and
- * splitting them would mean five subscriptions to the same tables.
+ * One view model behind all three tabs: they are views of the same dossier, and
+ * splitting them would mean three subscriptions to the same tables.
  */
 class TripViewModel(
     private val tripId: String,
     private val trips: TripRepository,
-    private val vault: VaultRepository,
     private val alerts: AlertRepository,
     private val ideas: IdeaRepository,
     private val preparations: PreparationRepository,
@@ -136,46 +121,29 @@ class TripViewModel(
         }
     }
 
-    /**
-     * Filter, clock, ideas and preparation, folded into one flow so the state
-     * combine stays within the five-source arity.
-     */
+    /** Filter, clock, ideas and documents, folded into one flow. */
     private data class Ambient(
         val filter: String?,
         val now: Long,
         val ideas: List<Idea>,
         val documents: List<TravelDocument>,
-        val packing: List<PackingItem>,
     )
-
-    private val preparation = combine(
-        preparations.observeDocuments(),
-        preparations.observePacking(tripId),
-    ) { documents, packing -> documents to packing }
 
     private val ambient = combine(
         travelerFilter,
         clock,
         ideas.observe(tripId),
-        preparation,
-    ) { filter, now, ideaList, (documents, packing) ->
-        Ambient(filter, now, ideaList, documents, packing)
+        preparations.observeDocuments(),
+    ) { filter, now, ideaList, documents ->
+        Ambient(filter, now, ideaList, documents)
     }
 
     val state: StateFlow<TripUiState> = combine(
         trips.observeDossier(tripId),
-        vault.observeReservations(tripId),
-        vault.observePasses(tripId),
         alerts.observe(),
         ambient,
-    ) { dossier, reservations, passes, raised, current ->
+    ) { dossier, raised, current ->
         val instant = Instant.ofEpochMilli(current.now)
-        val cities = dossier?.segments
-            ?.sortedBy { it.startEpochMillis }
-            ?.flatMap { listOf(it.destination.city, it.origin.city) }
-            ?.filter { it.isNotBlank() }
-            ?.distinct()
-            .orEmpty()
         TripUiState(
             dossier = dossier,
             timeline = dossier?.let {
@@ -183,8 +151,6 @@ class TripViewModel(
             }.orEmpty(),
             splits = dossier?.let(PartySplitAnalyzer::splitWindows).orEmpty(),
             partyNotes = dossier?.let(PartySplitAnalyzer::warnings).orEmpty(),
-            reservations = reservations,
-            passes = passes,
             alerts = raised.filter { alert ->
                 dossier?.segments?.any { it.id == alert.segmentId } == true
             },
@@ -194,16 +160,21 @@ class TripViewModel(
                 travelerFilter = current.filter,
             ),
             ideaTally = IdeaBoard.tally(current.ideas),
-            suggestions = ideas.suggestionsFor(tripId, cities, current.ideas),
-            ideasByCity = IdeaBoard.byCity(current.ideas, cityOrder = cities),
+            ideasByCity = IdeaBoard.byCity(
+                current.ideas,
+                cityOrder = dossier?.segments
+                    ?.sortedBy { it.startEpochMillis }
+                    ?.flatMap { listOf(it.destination.city, it.origin.city) }
+                    ?.filter { it.isNotBlank() }
+                    ?.distinct()
+                    .orEmpty(),
+            ),
             dayPlan = IdeaBoard.byDay(current.ideas),
             documents = partyDocuments(dossier, current.documents, instant),
             missingPassportFor = dossier?.party?.travelers
                 ?.map { it.id }
                 ?.let { DocumentWatch.travelersMissingPassport(it, current.documents) }
                 .orEmpty(),
-            packing = current.packing,
-            packingProgress = packingProgress(dossier, current.packing),
             analytics = dossier?.let { TripAnalytics.report(it, current.ideas) },
             travelerFilter = current.filter,
             nowMillis = current.now,
@@ -269,6 +240,8 @@ class TripViewModel(
                 startZoneId = startZone.id,
                 endZoneId = startZone.id,
                 travelerIds = draft.travelerIds,
+                confirmationCode = draft.confirmationCode.trim().ifBlank { null },
+                bookedWith = draft.vendor.trim().ifBlank { null },
                 note = draft.note.ifBlank { null },
             )
 
@@ -283,6 +256,8 @@ class TripViewModel(
                 startZoneId = startZone.id,
                 endZoneId = endZone.id,
                 travelerIds = draft.travelerIds,
+                confirmationCode = draft.confirmationCode.trim().ifBlank { null },
+                bookedWith = draft.vendor.trim().ifBlank { null },
                 note = draft.note.ifBlank { null },
                 provider = draft.vendor.ifBlank { null },
             )
@@ -298,34 +273,14 @@ class TripViewModel(
                 startZoneId = startZone.id,
                 endZoneId = startZone.id,
                 travelerIds = draft.travelerIds,
+                confirmationCode = draft.confirmationCode.trim().ifBlank { null },
+                bookedWith = draft.vendor.trim().ifBlank { null },
                 note = draft.note.ifBlank { null },
             )
         }
 
-        viewModelScope.launch {
-            val reservation = draft.confirmationCode.takeIf { it.isNotBlank() }?.let { code ->
-                vault.recordFor(
-                    segment = segment,
-                    label = draft.title.trim(),
-                    vendor = draft.vendor.ifBlank { "Direct booking" },
-                    confirmationCode = code,
-                )
-            }
-            trips.saveSegment(segment.withReservation(reservation?.id))
-        }
+        viewModelScope.launch { trips.saveSegment(segment) }
     }
-
-    private fun Segment.withReservation(reservationId: String?): Segment =
-        if (reservationId == null) {
-            this
-        } else {
-            when (this) {
-                is Segment.Flight -> copy(reservationId = reservationId)
-                is Segment.Lodging -> copy(reservationId = reservationId)
-                is Segment.Ground -> copy(reservationId = reservationId)
-                is Segment.Experience -> copy(reservationId = reservationId)
-            }
-        }
 
     private fun resolvePlace(query: String, fallbackName: String, zoneId: String): Place {
         Airports.find(query)?.let { return it.toPlace() }
@@ -337,6 +292,38 @@ class TripViewModel(
             city = "",
             timeZoneId = zoneId,
         )
+    }
+
+    /**
+     * Rename a trip, restate where it goes, or move its dates.
+     *
+     * The window is stored as two instants in the trip's own zone: the first
+     * day from midnight, the last day to 23:59, so a trip that ends on the 14th
+     * still contains a flight at 22:00 on the 14th.
+     */
+    fun updateTrip(
+        name: String,
+        destinationSummary: String,
+        start: LocalDate,
+        end: LocalDate,
+    ) {
+        val trip = state.value.dossier?.trip ?: return
+        val zone = Segment.zoneOrUtc(trip.homeZoneId)
+        val first = if (end.isBefore(start)) end else start
+        val last = if (end.isBefore(start)) start else end
+        viewModelScope.launch {
+            trips.saveTrip(
+                trip.copy(
+                    name = name.trim().ifBlank {
+                        destinationSummary.trim().ifBlank { trip.name }
+                    },
+                    destinationSummary = destinationSummary.trim(),
+                    startEpochMillis = first.atStartOfDay(zone).toInstant().toEpochMilli(),
+                    endEpochMillis = last.atTime(java.time.LocalTime.of(23, 59))
+                        .atZone(zone).toInstant().toEpochMilli(),
+                )
+            )
+        }
     }
 
     /** Remove the trip and everything on it. The caller navigates away. */
@@ -374,11 +361,6 @@ class TripViewModel(
     }
 
     // — Ideas ————————————————————————————————————————————————————————————
-
-    /** Take a bundled suggestion onto the trip's own list. */
-    fun adopt(suggestion: Idea) {
-        viewModelScope.launch { ideas.adopt(suggestion) }
-    }
 
     fun addIdea(title: String, kind: IdeaKind, city: String, note: String?) {
         if (title.isBlank()) return
@@ -432,7 +414,7 @@ class TripViewModel(
         }
     }
 
-    // — Documents and packing —————————————————————————————————————————————
+    // — Documents —————————————————————————————————————————————————————————
 
     fun addDocument(
         travelerId: String,
@@ -460,53 +442,6 @@ class TripViewModel(
 
     fun deleteDocument(id: String) {
         viewModelScope.launch { preparations.deleteDocument(id) }
-    }
-
-    fun setPacked(itemId: String, packed: Boolean) {
-        viewModelScope.launch { preparations.setPacked(itemId, packed) }
-    }
-
-    fun addPackingItem(
-        travelerId: String?,
-        title: String,
-        category: PackingCategory,
-        essential: Boolean,
-    ) {
-        if (title.isBlank()) return
-        viewModelScope.launch {
-            preparations.addPackingItem(
-                tripId = tripId,
-                travelerId = travelerId,
-                title = title,
-                category = category,
-                essential = essential,
-            )
-        }
-    }
-
-    fun deletePackingItem(itemId: String) {
-        viewModelScope.launch { preparations.deletePackingItem(itemId) }
-    }
-
-    fun unpackEverything() {
-        viewModelScope.launch { preparations.unpackAll(tripId) }
-    }
-
-    /**
-     * Draft a list from the itinerary for one traveler: counts scaled to the
-     * nights, an adaptor only where the sockets differ, a swimsuit only where
-     * something involves water.
-     */
-    fun suggestPacking(travelerId: String?) {
-        viewModelScope.launch {
-            val current = state.value
-            val dossier = current.dossier ?: return@launch
-            preparations.applySuggestions(
-                context = TripFacts.packingContext(dossier, current.ideas),
-                travelerId = travelerId,
-                existing = current.packing,
-            )
-        }
     }
 
     fun pencilIdeaFor(ideaId: String, date: LocalDate?) {
@@ -539,22 +474,4 @@ class TripViewModel(
         )
     }
 
-    private fun packingProgress(
-        dossier: TripDossier?,
-        items: List<PackingItem>,
-    ): List<PackingProgress> {
-        val travelers = dossier?.party?.travelers.orEmpty()
-        return buildList {
-            add(PackingPlanner.progress(items, null, "Shared"))
-            travelers.forEach { traveler ->
-                add(PackingPlanner.progress(items, traveler.id, traveler.displayName))
-            }
-        }.filter { it.total > 0 || it.travelerId != null }
-    }
-
-    fun reservationFor(segmentId: String?): Reservation? =
-        state.value.reservations.firstOrNull { it.segmentId != null && it.segmentId == segmentId }
-
-    fun passesFor(segmentId: String): List<BoardingPass> =
-        state.value.passes.filter { it.segmentId == segmentId }
 }

@@ -131,30 +131,25 @@ object PartySplitAnalyzer {
         }
     }
 
-    /** Short, plain warnings for the party panel. No exclamation marks. */
+    /**
+     * The one thing worth saying out loud about a party.
+     *
+     * There used to be three. Two of them were not problems: "not on the first
+     * flight out" and "not on any lodging booking" are the ordinary shape of
+     * group travel — people arrive on different days and someone stays with
+     * family — and printing them as notices made a correctly entered trip look
+     * broken. A split itinerary is a fact about the trip, and the split panel
+     * below states it as one.
+     *
+     * What is left is the case that is genuinely a hole rather than a plan: a
+     * traveler on the trip with nothing booked at all. Somebody has forgotten
+     * to enter something, or forgotten to tick a name.
+     */
     fun warnings(dossier: TripDossier): List<String> {
-        val notes = mutableListOf<String>()
-        val party = dossier.party.travelers
-        if (party.isEmpty()) return notes
-
-        coverage(dossier).forEach { coverage ->
-            if (coverage.segmentCount == 0) {
-                notes += "${coverage.traveler.displayName} is on the trip with nothing booked."
-            } else if (!coverage.hasLodging && dossier.segments.any { it is Segment.Lodging }) {
-                notes += "${coverage.traveler.displayName} is not on any lodging booking."
-            }
-        }
-
-        val outbound = dossier.segments.filterIsInstance<Segment.Flight>().chronological()
-        if (outbound.isNotEmpty()) {
-            val first = outbound.first()
-            val missing = party.filter { it.id !in first.travelerIds && first.travelerIds.isNotEmpty() }
-            if (missing.isNotEmpty() && missing.size < party.size) {
-                notes += "${missing.joinToString { it.displayName }} " +
-                    (if (missing.size == 1) "is" else "are") +
-                    " not on ${first.designator}, the first flight out."
-            }
-        }
-        return notes
+        if (dossier.party.travelers.isEmpty()) return emptyList()
+        if (dossier.segments.isEmpty()) return emptyList()
+        return coverage(dossier)
+            .filter { it.segmentCount == 0 }
+            .map { "${it.traveler.displayName} is on the trip with nothing booked." }
     }
 }

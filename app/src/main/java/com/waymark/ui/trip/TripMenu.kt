@@ -24,7 +24,7 @@ import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
 
 /**
- * Everything that is not one of the five tabs.
+ * Everything that is not one of the three tabs.
  *
  * The header used to carry five ghost icons and a theme toggle in a row, which
  * meant six unlabelled glyphs competing with the trip's name for the top of
@@ -36,10 +36,10 @@ import com.waymark.ui.theme.WaymarkSpacing
 fun TripMenu(
     onDismiss: () -> Unit,
     onOpenAnalytics: () -> Unit,
-    onOpenPacking: () -> Unit,
     onOpenInsights: () -> Unit,
     onOpenMap: () -> Unit,
     onExport: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     WaymarkModal(title = "This trip", onDismiss = onDismiss) {
@@ -49,16 +49,13 @@ fun TripMenu(
         MenuRow(WaymarkIcons.Chart, "The numbers", "Distance, days, legs, carbon") {
             onDismiss(); onOpenAnalytics()
         }
-        MenuRow(WaymarkIcons.Bag, "Packing", "Lists, drafted from the itinerary") {
-            onDismiss(); onOpenPacking()
-        }
         MenuRow(WaymarkIcons.Compass, "Destination notes", "Local knowledge, bundled") {
             onDismiss(); onOpenInsights()
         }
 
         Hairline()
 
-        MenuRow(WaymarkIcons.Share, "Export as markdown", "Everything but the secrets") {
+        MenuRow(WaymarkIcons.Share, "Export as markdown", "The whole trip, as text") {
             onDismiss(); onExport()
         }
 
@@ -94,9 +91,17 @@ fun TripMenu(
 
         Hairline()
 
+        MenuRow(
+            icon = WaymarkIcons.Pencil,
+            title = "Edit this trip",
+            detail = "Name, destinations, first and last day",
+        ) {
+            onDismiss(); onEdit()
+        }
+
         // Last, and the only row that speaks in the danger token — a
         // destructive action should not sit in the same visual rank as
-        // "Packing".
+        // "The numbers".
         MenuRow(
             icon = WaymarkIcons.Trash,
             title = "Delete this trip",

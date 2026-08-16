@@ -30,8 +30,20 @@ sealed class Segment {
     /** Traveler ids on this segment — the whole party, or a subset when itineraries split. */
     abstract val travelerIds: Set<String>
 
-    /** Id of the vault record holding confirmation code / ticket numbers, if any. */
-    abstract val reservationId: String?
+    /**
+     * The booking reference, as printed on whatever confirmed it.
+     *
+     * This used to live in a separate encrypted `reservations` table behind a
+     * biometric prompt. A code you cannot read without authenticating is a code
+     * you cannot read at a check-in desk with your hands full, and the app has
+     * no network to leak it to in the first place — so it is a field on the
+     * booking now, like the terminal or the seat.
+     */
+    abstract val confirmationCode: String?
+
+    /** Who it was booked through: an airline, an agent, "Direct booking". */
+    abstract val bookedWith: String?
+
     abstract val note: String?
 
     val kind: SegmentKind
@@ -71,8 +83,11 @@ sealed class Segment {
         override val startZoneId: String,
         override val endZoneId: String,
         override val travelerIds: Set<String> = emptySet(),
-        override val reservationId: String? = null,
+        override val confirmationCode: String? = null,
+        override val bookedWith: String? = null,
         override val note: String? = null,
+        /** Ticket number per traveler — an e-ticket is issued to a person. */
+        val ticketNumbers: Map<String, String> = emptyMap(),
         val departureTerminal: String? = null,
         val departureGate: String? = null,
         val arrivalTerminal: String? = null,
@@ -96,7 +111,8 @@ sealed class Segment {
         override val startZoneId: String,
         override val endZoneId: String,
         override val travelerIds: Set<String> = emptySet(),
-        override val reservationId: String? = null,
+        override val confirmationCode: String? = null,
+        override val bookedWith: String? = null,
         override val note: String? = null,
         val roomDescription: String? = null,
         val checkInNote: String? = null,
@@ -117,7 +133,8 @@ sealed class Segment {
         override val startZoneId: String,
         override val endZoneId: String,
         override val travelerIds: Set<String> = emptySet(),
-        override val reservationId: String? = null,
+        override val confirmationCode: String? = null,
+        override val bookedWith: String? = null,
         override val note: String? = null,
         val provider: String? = null,
         val pickupInstruction: String? = null,
@@ -137,7 +154,8 @@ sealed class Segment {
         override val startZoneId: String,
         override val endZoneId: String,
         override val travelerIds: Set<String> = emptySet(),
-        override val reservationId: String? = null,
+        override val confirmationCode: String? = null,
+        override val bookedWith: String? = null,
         override val note: String? = null,
         val curatedBy: String? = null,
     ) : Segment() {

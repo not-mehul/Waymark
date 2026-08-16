@@ -19,10 +19,8 @@ class MarkdownExportTest {
     )
     private val payload = MarkdownExport.Payload(
         dossier = dossier,
-        reservations = bundle.reservations,
         ideas = bundle.ideas,
         documents = bundle.documents,
-        packing = bundle.packing,
         analytics = TripAnalytics.report(dossier, bundle.ideas),
     )
     private val markdown = MarkdownExport.render(payload)
@@ -38,29 +36,29 @@ class MarkdownExportTest {
 
     @Test
     fun `every section a trip has content for is present`() {
-        listOf("## Itinerary", "## On the list", "## Packing", "## Documents", "## Bookings")
+        listOf("## Itinerary", "## On the list", "## Documents", "## Bookings")
             .forEach { heading ->
                 assertTrue("missing $heading", markdown.contains(heading))
             }
     }
 
     /**
-     * The whole reason the export exists in this shape. A code that leaves the
-     * vault in plain text is a code that ends up in a chat log.
+     * A booking reference is the reason to send somebody an itinerary, so it
+     * travels. A passport number is not, so it does not.
      */
     @Test
-    fun `no secret value is ever written out`() {
-        val secrets = bundle.reservations.flatMap { it.secrets }.map { it.value } +
-            bundle.documents.map { it.number }
-        assertTrue("fixture has no secrets to leak", secrets.isNotEmpty())
-        secrets.forEach { secret ->
-            assertFalse("leaked $secret", markdown.contains(secret))
+    fun `booking references are exported and document numbers are not`() {
+        val codes = bundle.segments.mapNotNull { it.confirmationCode }
+        assertTrue("fixture has no booking references", codes.isNotEmpty())
+        codes.forEach { code ->
+            assertTrue("missing $code", markdown.contains(code))
         }
-    }
 
-    @Test
-    fun `the labels for those secrets are still shown, so the record is findable`() {
-        assertTrue(markdown.contains("holds confirmation code"))
+        val numbers = bundle.documents.map { it.number }.filter { it.isNotBlank() }
+        assertTrue("fixture has no document numbers", numbers.isNotEmpty())
+        numbers.forEach { number ->
+            assertFalse("leaked $number", markdown.contains(number))
+        }
         assertTrue(markdown.contains("Passport"))
     }
 
@@ -78,10 +76,9 @@ class MarkdownExportTest {
     }
 
     @Test
-    fun `packing and ideas render as checkboxes that reflect their state`() {
+    fun `ideas render as checkboxes that reflect their state`() {
         assertTrue(markdown.contains("- [ ] "))
-        // The sample seeds some packed items, so both box states appear.
-        assertTrue(bundle.packing.any { it.packed })
+        // The sample seeds a done idea, so both box states appear.
         assertTrue(markdown.contains("- [x] "))
     }
 
@@ -129,7 +126,7 @@ class MarkdownExportTest {
     }
 
     @Test
-    fun `the closing note states what was withheld`() {
-        assertTrue(markdown.trimEnd().endsWith("not included."))
+    fun `the document closes with its provenance`() {
+        assertTrue(markdown.trimEnd().endsWith("Exported from Waymark."))
     }
 }

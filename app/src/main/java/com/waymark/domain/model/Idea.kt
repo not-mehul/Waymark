@@ -6,7 +6,7 @@ import java.time.LocalDate
  * Something the party wants to do, see or eat, which does not yet have a time
  * on it — and may never need one.
  *
- * This is the half of a trip that reservations cannot hold. A museum you might
+ * This is the half of a trip that a booking cannot hold. A museum you might
  * get to, a dish you were told to try, a walk if the weather turns. Ideas live
  * beside the itinerary and can be promoted onto it with a date, at which point
  * they become an ordinary [Segment.Experience] and behave like every other

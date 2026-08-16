@@ -37,16 +37,9 @@ fun AboutModal(onDismiss: () -> Unit) {
             color = Waymark.colors.textBody,
         )
         Text(
-            text = "Confirmation codes, record locators and boarding passes are " +
-                "encrypted with a key held in this phone's keystore, and stay masked " +
-                "until you unlock them.",
-            style = Waymark.type.hint,
-            color = Waymark.colors.textDim,
-        )
-        Text(
-            text = "The other side of that: nothing is backed up off this device, and " +
-                "the key cannot leave it. Export a trip as markdown to keep a copy " +
-                "anywhere else.",
+            text = "Nothing is backed up off this device. A trip lives on this phone " +
+                "until you export it as markdown, which is the way to keep a copy " +
+                "anywhere else or hand one to somebody.",
             style = Waymark.type.hint,
             color = Waymark.colors.textDim,
         )

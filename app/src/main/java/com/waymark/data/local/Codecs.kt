@@ -1,8 +1,6 @@
 package com.waymark.data.local
 
 import com.waymark.domain.model.Place
-import com.waymark.domain.model.Secret
-import com.waymark.domain.model.SecretField
 
 /**
  * Small, explicit encoders for the composite values held in single columns.
@@ -60,27 +58,5 @@ internal object Codecs {
             val parts = entry.split(UNIT)
             if (parts.size == 2 && parts[0].isNotBlank()) parts[0] to parts[1] else null
         }.toMap()
-    }
-
-    /** Secrets are encoded first, then the whole blob is sealed as one unit. */
-    fun encodeSecrets(secrets: List<Secret>): String =
-        secrets.joinToString(RECORD.toString()) { secret ->
-            listOf(secret.field.name, secret.value, secret.travelerId.orEmpty())
-                .joinToString(UNIT.toString())
-        }
-
-    fun decodeSecrets(encoded: String?): List<Secret> {
-        if (encoded.isNullOrBlank()) return emptyList()
-        return encoded.split(RECORD).mapNotNull { entry ->
-            val parts = entry.split(UNIT)
-            if (parts.size < 2) return@mapNotNull null
-            val field = runCatching { SecretField.valueOf(parts[0]) }.getOrNull()
-                ?: SecretField.OTHER
-            Secret(
-                field = field,
-                value = parts[1],
-                travelerId = parts.getOrNull(2)?.ifBlank { null },
-            )
-        }
     }
 }

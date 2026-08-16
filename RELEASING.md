@@ -52,6 +52,32 @@ Without a `keystore.properties` the release build still runs and prints a
 warning, but produces an **unsigned** APK that no phone will install. That is
 useful for looking at a build, and useless for shipping one.
 
+### "keystore password was incorrect"
+
+Nine times out of ten the keystore is fine and the properties file is not.
+`Properties.load` is not a shell:
+
+- **A trailing space survives.** `storePassword=hunter2·` is a different
+  password from `hunter2`, and nothing on screen shows the difference. Values
+  are trimmed for you now, but check the file if this recurs.
+- **Quotes become part of the value.** `storePassword="hunter2"` used to mean a
+  password with quotes in it. Also handled now — write it bare anyway.
+- **A backslash is an escape.** `pa\ss` reads as `pass`. Double it (`pa\\ss`)
+  or pass the password through the environment instead. This one cannot be
+  fixed for you without breaking passwords that legitimately contain `\`.
+- **`storePassword` and `keyPassword` are two different things.** `keytool`
+  asks for both; they are often but not always the same.
+
+To check the key itself, independent of Gradle:
+
+```bash
+keytool -list -v -keystore waymark.jks -alias waymark
+```
+
+If that prints the certificate, the keystore and the store password are right
+and the problem is in `keystore.properties`. `./gradlew signingReport` shows
+what the build actually resolved.
+
 ---
 
 ## Building in CI (the usual path)

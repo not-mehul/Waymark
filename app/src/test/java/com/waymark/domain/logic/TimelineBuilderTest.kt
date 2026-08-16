@@ -95,4 +95,67 @@ class TimelineBuilderTest {
         assertTrue(next != null)
         assertTrue(next!!.endEpochMillis >= duringTrip.toEpochMilli())
     }
+
+    /**
+     * The bug this pins: two people on separate flights out of the same airport
+     * used to be read as one person making an impossible connection, because
+     * the builder walked every segment in one chronological line regardless of
+     * who was on it. Mara's 08:00 departure "connected" from Julian's 10:00
+     * arrival and the app announced that the onward flight left before the
+     * inbound one landed.
+     */
+    @Test
+    fun `two travelers on parallel flights are not read as one connection`() {
+        val mara = bundle.travelers.first { it.fullName.startsWith("Mara") }
+        val julian = bundle.travelers.first { it.fullName.startsWith("Julian") }
+        val outbound = bundle.segments.filterIsInstance<Segment.Flight>().first()
+        val hour = 60 * 60 * 1000L
+
+        // Same route, same morning, one each — the way a party often flies out.
+        val hers = outbound.copy(
+            id = "seg-hers",
+            travelerIds = setOf(mara.id),
+            startEpochMillis = outbound.startEpochMillis,
+            endEpochMillis = outbound.startEpochMillis + 10 * hour,
+        )
+        val his = outbound.copy(
+            id = "seg-his",
+            travelerIds = setOf(julian.id),
+            startEpochMillis = outbound.startEpochMillis + 2 * hour,
+            endEpochMillis = outbound.startEpochMillis + 12 * hour,
+        )
+        val parallel = dossier.copy(segments = listOf(hers, his))
+
+        val links = TimelineBuilder.build(parallel, now = duringTrip)
+            .filterIsInstance<TimelineEntry.Link>()
+        assertTrue("invented a connection between separate itineraries", links.isEmpty())
+    }
+
+    @Test
+    fun `a traveler's own connection is still judged`() {
+        val mara = bundle.travelers.first { it.fullName.startsWith("Mara") }
+        val outbound = bundle.segments.filterIsInstance<Segment.Flight>().first()
+        val hour = 60 * 60 * 1000L
+
+        val first = outbound.copy(
+            id = "seg-first",
+            travelerIds = setOf(mara.id),
+            endEpochMillis = outbound.startEpochMillis + 5 * hour,
+        )
+        val onward = outbound.copy(
+            id = "seg-onward",
+            travelerIds = setOf(mara.id),
+            origin = outbound.destination,
+            destination = outbound.origin,
+            startEpochMillis = outbound.startEpochMillis + 6 * hour,
+            endEpochMillis = outbound.startEpochMillis + 11 * hour,
+        )
+        val hers = dossier.copy(segments = listOf(first, onward))
+
+        val links = TimelineBuilder.build(hers, now = duringTrip)
+            .filterIsInstance<TimelineEntry.Link>()
+        assertEquals(1, links.size)
+        assertEquals("seg-first", links.first().fromSegment.id)
+        assertTrue(links.first().verdict != null)
+    }
 }

@@ -4,8 +4,8 @@ package com.waymark.domain.model
  * A passenger profile. Profiles are global — the same person can be carried
  * across trips — and are attached to a trip through [TripParty].
  *
- * Document and loyalty numbers are never held here in the clear; the vault
- * stores them encrypted and hands back a reference.
+ * Documents are separate records keyed by traveler id, not fields here: one
+ * person can carry two passports, and a passport outlives the trip.
  */
 data class Traveler(
     val id: String,

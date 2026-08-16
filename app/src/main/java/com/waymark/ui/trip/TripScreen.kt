@@ -34,7 +34,7 @@ import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
 
 /**
- * The command centre: one trip, five views of it.
+ * The command centre: one trip, three views of it.
  *
  * The header carries the trip's name, its dates, and one control. Everything
  * else that used to sit up here — five unlabelled glyphs and a theme switch —
@@ -47,9 +47,7 @@ fun TripScreen(
     onBack: () -> Unit,
     onAddFlight: () -> Unit,
     onOpenSegment: (String) -> Unit,
-    onOpenPass: (String) -> Unit,
     onOpenInsights: () -> Unit,
-    onOpenPacking: () -> Unit,
     onOpenAnalytics: () -> Unit,
     onOpenMap: () -> Unit,
 ) {
@@ -61,6 +59,7 @@ fun TripScreen(
     var menuOpen by remember { mutableStateOf(false) }
     var addingPlan by remember { mutableStateOf(false) }
     var confirmingDelete by remember { mutableStateOf(false) }
+    var editingTrip by remember { mutableStateOf(false) }
 
     WaymarkBackdrop {
         Column(
@@ -140,7 +139,6 @@ fun TripScreen(
 
                 TripTab.IDEAS -> IdeasTab(
                     state = state,
-                    onAdopt = viewModel::adopt,
                     onSetStatus = viewModel::setIdeaStatus,
                     onToggleInterest = viewModel::toggleInterest,
                     onDelete = viewModel::deleteIdea,
@@ -155,12 +153,6 @@ fun TripScreen(
                     onAddTraveler = viewModel::addTraveler,
                     onRemoveTraveler = viewModel::removeTraveler,
                     onFilterTraveler = viewModel::filterBy,
-                )
-
-                TripTab.VAULT -> VaultTab(
-                    state = state,
-                    onOpenPass = onOpenPass,
-                    onOpenSegment = onOpenSegment,
                     onAddDocument = viewModel::addDocument,
                     onDeleteDocument = viewModel::deleteDocument,
                 )
@@ -172,10 +164,10 @@ fun TripScreen(
         TripMenu(
             onDismiss = { menuOpen = false },
             onOpenAnalytics = onOpenAnalytics,
-            onOpenPacking = onOpenPacking,
             onOpenInsights = onOpenInsights,
             onOpenMap = onOpenMap,
             onExport = { TripExport.share(context, state) },
+            onEdit = { editingTrip = true },
             onDelete = { confirmingDelete = true },
         )
     }
@@ -190,6 +182,19 @@ fun TripScreen(
                 addingPlan = false
             },
         )
+    }
+
+    if (editingTrip) {
+        state.dossier?.trip?.let { trip ->
+            EditTripModal(
+                trip = trip,
+                onDismiss = { editingTrip = false },
+                onSave = { name, destination, start, end ->
+                    viewModel.updateTrip(name, destination, start, end)
+                    editingTrip = false
+                },
+            )
+        }
     }
 
     if (confirmingDelete) {

@@ -18,7 +18,7 @@ import java.time.ZonedDateTime
  * consults the schedules any more. Two things survived that decision and both
  * are still earning their place:
  *
- * - [carrierName], which turns `BA` into `British Airways` for the vault label.
+ * - [carrierName], which turns `BA` into `British Airways` for the booking.
  *   That is a reference table, not a lookup service, in the same sense that the
  *   airport directory is.
  * - [lookup] and [resolve], which the sample itinerary uses to build a

@@ -54,7 +54,6 @@ fun SegmentScreen(
     segmentId: String,
     viewModel: TripViewModel,
     onBack: () -> Unit,
-    onOpenPass: (String) -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = Waymark.colors
@@ -206,43 +205,35 @@ fun SegmentScreen(
             }
         }
 
-        viewModel.reservationFor(segment.id)?.let { reservation ->
-            SectionHeader("Vault")
-            Panel(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = reservation.label,
-                    style = Waymark.type.cardTitle,
-                    color = colors.textHeading,
-                )
-                Text(
-                    text = "${reservation.secrets.size} stored " +
-                        if (reservation.secrets.size == 1) "code" else "codes",
-                    style = Waymark.type.hint,
-                    color = colors.textDim,
-                )
-            }
-        }
+        // The reference, in the open. It used to be a note saying that two
+        // codes existed and lived in the vault, which is the one thing a person
+        // standing at a desk does not need told.
+        val flight = segment as? Segment.Flight
+        val tickets = flight?.ticketNumbers
+            ?.filterKeys { id -> party.any { it.id == id } }
+            .orEmpty()
 
-        val passes = state.passes.filter { it.segmentId == segment.id }
-        if (passes.isNotEmpty()) {
-            SectionHeader("Passes")
-            passes.forEach { pass ->
-                Panel(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = { onOpenPass(pass.id) },
-                ) {
+        if (!segment.confirmationCode.isNullOrBlank() || tickets.isNotEmpty()) {
+            SectionHeader("Reference")
+            Panel(modifier = Modifier.fillMaxWidth()) {
+                segment.confirmationCode?.takeIf { it.isNotBlank() }?.let { code ->
+                    FieldLabel(segment.bookedWith?.takeIf { it.isNotBlank() } ?: "Confirmation")
+                    Spacer(Modifier.height(2.dp))
                     Text(
-                        text = pass.passengerName,
-                        style = Waymark.type.cardTitle,
-                        color = colors.textHeading,
+                        text = code,
+                        style = Waymark.type.dataLarge,
+                        color = colors.textStrong,
                     )
+                }
+                tickets.forEach { (travelerId, number) ->
+                    val owner = party.firstOrNull { it.id == travelerId }
+                    Spacer(Modifier.height(WaymarkSpacing.snug))
+                    FieldLabel("${owner?.displayName ?: "Ticket"} · ticket")
+                    Spacer(Modifier.height(2.dp))
                     Text(
-                        text = listOfNotNull(
-                            pass.seat?.let { "Seat $it" },
-                            pass.boardingGroup?.let { "Group $it" },
-                        ).joinToString(" · ").ifBlank { "Open pass" },
-                        style = Waymark.type.dataSmall,
-                        color = colors.textDim,
+                        text = number,
+                        style = Waymark.type.data,
+                        color = colors.textStrong,
                     )
                 }
             }
@@ -267,8 +258,8 @@ fun SegmentScreen(
             onDismiss = { confirmingDelete = false },
         ) {
             Text(
-                text = "${segment.title} will be removed from the itinerary, along with its " +
-                    "tracking. Stored codes are kept in the vault.",
+                text = "${segment.title} will be removed from the itinerary, " +
+                    "along with its reference.",
                 style = Waymark.type.body,
                 color = Waymark.colors.textBody,
             )

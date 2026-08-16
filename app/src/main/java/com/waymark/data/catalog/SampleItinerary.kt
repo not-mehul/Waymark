@@ -1,20 +1,13 @@
 package com.waymark.data.catalog
 
-import com.waymark.domain.logic.Bcbp
-import com.waymark.domain.model.BoardingPass
 import com.waymark.domain.model.GroundMode
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
 import com.waymark.domain.model.DocumentKind
-import com.waymark.domain.model.PackingCategory
-import com.waymark.domain.model.PackingItem
 import com.waymark.domain.model.TravelDocument
 import com.waymark.domain.model.Place
-import com.waymark.domain.model.Reservation
 import com.waymark.domain.model.SeatPreference
-import com.waymark.domain.model.Secret
-import com.waymark.domain.model.SecretField
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.SegmentKind
 import com.waymark.domain.model.Traveler
@@ -28,7 +21,7 @@ import java.time.ZonedDateTime
  * A worked example, written to the database on first run so the app opens on
  * something rather than an empty state — and so every feature has a real case
  * to render: a shared outbound, an itinerary that splits for a day, a train
- * across a border, and a vault with codes in it.
+ * across a border, with booking references on it.
  *
  * Fictional travelers, real stations, plausible times.
  */
@@ -38,11 +31,8 @@ object SampleItinerary {
         val trip: Trip,
         val travelers: List<Traveler>,
         val segments: List<Segment>,
-        val reservations: List<Reservation>,
-        val passes: List<BoardingPass>,
         val ideas: List<Idea>,
         val documents: List<TravelDocument>,
-        val packing: List<PackingItem>,
     )
 
     private val london = ZoneId.of("Europe/London")
@@ -115,8 +105,12 @@ object SampleItinerary {
             id = "seg-outbound",
             tripId = tripId,
             travelerIds = party,
-            reservationId = "res-outbound",
+            confirmationCode = "K7QH2P",
             seats = mapOf(mara.id to "21A", julian.id to "21C"),
+            ticketNumbers = mapOf(
+                mara.id to "125-2364119807",
+                julian.id to "125-2364119808",
+            ),
             cabin = "Economy",
         )
 
@@ -136,7 +130,8 @@ object SampleItinerary {
             startZoneId = london.id,
             endZoneId = london.id,
             travelerIds = party,
-            reservationId = "res-hotel-london",
+            confirmationCode = "BLM-4471-QE",
+            bookedWith = "Direct booking",
             roomDescription = "Two rooms, second floor, garden side",
             checkInNote = "Reception is staffed from 07:00. Late arrivals collect a key from the porter.",
         )
@@ -199,7 +194,8 @@ object SampleItinerary {
             startZoneId = london.id,
             endZoneId = paris.id,
             travelerIds = setOf(julian.id),
-            reservationId = "res-train-julian",
+            confirmationCode = "XQ4M2T",
+            bookedWith = "Eurostar",
             provider = "Eurostar 9014",
             pickupInstruction = "Check-in closes 30 minutes before departure. Passport control on departure.",
         )
@@ -217,7 +213,8 @@ object SampleItinerary {
             startZoneId = london.id,
             endZoneId = paris.id,
             travelerIds = setOf(mara.id),
-            reservationId = "res-train-mara",
+            confirmationCode = "XQ4M9B",
+            bookedWith = "Eurostar",
             provider = "Eurostar 9054",
             pickupInstruction = "Same check-in rules. The later train is quieter.",
         )
@@ -234,7 +231,8 @@ object SampleItinerary {
             startZoneId = paris.id,
             endZoneId = paris.id,
             travelerIds = party,
-            reservationId = "res-hotel-paris",
+            confirmationCode = "HSJ-90211",
+            bookedWith = "Booking agent",
             roomDescription = "One room with two beds, courtyard side",
         )
 
@@ -249,7 +247,8 @@ object SampleItinerary {
             to = LocalTime.of(11, 30),
             zone = paris,
             travelerIds = party,
-            reservationId = "res-orangerie",
+            confirmationCode = "ORG-2210-4419",
+            bookedWith = "Musées nationaux",
             curatedBy = "Timed entry. The Nymphéas rooms are quietest at opening.",
         )
 
@@ -264,7 +263,7 @@ object SampleItinerary {
             to = LocalTime.of(22, 30),
             zone = paris,
             travelerIds = party,
-            reservationId = "res-baratin",
+            bookedWith = "Telephone booking",
             curatedBy = "Belleville, up the hill. Book by telephone; they do not take email.",
         )
 
@@ -283,7 +282,12 @@ object SampleItinerary {
             startZoneId = paris.id,
             endZoneId = pacific.id,
             travelerIds = party,
-            reservationId = "res-return",
+            confirmationCode = "R3PT8L",
+            bookedWith = "Air France",
+            ticketNumbers = mapOf(
+                mara.id to "057-2118330421",
+                julian.id to "057-2118330422",
+            ),
             departureTerminal = "2E",
             arrivalTerminal = "I",
             aircraft = "Boeing 777-300ER",
@@ -322,72 +326,8 @@ object SampleItinerary {
             coverPlace = bloomsbury,
         )
 
-        val reservations = listOf(
-            Reservation(
-                id = "res-outbound", tripId = tripId, segmentId = outbound.id,
-                label = "BA286 · SFO → LHR", vendor = "British Airways",
-                kind = SegmentKind.FLIGHT, travelerIds = party,
-                secrets = listOf(
-                    Secret(SecretField.RECORD_LOCATOR, "K7QH2P"),
-                    Secret(SecretField.ETICKET_NUMBER, "125-2364119807", mara.id),
-                    Secret(SecretField.ETICKET_NUMBER, "125-2364119808", julian.id),
-                ),
-            ),
-            Reservation(
-                id = "res-hotel-london", tripId = tripId, segmentId = hotelLondon.id,
-                label = "The Bloomsbury Rooms", vendor = "Direct booking",
-                kind = SegmentKind.LODGING, travelerIds = party,
-                secrets = listOf(Secret(SecretField.CONFIRMATION_CODE, "BLM-4471-QE")),
-            ),
-            Reservation(
-                id = "res-train-julian", tripId = tripId, segmentId = julianTrain.id,
-                label = "Eurostar 9014 · London → Paris", vendor = "Eurostar",
-                kind = SegmentKind.GROUND, travelerIds = setOf(julian.id),
-                secrets = listOf(Secret(SecretField.CONFIRMATION_CODE, "XQ4M2T", julian.id)),
-            ),
-            Reservation(
-                id = "res-train-mara", tripId = tripId, segmentId = maraTrain.id,
-                label = "Eurostar 9054 · London → Paris", vendor = "Eurostar",
-                kind = SegmentKind.GROUND, travelerIds = setOf(mara.id),
-                secrets = listOf(Secret(SecretField.CONFIRMATION_CODE, "XQ4M9B", mara.id)),
-            ),
-            Reservation(
-                id = "res-hotel-paris", tripId = tripId, segmentId = hotelParis.id,
-                label = "Hôtel Saint-Jacques", vendor = "Booking agent",
-                kind = SegmentKind.LODGING, travelerIds = party,
-                secrets = listOf(Secret(SecretField.CONFIRMATION_CODE, "HSJ-90211")),
-            ),
-            Reservation(
-                id = "res-orangerie", tripId = tripId, segmentId = orangerieVisit.id,
-                label = "Orangerie · timed entry", vendor = "Musées nationaux",
-                kind = SegmentKind.EXPERIENCE, travelerIds = party,
-                secrets = listOf(Secret(SecretField.GATE_PASS, "ORG-2210-4419")),
-            ),
-            Reservation(
-                id = "res-baratin", tripId = tripId, segmentId = dinner.id,
-                label = "Le Baratin · table for two", vendor = "Telephone booking",
-                kind = SegmentKind.EXPERIENCE, travelerIds = party,
-                secrets = listOf(Secret(SecretField.OTHER, "Booked under Ellison, 20:00")),
-            ),
-            Reservation(
-                id = "res-return", tripId = tripId, segmentId = homeward.id,
-                label = "AF84 · CDG → SFO", vendor = "Air France",
-                kind = SegmentKind.FLIGHT, travelerIds = party,
-                secrets = listOf(
-                    Secret(SecretField.RECORD_LOCATOR, "R3PT8L"),
-                    Secret(SecretField.ETICKET_NUMBER, "057-2118330421", mara.id),
-                    Secret(SecretField.ETICKET_NUMBER, "057-2118330422", julian.id),
-                ),
-            ),
-        )
-
-        val passes = listOf(
-            boardingPass(outbound, mara, "21A", "042", "3", "K7QH2P", tripId),
-            boardingPass(outbound, julian, "21C", "043", "3", "K7QH2P", tripId),
-        )
-
         // A few things on the list with no date on them yet — the half of a
-        // trip that reservations cannot hold.
+        // trip a booking cannot hold.
         val ideas = listOf(
             guideIdea("idea-wallace", tripId, "London", "The Wallace Collection"),
             guideIdea("idea-canal", tripId, "London", "Regent's Canal: Angel to Broadway Market")
@@ -447,52 +387,12 @@ object SampleItinerary {
             ),
         )
 
-        val packing = listOf(
-            PackingItem(
-                id = "pack-shared-adaptor",
-                tripId = tripId,
-                travelerId = null,
-                title = "Travel adaptor (Type G)",
-                category = PackingCategory.ELECTRONICS,
-                quantity = 2,
-                essential = true,
-                note = "One for the room, one for the bag.",
-            ),
-            PackingItem(
-                id = "pack-shared-kit",
-                tripId = tripId,
-                travelerId = null,
-                title = "First-aid kit",
-                category = PackingCategory.HEALTH,
-            ),
-            PackingItem(
-                id = "pack-mara-passport",
-                tripId = tripId,
-                travelerId = mara.id,
-                title = "Passport",
-                category = PackingCategory.DOCUMENTS,
-                essential = true,
-                packed = true,
-            ),
-            PackingItem(
-                id = "pack-julian-shoes",
-                tripId = tripId,
-                travelerId = julian.id,
-                title = "Shoes you can walk all day in",
-                category = PackingCategory.CLOTHING,
-                essential = true,
-            ),
-        )
-
         return Bundle(
             trip = trip,
             travelers = listOf(mara, julian),
             segments = segments,
-            reservations = reservations,
-            passes = passes,
             ideas = ideas,
             documents = documents,
-            packing = packing,
         )
     }
 
@@ -500,8 +400,9 @@ object SampleItinerary {
         id: String,
         tripId: String,
         travelerIds: Set<String>,
-        reservationId: String?,
+        confirmationCode: String?,
         seats: Map<String, String>,
+        ticketNumbers: Map<String, String>,
         cabin: String,
     ): Segment.Flight = Segment.Flight(
         id = id,
@@ -515,7 +416,9 @@ object SampleItinerary {
         startZoneId = origin.timeZoneId,
         endZoneId = destination.timeZoneId,
         travelerIds = travelerIds,
-        reservationId = reservationId,
+        confirmationCode = confirmationCode,
+        bookedWith = carrierName,
+        ticketNumbers = ticketNumbers,
         departureTerminal = departureTerminal,
         arrivalTerminal = arrivalTerminal,
         aircraft = aircraft,
@@ -543,7 +446,8 @@ object SampleItinerary {
         to: LocalTime,
         zone: ZoneId,
         travelerIds: Set<String>,
-        reservationId: String? = null,
+        confirmationCode: String? = null,
+        bookedWith: String? = null,
         curatedBy: String? = null,
     ): Segment.Experience = Segment.Experience(
         id = id,
@@ -556,47 +460,8 @@ object SampleItinerary {
         startZoneId = zone.id,
         endZoneId = zone.id,
         travelerIds = travelerIds,
-        reservationId = reservationId,
+        confirmationCode = confirmationCode,
+        bookedWith = bookedWith,
         curatedBy = curatedBy,
     )
-
-    private fun boardingPass(
-        flight: Segment.Flight,
-        traveler: Traveler,
-        seat: String,
-        sequence: String,
-        group: String,
-        recordLocator: String,
-        tripId: String,
-    ): BoardingPass {
-        val date = flight.start.toLocalDate()
-        return BoardingPass(
-            id = "pass-${flight.id}-${traveler.id}",
-            tripId = tripId,
-            segmentId = flight.id,
-            travelerId = traveler.id,
-            passengerName = traveler.fullName,
-            designator = flight.designator,
-            origin = flight.origin.code.orEmpty(),
-            destination = flight.destination.code.orEmpty(),
-            seat = seat,
-            boardingGroup = group,
-            sequenceNumber = sequence,
-            gate = flight.departureGate,
-            boardingTimeMillis = Bcbp.defaultBoardingTime(flight.startEpochMillis),
-            cabin = flight.cabin,
-            fastTrack = false,
-            barcodePayload = Bcbp.build(
-                passengerName = traveler.fullName,
-                recordLocator = recordLocator,
-                origin = flight.origin.code.orEmpty(),
-                destination = flight.destination.code.orEmpty(),
-                carrier = flight.carrierCode,
-                flightNumber = flight.flightNumber,
-                date = date,
-                seat = seat,
-                sequence = sequence,
-            ),
-        )
-    }
 }

@@ -96,64 +96,6 @@ interface SegmentDao {
 }
 
 @Dao
-interface ReservationDao {
-
-    @Query("SELECT * FROM reservations WHERE tripId = :tripId ORDER BY updatedAtMillis DESC")
-    fun observeForTrip(tripId: String): Flow<List<ReservationEntity>>
-
-    @Query("SELECT * FROM reservations WHERE id = :id")
-    suspend fun find(id: String): ReservationEntity?
-
-    @Query("SELECT * FROM reservations WHERE segmentId = :segmentId LIMIT 1")
-    suspend fun findForSegment(segmentId: String): ReservationEntity?
-
-    @Upsert
-    suspend fun upsert(reservation: ReservationEntity)
-
-    @Query("DELETE FROM reservations WHERE id = :id")
-    suspend fun delete(id: String)
-
-    @Query("DELETE FROM reservations WHERE segmentId = :segmentId")
-    suspend fun deleteForSegment(segmentId: String)
-
-    /**
-     * Records whose segment no longer exists. A reservation is tied to a trip
-     * by foreign key but only to a segment by a plain column, so deleting a
-     * booking used to leave its codes behind in the vault.
-     */
-    @Query(
-        "DELETE FROM reservations WHERE segmentId IS NOT NULL " +
-            "AND segmentId NOT IN (SELECT id FROM segments)"
-    )
-    suspend fun pruneOrphans()
-}
-
-@Dao
-interface BoardingPassDao {
-
-    @Query("SELECT * FROM boarding_passes WHERE tripId = :tripId ORDER BY boardingTimeMillis")
-    fun observeForTrip(tripId: String): Flow<List<BoardingPassEntity>>
-
-    @Query("SELECT * FROM boarding_passes WHERE segmentId = :segmentId")
-    fun observeForSegment(segmentId: String): Flow<List<BoardingPassEntity>>
-
-    @Query("SELECT * FROM boarding_passes WHERE id = :id")
-    suspend fun find(id: String): BoardingPassEntity?
-
-    @Upsert
-    suspend fun upsert(pass: BoardingPassEntity)
-
-    @Query("DELETE FROM boarding_passes WHERE id = :id")
-    suspend fun delete(id: String)
-
-    @Query("DELETE FROM boarding_passes WHERE segmentId = :segmentId")
-    suspend fun deleteForSegment(segmentId: String)
-
-    @Query("DELETE FROM boarding_passes WHERE segmentId NOT IN (SELECT id FROM segments)")
-    suspend fun pruneOrphans()
-}
-
-@Dao
 interface IdeaDao {
 
     @Query("SELECT * FROM ideas WHERE tripId = :tripId ORDER BY addedAtMillis")
@@ -203,31 +145,6 @@ interface DocumentDao {
     suspend fun upsert(document: DocumentEntity)
 
     @Query("DELETE FROM documents WHERE id = :id")
-    suspend fun delete(id: String)
-}
-
-@Dao
-interface PackingDao {
-
-    @Query("SELECT * FROM packing_items WHERE tripId = :tripId ORDER BY addedAtMillis")
-    fun observeForTrip(tripId: String): Flow<List<PackingItemEntity>>
-
-    @Query("SELECT * FROM packing_items WHERE id = :id")
-    suspend fun find(id: String): PackingItemEntity?
-
-    @Upsert
-    suspend fun upsert(item: PackingItemEntity)
-
-    @Upsert
-    suspend fun upsertAll(items: List<PackingItemEntity>)
-
-    @Query("UPDATE packing_items SET packed = :packed WHERE id = :id")
-    suspend fun setPacked(id: String, packed: Boolean)
-
-    @Query("UPDATE packing_items SET packed = 0 WHERE tripId = :tripId")
-    suspend fun unpackAll(tripId: String)
-
-    @Query("DELETE FROM packing_items WHERE id = :id")
     suspend fun delete(id: String)
 }
 

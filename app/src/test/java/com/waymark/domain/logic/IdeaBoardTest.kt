@@ -76,20 +76,6 @@ class IdeaBoardTest {
     }
 
     @Test
-    fun `suggestions exclude anything already on the list, in any state`() {
-        val offered = DestinationGuide.forCity("London").map { entry ->
-            with(DestinationGuide) { entry.toIdea("s-${entry.title}", "trip-sample", "London") }
-        }
-        val unseen = IdeaBoard.unseenSuggestions(offered, ideas)
-
-        // Saved, and done, are both already taken up.
-        assertTrue(unseen.none { it.title == "The Wallace Collection" })
-        assertTrue(unseen.none { it.title == "A proper Sunday roast" })
-        // Something not on the trip's list is still offered.
-        assertTrue(unseen.any { it.title == "Sky Garden" })
-    }
-
-    @Test
     fun `scheduling produces a segment that carries the idea forward`() {
         val idea = ideas.first { it.id == "idea-wallace" }
         val segment = IdeaBoard.schedule(

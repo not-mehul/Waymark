@@ -7,7 +7,6 @@
         Everything it knows was typed in on this device.
     -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
     <application
         android:name=".WaymarkApplication"

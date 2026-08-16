@@ -22,8 +22,27 @@ val keystoreProperties = Properties().apply {
     if (file.exists()) file.inputStream().use(::load)
 }
 
+/**
+ * One signing value, from the properties file or the environment.
+ *
+ * The cleaning is not decoration. `Properties.load` keeps trailing whitespace,
+ * so `storePassword=hunter2 ` — with a space nobody can see before the newline
+ * — reaches keytool as a different password and fails with "keystore password
+ * was incorrect", which sends you looking at the keystore rather than at the
+ * line that describes it. Surrounding quotes are stripped for the same reason:
+ * this is a Java properties file, not a shell, and `storePassword="hunter2"`
+ * would otherwise make the quotes part of the password.
+ *
+ * A backslash is the one thing that cannot be rescued here — `Properties`
+ * treats it as an escape — so a password containing one must be doubled in the
+ * file, or passed through the environment instead.
+ */
 fun signingValue(key: String, env: String): String? =
-    (keystoreProperties.getProperty(key) ?: System.getenv(env))?.takeIf { it.isNotBlank() }
+    (keystoreProperties.getProperty(key) ?: System.getenv(env))
+        ?.trim()
+        ?.removeSurrounding("\"")
+        ?.removeSurrounding("'")
+        ?.takeIf { it.isNotBlank() }
 
 // Named `release*` rather than `storeFile`/`storePassword` so nothing shadows
 // the identically named properties inside the `signingConfigs` block below,
@@ -128,7 +147,6 @@ dependencies {
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.androidx.work.runtime.ktx)
-    implementation(libs.androidx.biometric)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

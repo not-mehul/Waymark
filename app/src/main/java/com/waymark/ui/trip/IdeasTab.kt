@@ -46,13 +46,12 @@ import java.time.LocalDate
  * The unscheduled half of the trip: places to see, food to try, walks to take.
  *
  * Nothing here has a time on it, which is the point — a trip is not only its
- * reservations. Anything on the list can be promoted onto the timeline, at
+ * bookings. Anything on the list can be promoted onto the timeline, at
  * which point it becomes an ordinary booking and stops asking for attention.
  */
 @Composable
 fun IdeasTab(
     state: TripUiState,
-    onAdopt: (Idea) -> Unit,
     onSetStatus: (String, IdeaStatus) -> Unit,
     onToggleInterest: (String, String) -> Unit,
     onDelete: (String) -> Unit,
@@ -63,7 +62,6 @@ fun IdeasTab(
 ) {
     val colors = Waymark.colors
     var composing by remember { mutableStateOf(false) }
-    var showingSuggestions by remember { mutableStateOf(true) }
     var grouping by remember { mutableStateOf(IdeaGrouping.KIND) }
     val party = state.dossier?.party?.travelers.orEmpty()
 
@@ -203,12 +201,6 @@ fun IdeasTab(
                         style = Waymark.type.hint,
                         color = colors.textDim,
                     )
-                    Spacer(Modifier.height(WaymarkSpacing.snug))
-                    Text(
-                        text = "Take something from the suggestions below, or add your own.",
-                        style = Waymark.type.bodySmall,
-                        color = colors.textMuted,
-                    )
                 }
             }
         }
@@ -221,35 +213,6 @@ fun IdeasTab(
                 onClick = { composing = true },
                 modifier = Modifier.fillMaxWidth(),
             )
-        }
-
-        if (state.suggestions.isNotEmpty()) {
-            item {
-                Spacer(Modifier.height(WaymarkSpacing.medium))
-                SectionHeader(
-                    label = "Suggestions",
-                    trailing = {
-                        GhostIconButton(
-                            icon = if (showingSuggestions) {
-                                WaymarkIcons.ChevronDown
-                            } else {
-                                WaymarkIcons.ChevronRight
-                            },
-                            contentDescription = if (showingSuggestions) "Hide" else "Show",
-                            onClick = { showingSuggestions = !showingSuggestions },
-                        )
-                    },
-                )
-            }
-
-            if (showingSuggestions) {
-                items(state.suggestions, key = { it.id }) { suggestion ->
-                    SuggestionCard(suggestion = suggestion, onAdopt = onAdopt)
-                }
-                item {
-
-                }
-            }
         }
 
         item { Spacer(Modifier.height(WaymarkSpacing.section)) }
@@ -421,45 +384,6 @@ private fun IdeaCard(
     }
 }
 
-@Composable
-private fun SuggestionCard(suggestion: Idea, onAdopt: (Idea) -> Unit) {
-    val colors = Waymark.colors
-    Panel(faint = true, modifier = Modifier.fillMaxWidth(), padding = WaymarkSpacing.small) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.small),
-        ) {
-            WaymarkIcon(iconFor(suggestion.kind), tint = colors.textDim, size = 16.dp)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = suggestion.title,
-                    style = Waymark.type.bodySmall,
-                    color = colors.textHeading,
-                )
-                suggestion.note?.let {
-                    Text(text = it, style = Waymark.type.hint, color = colors.textDim)
-                }
-                Text(
-                    text = listOfNotNull(
-                        suggestion.city,
-                        suggestion.kind.label,
-                        suggestion.priceBand?.label,
-                    ).joinToString("  ·  "),
-                    style = Waymark.type.fieldLabel,
-                    color = colors.textFaint,
-                )
-            }
-            GhostIconButton(
-                icon = WaymarkIcons.Plus,
-                contentDescription = "Save ${suggestion.title}",
-                onClick = { onAdopt(suggestion) },
-                tint = colors.accentAmber,
-            )
-        }
-    }
-}
-
 /** A day with more than this pencilled in is a day nobody will keep. */
 private const val FULL_DAY_MINUTES = 480
 
@@ -468,5 +392,3 @@ enum class IdeaGrouping(val label: String) {
     PLACE("By place"),
     DAY("By day"),
 }
-
-

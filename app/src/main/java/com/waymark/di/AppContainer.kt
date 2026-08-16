@@ -4,14 +4,12 @@ import android.content.Context
 import android.util.Log
 import com.waymark.data.catalog.AirportDirectory
 import com.waymark.data.catalog.Airports
-import com.waymark.data.local.SecretCipher
 import com.waymark.data.local.WaymarkDatabase
 import com.waymark.data.repo.AlertRepository
 import com.waymark.data.repo.IdeaRepository
 import com.waymark.data.repo.PreparationRepository
 import com.waymark.data.repo.SampleSeeder
 import com.waymark.data.repo.TripRepository
-import com.waymark.data.repo.VaultRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -28,16 +26,13 @@ class AppContainer(context: Context) {
 
     val database: WaymarkDatabase by lazy { WaymarkDatabase.get(appContext) }
 
-    val cipher: SecretCipher by lazy { SecretCipher() }
-
-    val tripRepository: TripRepository by lazy { TripRepository(database, cipher) }
-    val vaultRepository: VaultRepository by lazy { VaultRepository(database, cipher) }
+    val tripRepository: TripRepository by lazy { TripRepository(database) }
     val alertRepository: AlertRepository by lazy { AlertRepository(database) }
     val ideaRepository: IdeaRepository by lazy { IdeaRepository(database) }
-    val preparationRepository: PreparationRepository by lazy {
-        PreparationRepository(database, cipher)
+    val preparationRepository: PreparationRepository by lazy { PreparationRepository(database) }
+    val seeder: SampleSeeder by lazy {
+        SampleSeeder(tripRepository, ideaRepository, preparationRepository)
     }
-    val seeder: SampleSeeder by lazy { SampleSeeder(tripRepository, vaultRepository, ideaRepository, preparationRepository) }
 
     /**
      * Read the world directory of stations into memory.

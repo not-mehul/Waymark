@@ -72,10 +72,8 @@ object TripExport {
         dossier: com.waymark.domain.model.TripDossier,
     ) = MarkdownExport.Payload(
         dossier = dossier,
-        reservations = state.reservations,
         ideas = state.ideas,
         documents = state.documents.map { it.document },
-        packing = state.packing,
         analytics = state.analytics,
     )
 }

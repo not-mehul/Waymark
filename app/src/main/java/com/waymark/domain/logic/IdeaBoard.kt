@@ -91,19 +91,6 @@ object IdeaBoard {
         dismissed = ideas.count { it.status == IdeaStatus.DISMISSED },
     )
 
-    /**
-     * Guide entries the trip has not already taken up. Matching is on title
-     * and city, so an idea saved, scheduled, done or explicitly declined is
-     * never suggested again.
-     */
-    fun unseenSuggestions(
-        suggestions: List<Idea>,
-        existing: List<Idea>,
-    ): List<Idea> {
-        val taken = existing.map { key(it.title, it.city) }.toSet()
-        return suggestions.filterNot { key(it.title, it.city) in taken }
-    }
-
     private fun key(title: String, city: String): String =
         "${title.trim().lowercase()}@${city.trim().lowercase()}"
 

@@ -2,7 +2,6 @@ package com.waymark.data.repo
 
 import androidx.room.withTransaction
 import com.waymark.data.local.Mappers
-import com.waymark.data.local.SecretCipher
 import com.waymark.data.local.TripMemberEntity
 import com.waymark.data.local.WaymarkDatabase
 import com.waymark.domain.model.Segment
@@ -19,17 +18,12 @@ import java.util.UUID
  * The one place that assembles a trip out of its four tables. Screens read a
  * [TripDossier] and never see a row.
  */
-class TripRepository(
-    private val database: WaymarkDatabase,
-    private val cipher: SecretCipher,
-) {
+class TripRepository(private val database: WaymarkDatabase) {
 
     private val trips = database.tripDao()
     private val travelers = database.travelerDao()
     private val segments = database.segmentDao()
     private val ideas = database.ideaDao()
-    private val reservations = database.reservationDao()
-    private val passes = database.boardingPassDao()
     private val alerts = database.alertDao()
 
     fun observeTrips(): Flow<List<Trip>> =
@@ -64,7 +58,7 @@ class TripRepository(
     /**
      * Remove a trip and everything hanging off it.
      *
-     * Segments, reservations, passes, ideas and packing rows all carry a
+     * Segments and ideas all carry a
      * foreign key to the trip with `ON DELETE CASCADE`, so the database does
      * most of this. Raised alerts do not — that table is deliberately outside
      * the graph so a reminder survives a booking being re-entered — so they
@@ -106,22 +100,12 @@ class TripRepository(
         items.forEach { widenTripToFit(it) }
     }
 
-    /**
-     * Remove one booking, and everything that only existed because of it.
-     *
-     * Reservations and boarding passes point at a segment by a plain column
-     * rather than a foreign key — they can also belong to a trip with no
-     * segment at all — so nothing cascades and they have to be removed by
-     * hand. Leaving them behind is what put deleted flights' codes back in
-     * the vault.
-     */
+    /** Remove one booking, and everything that only existed because of it. */
     suspend fun deleteSegment(segmentId: String) {
         database.withTransaction {
             // An idea promoted onto the timeline goes back to the list rather
             // than vanishing with the segment.
             ideas.releaseSegment(segmentId)
-            reservations.deleteForSegment(segmentId)
-            passes.deleteForSegment(segmentId)
             alerts.acknowledgeFor(segmentId)
             segments.delete(segmentId)
         }
@@ -133,8 +117,6 @@ class TripRepository(
      */
     suspend fun pruneOrphans() {
         database.withTransaction {
-            reservations.pruneOrphans()
-            passes.pruneOrphans()
             alerts.pruneOrphans()
         }
     }

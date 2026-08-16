@@ -1,4 +1,4 @@
-package com.waymark.ui.vault
+package com.waymark.ui.trip
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -39,16 +39,20 @@ import java.time.LocalDate
 
 /**
  * Passports, visas, insurance — the records that decide whether a trip happens
- * at all. Numbers are sealed and masked; dates are in the clear so the app can
- * warn about them without asking anyone to authenticate first.
+ * at all.
+ *
+ * The number used to be sealed, masked behind dots, and revealed only after a
+ * fingerprint. On a device that holds nothing else encrypted, that was a
+ * ceremony rather than a protection: it is written here plainly, where it can
+ * be read at a desk with one hand. What the app actually does with these is
+ * check them — a passport valid past the return flight but short of the six
+ * months most borders ask for is the thing worth catching.
  */
 @Composable
 fun ColumnScope.DocumentsSection(
     verdicts: List<DocumentVerdict>,
     party: List<Traveler>,
     missingPassportFor: List<String>,
-    revealed: Set<String>,
-    onReveal: (String) -> Unit,
     onAdd: (String, DocumentKind, String, String, String?, LocalDate?, String?) -> Unit,
     onDelete: (String) -> Unit,
 ) {
@@ -69,7 +73,6 @@ fun ColumnScope.DocumentsSection(
     verdicts.forEach { verdict ->
         val document = verdict.document
         val owner = party.firstOrNull { it.id == document.travelerId }
-        val open = document.id in revealed
 
         Panel(modifier = Modifier.fillMaxWidth()) {
             Row(
@@ -103,24 +106,13 @@ fun ColumnScope.DocumentsSection(
 
             Spacer(Modifier.height(WaymarkSpacing.small))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    FieldLabel("Number")
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = if (open) document.number else document.maskedNumber,
-                        style = Waymark.type.dataLarge,
-                        color = if (open) colors.textStrong else colors.textMuted,
-                    )
-                }
-                GhostIconButton(
-                    icon = if (open) WaymarkIcons.EyeOff else WaymarkIcons.Eye,
-                    contentDescription = if (open) "Hide" else "Reveal",
-                    onClick = { onReveal(document.id) },
+            if (document.number.isNotBlank()) {
+                FieldLabel("Number")
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = document.number,
+                    style = Waymark.type.dataLarge,
+                    color = colors.textStrong,
                 )
             }
 
@@ -165,7 +157,7 @@ fun ColumnScope.DocumentsSection(
 
     PrimaryButton(
         text = "Add document",
-        icon = WaymarkIcons.Lock,
+        icon = WaymarkIcons.Plus,
         onClick = { adding = true },
         modifier = Modifier.fillMaxWidth(),
     )
@@ -206,7 +198,7 @@ private fun AddDocumentModal(
     // quietly claiming the document has already lapsed.
     var expires by remember { mutableStateOf<LocalDate?>(null) }
 
-    WaymarkModal(title = "Add document", eyebrow = "Vault", onDismiss = onDismiss) {
+    WaymarkModal(title = "Add document", eyebrow = "Documents", onDismiss = onDismiss) {
         if (party.size > 1) {
             FieldLabel("Whose")
             Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
@@ -270,7 +262,7 @@ private fun AddDocumentModal(
         )
 
         PrimaryButton(
-            text = "Seal it",
+            text = "Save",
             onClick = {
                 onAdd(
                     travelerId,

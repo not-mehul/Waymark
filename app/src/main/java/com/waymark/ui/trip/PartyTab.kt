@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.waymark.domain.logic.PartySplitAnalyzer
 import com.waymark.domain.logic.TimeText
+import com.waymark.domain.model.DocumentKind
 import com.waymark.domain.model.Segment
 import com.waymark.ui.components.FieldLabel
 import com.waymark.ui.components.GhostIconButton
@@ -35,8 +36,11 @@ import com.waymark.ui.theme.WaymarkSpacing
 import java.time.Instant
 
 /**
- * Who is travelling, what each of them is actually booked on, and — the part
- * group travel gets wrong — the windows where the party is not together.
+ * Who is travelling, what each of them is actually booked on, the windows where
+ * the party is not together, and the documents they are travelling on.
+ *
+ * The documents used to live in a Vault tab of their own, behind a fingerprint.
+ * They belong to people, and this is the tab about people.
  */
 @Composable
 fun PartyTab(
@@ -44,6 +48,10 @@ fun PartyTab(
     onAddTraveler: (String, String?) -> Unit,
     onRemoveTraveler: (String) -> Unit,
     onFilterTraveler: (String?) -> Unit,
+    onAddDocument: (
+        String, DocumentKind, String, String, String?, java.time.LocalDate?, String?,
+    ) -> Unit,
+    onDeleteDocument: (String) -> Unit,
 ) {
     val colors = Waymark.colors
     val dossier = state.dossier
@@ -139,7 +147,7 @@ fun PartyTab(
         )
 
         Spacer(Modifier.height(WaymarkSpacing.small))
-        SectionHeader("Split itineraries")
+        SectionHeader("Apart")
 
         if (state.splits.isEmpty()) {
             Panel(faint = true, modifier = Modifier.fillMaxWidth()) {
@@ -194,18 +202,31 @@ fun PartyTab(
                         Spacer(Modifier.height(2.dp))
                     }
                     if (window.unaccounted.isNotEmpty()) {
+                        // Nothing booked in this window is usually somebody at
+                        // the hotel, not somebody lost, so it is stated in the
+                        // same voice as the rest of the panel.
                         Text(
-                            text = "Unaccounted: " + window.unaccounted.mapNotNull {
+                            text = "Nothing booked: " + window.unaccounted.mapNotNull {
                                 dossier?.party?.byId(it)?.displayName
                             }.joinToString(", "),
                             style = Waymark.type.hint,
-                            color = colors.danger,
+                            color = colors.textDim,
                         )
                     }
                 }
             }
         }
 
+
+        Spacer(Modifier.height(WaymarkSpacing.small))
+
+        DocumentsSection(
+            verdicts = state.documents,
+            party = dossier?.party?.travelers.orEmpty(),
+            missingPassportFor = state.missingPassportFor,
+            onAdd = onAddDocument,
+            onDelete = onDeleteDocument,
+        )
 
         Spacer(Modifier.height(WaymarkSpacing.section))
     }

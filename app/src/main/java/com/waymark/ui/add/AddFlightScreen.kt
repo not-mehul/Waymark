@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waymark.data.catalog.Airports
 import com.waymark.domain.logic.TimeText
+import com.waymark.domain.model.Segment
 import com.waymark.ui.components.DateField
 import com.waymark.ui.components.EmptyLine
 import com.waymark.ui.components.FieldLabel
@@ -33,7 +34,6 @@ import com.waymark.ui.components.rememberReminderPermission
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
 import java.time.Duration
-import java.time.ZoneId
 import java.time.ZonedDateTime
 
 /**
@@ -290,8 +290,10 @@ private fun AddFlightUiState.blockSummary(): String? {
     if (!canSave) return null
     val from = originAirport ?: return null
     val to = destinationAirport ?: return null
-    val leaves = ZonedDateTime.of(date, departTime ?: return null, ZoneId.of(from.timeZoneId))
-    var lands = ZonedDateTime.of(date, arriveTime ?: return null, ZoneId.of(to.timeZoneId))
+    val leaves =
+        ZonedDateTime.of(date, departTime ?: return null, Segment.zoneOrUtc(from.timeZoneId))
+    var lands =
+        ZonedDateTime.of(date, arriveTime ?: return null, Segment.zoneOrUtc(to.timeZoneId))
     if (!lands.toInstant().isAfter(leaves.toInstant())) lands = lands.plusDays(1)
 
     val minutes = Duration.between(leaves, lands).toMinutes().toInt()

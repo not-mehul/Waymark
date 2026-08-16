@@ -1,17 +1,13 @@
 package com.waymark.data.local
 
-import com.waymark.domain.model.BoardingPass
 import com.waymark.domain.model.DisruptionAlert
 import com.waymark.domain.model.DocumentKind
 import com.waymark.domain.model.GroundMode
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
-import com.waymark.domain.model.PackingCategory
-import com.waymark.domain.model.PackingItem
 import com.waymark.domain.model.Place
 import com.waymark.domain.model.PriceBand
-import com.waymark.domain.model.Reservation
 import com.waymark.domain.model.SeatPreference
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.SegmentKind
@@ -19,7 +15,7 @@ import com.waymark.domain.model.TravelDocument
 import com.waymark.domain.model.Traveler
 import com.waymark.domain.model.Trip
 
-/** Row ⇄ model. Sealed columns pass through [SecretCipher]; nothing else does. */
+/** Row ⇄ model. Nothing here encrypts: the app stores what it is given. */
 object Mappers {
 
     fun toTrip(entity: TripEntity): Trip = Trip(
@@ -84,8 +80,10 @@ object Mappers {
                 startZoneId = entity.startZoneId,
                 endZoneId = entity.endZoneId,
                 travelerIds = travelerIds,
-                reservationId = entity.reservationId,
+                confirmationCode = entity.confirmationCode,
+                bookedWith = entity.bookedWith,
                 note = entity.note,
+                ticketNumbers = Codecs.decodeMap(entity.ticketNumbers),
                 departureTerminal = entity.departureTerminal,
                 departureGate = entity.departureGate,
                 arrivalTerminal = entity.arrivalTerminal,
@@ -106,7 +104,8 @@ object Mappers {
                 startZoneId = entity.startZoneId,
                 endZoneId = entity.endZoneId,
                 travelerIds = travelerIds,
-                reservationId = entity.reservationId,
+                confirmationCode = entity.confirmationCode,
+                bookedWith = entity.bookedWith,
                 note = entity.note,
                 roomDescription = entity.roomDescription,
                 checkInNote = entity.checkInNote,
@@ -124,7 +123,8 @@ object Mappers {
                 startZoneId = entity.startZoneId,
                 endZoneId = entity.endZoneId,
                 travelerIds = travelerIds,
-                reservationId = entity.reservationId,
+                confirmationCode = entity.confirmationCode,
+                bookedWith = entity.bookedWith,
                 note = entity.note,
                 provider = entity.provider,
                 pickupInstruction = entity.pickupInstruction,
@@ -141,7 +141,8 @@ object Mappers {
                 startZoneId = entity.startZoneId,
                 endZoneId = entity.endZoneId,
                 travelerIds = travelerIds,
-                reservationId = entity.reservationId,
+                confirmationCode = entity.confirmationCode,
+                bookedWith = entity.bookedWith,
                 note = entity.note,
                 curatedBy = entity.curatedBy,
             )
@@ -158,7 +159,8 @@ object Mappers {
             startZoneId = segment.startZoneId,
             endZoneId = segment.endZoneId,
             travelerIds = Codecs.encodeIds(segment.travelerIds).ifBlank { null },
-            reservationId = segment.reservationId,
+            confirmationCode = segment.confirmationCode,
+            bookedWith = segment.bookedWith,
             note = segment.note,
             originPlace = Codecs.encodePlace(segment.origin),
             destinationPlace = Codecs.encodePlace(segment.destination),
@@ -174,6 +176,7 @@ object Mappers {
                 aircraft = segment.aircraft,
                 cabin = segment.cabin,
                 seats = Codecs.encodeMap(segment.seats).ifBlank { null },
+                ticketNumbers = Codecs.encodeMap(segment.ticketNumbers).ifBlank { null },
                 operatedBy = segment.operatedBy,
             )
 
@@ -196,80 +199,6 @@ object Mappers {
             )
         }
     }
-
-    fun toReservation(entity: ReservationEntity, cipher: SecretCipher): Reservation = Reservation(
-        id = entity.id,
-        tripId = entity.tripId,
-        segmentId = entity.segmentId,
-        label = entity.label,
-        vendor = entity.vendor,
-        kind = runCatching { SegmentKind.valueOf(entity.kind) }.getOrDefault(SegmentKind.EXPERIENCE),
-        travelerIds = Codecs.decodeIds(entity.travelerIds),
-        secrets = entity.secretsSealed
-            ?.let { cipher.open(it) }
-            ?.let { Codecs.decodeSecrets(it) }
-            .orEmpty(),
-        documentUri = entity.documentUri,
-        updatedAtMillis = entity.updatedAtMillis,
-    )
-
-    fun toEntity(reservation: Reservation, cipher: SecretCipher): ReservationEntity =
-        ReservationEntity(
-            id = reservation.id,
-            tripId = reservation.tripId,
-            segmentId = reservation.segmentId,
-            label = reservation.label,
-            vendor = reservation.vendor,
-            kind = reservation.kind.name,
-            travelerIds = Codecs.encodeIds(reservation.travelerIds).ifBlank { null },
-            secretsSealed = reservation.secrets
-                .takeIf { it.isNotEmpty() }
-                ?.let { cipher.seal(Codecs.encodeSecrets(it)) },
-            documentUri = reservation.documentUri,
-            updatedAtMillis = reservation.updatedAtMillis,
-        )
-
-    fun toBoardingPass(entity: BoardingPassEntity, cipher: SecretCipher): BoardingPass = BoardingPass(
-        id = entity.id,
-        tripId = entity.tripId,
-        segmentId = entity.segmentId,
-        travelerId = entity.travelerId,
-        passengerName = entity.passengerName,
-        designator = entity.designator,
-        origin = entity.origin,
-        destination = entity.destination,
-        seat = entity.seat,
-        boardingGroup = entity.boardingGroup,
-        sequenceNumber = entity.sequenceNumber,
-        gate = entity.gate,
-        boardingTimeMillis = entity.boardingTimeMillis,
-        cabin = entity.cabin,
-        fastTrack = entity.fastTrack,
-        barcodePayload = cipher.open(entity.barcodeSealed).orEmpty(),
-        imageUri = entity.imageUri,
-        addedAtMillis = entity.addedAtMillis,
-    )
-
-    fun toEntity(pass: BoardingPass, cipher: SecretCipher): BoardingPassEntity = BoardingPassEntity(
-        id = pass.id,
-        tripId = pass.tripId,
-        segmentId = pass.segmentId,
-        travelerId = pass.travelerId,
-        passengerName = pass.passengerName,
-        designator = pass.designator,
-        origin = pass.origin,
-        destination = pass.destination,
-        seat = pass.seat,
-        boardingGroup = pass.boardingGroup,
-        sequenceNumber = pass.sequenceNumber,
-        gate = pass.gate,
-        boardingTimeMillis = pass.boardingTimeMillis,
-        cabin = pass.cabin,
-        fastTrack = pass.fastTrack,
-        barcodeSealed = cipher.seal(pass.barcodePayload),
-        imageUri = pass.imageUri,
-        addedAtMillis = pass.addedAtMillis,
-    )
 
     fun toIdea(entity: IdeaEntity): Idea = Idea(
         id = entity.id,
@@ -311,12 +240,12 @@ object Mappers {
         addedAtMillis = idea.addedAtMillis,
     )
 
-    fun toDocument(entity: DocumentEntity, cipher: SecretCipher): TravelDocument = TravelDocument(
+    fun toDocument(entity: DocumentEntity): TravelDocument = TravelDocument(
         id = entity.id,
         travelerId = entity.travelerId,
         kind = runCatching { DocumentKind.valueOf(entity.kind) }.getOrDefault(DocumentKind.OTHER),
         label = entity.label,
-        number = cipher.open(entity.numberSealed).orEmpty(),
+        number = entity.number,
         issuer = entity.issuer,
         issuedOn = entity.issuedOnEpochDay?.let(java.time.LocalDate::ofEpochDay),
         expiresOn = entity.expiresOnEpochDay?.let(java.time.LocalDate::ofEpochDay),
@@ -325,47 +254,18 @@ object Mappers {
         updatedAtMillis = entity.updatedAtMillis,
     )
 
-    fun toEntity(document: TravelDocument, cipher: SecretCipher): DocumentEntity = DocumentEntity(
+    fun toEntity(document: TravelDocument): DocumentEntity = DocumentEntity(
         id = document.id,
         travelerId = document.travelerId,
         kind = document.kind.name,
         label = document.label,
-        numberSealed = cipher.seal(document.number),
+        number = document.number,
         issuer = document.issuer,
         issuedOnEpochDay = document.issuedOn?.toEpochDay(),
         expiresOnEpochDay = document.expiresOn?.toEpochDay(),
         note = document.note,
         fileUri = document.fileUri,
         updatedAtMillis = document.updatedAtMillis,
-    )
-
-    fun toPackingItem(entity: PackingItemEntity): PackingItem = PackingItem(
-        id = entity.id,
-        tripId = entity.tripId,
-        travelerId = entity.travelerId,
-        title = entity.title,
-        category = runCatching { PackingCategory.valueOf(entity.category) }
-            .getOrDefault(PackingCategory.OTHER),
-        quantity = entity.quantity,
-        packed = entity.packed,
-        essential = entity.essential,
-        note = entity.note,
-        source = entity.source,
-        addedAtMillis = entity.addedAtMillis,
-    )
-
-    fun toEntity(item: PackingItem): PackingItemEntity = PackingItemEntity(
-        id = item.id,
-        tripId = item.tripId,
-        travelerId = item.travelerId,
-        title = item.title,
-        category = item.category.name,
-        quantity = item.quantity,
-        packed = item.packed,
-        essential = item.essential,
-        note = item.note,
-        source = item.source,
-        addedAtMillis = item.addedAtMillis,
     )
 
     fun toAlert(entity: RaisedAlertEntity): DisruptionAlert = DisruptionAlert(

@@ -20,9 +20,8 @@ import androidx.compose.ui.unit.dp
  * ### The grid these are drawn on
  *
  * The first pass at this set was drawn by eye and it showed — a bed whose
- * frame did not meet its legs, a car with no floor, a globe whose meridian
- * bulged outside its own sphere, arcs with a radius smaller than half the
- * chord they had to span. Every icon here now obeys four rules:
+ * frame did not meet its legs, a car with no floor, arcs with a radius smaller
+ * than half the chord they had to span. Every icon here now obeys four rules:
  *
  * 1. **Ink lives in 3–21 on both axes.** The outer 3 units are the optical
  *    margin that keeps a 16dp glyph from crowding the text beside it.
@@ -135,21 +134,6 @@ object WaymarkIcons {
         lineTo(15f, 20.5f)
     }
 
-    /**
-     * The meridian is an ellipse with a 4.5-unit semi-minor axis and a 9-unit
-     * semi-major, matching the sphere exactly. The previous one used a
-     * 13-unit radius on a 9-unit ball, so the meridian escaped the globe.
-     */
-    val Globe: ImageVector = stroked("globe") {
-        circle(12f, 12f, 9f)
-        moveTo(3f, 12f)
-        lineTo(21f, 12f)
-        moveTo(12f, 3f)
-        arcToRelative(4.5f, 9f, 0f, isMoreThanHalf = false, isPositiveArc = true, 0f, 18f)
-        arcToRelative(4.5f, 9f, 0f, isMoreThanHalf = false, isPositiveArc = true, 0f, -18f)
-        close()
-    }
-
     /** A route forking into two, with the branches ending in corner arrows. */
     val Split: ImageVector = stroked("split") {
         moveTo(12f, 19.5f)
@@ -167,7 +151,7 @@ object WaymarkIcons {
         lineTo(15f, 4.5f)
     }
 
-    // — People, time, security —————————————————————————————————————————
+    // — People and time ————————————————————————————————————————————————
 
     /**
      * Two travelers: one drawn whole, one behind it. The previous version left
@@ -181,18 +165,6 @@ object WaymarkIcons {
         circle(17.5f, 6.8f, 2.6f)
         moveTo(16f, 12.6f)
         arcToRelative(5f, 5f, 0f, isMoreThanHalf = false, isPositiveArc = true, 4.5f, 6.9f)
-    }
-
-    val Lock: ImageVector = stroked("lock") {
-        moveTo(5f, 10.5f)
-        lineTo(19f, 10.5f)
-        lineTo(19f, 20f)
-        lineTo(5f, 20f)
-        close()
-        moveTo(8f, 10.5f)
-        lineTo(8f, 7.5f)
-        arcToRelative(4f, 4f, 0f, isMoreThanHalf = false, isPositiveArc = true, 8f, 0f)
-        lineTo(16f, 10.5f)
     }
 
     val Clock: ImageVector = stroked("clock") {
@@ -221,26 +193,6 @@ object WaymarkIcons {
         lineTo(14.5f, 13.1f)
         moveTo(14.5f, 15.2f)
         lineTo(14.5f, 17.5f)
-    }
-
-    /**
-     * Six bars with uneven gaps and equal outer margins. Evenly spaced bars
-     * read as a list icon; a barcode is recognisable precisely because its
-     * rhythm is irregular.
-     */
-    val Barcode: ImageVector = stroked("barcode") {
-        moveTo(4.5f, 5f)
-        lineTo(4.5f, 19f)
-        moveTo(8f, 5f)
-        lineTo(8f, 19f)
-        moveTo(10.5f, 5f)
-        lineTo(10.5f, 19f)
-        moveTo(14f, 5f)
-        lineTo(14f, 19f)
-        moveTo(17f, 5f)
-        lineTo(17f, 19f)
-        moveTo(19.5f, 5f)
-        lineTo(19.5f, 19f)
     }
 
     /** Knife and fork: the eating half of a trip list. */
@@ -315,21 +267,6 @@ object WaymarkIcons {
         lineTo(8f, 7.5f)
         moveTo(16f, 3f)
         lineTo(16f, 7.5f)
-    }
-
-    /** A suitcase: the packing list, and the bag it ends up in. */
-    val Bag: ImageVector = stroked("bag") {
-        moveTo(4f, 8f)
-        lineTo(20f, 8f)
-        lineTo(20f, 20f)
-        lineTo(4f, 20f)
-        close()
-        moveTo(8.5f, 8f)
-        lineTo(8.5f, 4.5f)
-        lineTo(15.5f, 4.5f)
-        lineTo(15.5f, 8f)
-        moveTo(4f, 14f)
-        lineTo(20f, 14f)
     }
 
     // — Weather and theme ——————————————————————————————————————————————
@@ -440,20 +377,6 @@ object WaymarkIcons {
         lineTo(14f, 18f)
     }
 
-    val Search: ImageVector = stroked("search") {
-        circle(10.5f, 10.5f, 6.5f)
-        moveTo(15.2f, 15.2f)
-        lineTo(20.5f, 20.5f)
-    }
-
-    val Refresh: ImageVector = stroked("refresh") {
-        moveTo(20f, 12f)
-        arcToRelative(8f, 8f, 0f, isMoreThanHalf = true, isPositiveArc = false, -2.4f, 5.7f)
-        moveTo(20f, 6.5f)
-        lineTo(20f, 12f)
-        lineTo(14.5f, 12f)
-    }
-
     /** Three dots — the one control that stands for "the rest of it". */
     val Menu: ImageVector = stroked("menu") {
         moveTo(12f, 5.4f)
@@ -488,38 +411,6 @@ object WaymarkIcons {
         lineTo(13f, 9f)
         moveTo(17.5f, 20f)
         lineTo(17.5f, 5f)
-    }
-
-    /**
-     * The reveal control in the vault, and the most-tapped icon in the app.
-     *
-     * The first version was 19 units wide and 7 tall — a ratio of nearly 3:1 —
-     * with a pupil almost as tall as the eye containing it. At 18dp that is a
-     * dark blob in a lens, not an eye. This one is 17 by 11, which is roughly
-     * the proportion of a real eye, and the pupil is small enough to sit in it
-     * with white either side.
-     */
-    val Eye: ImageVector = stroked("eye") {
-        moveTo(3.5f, 12f)
-        arcToRelative(9f, 8f, 0f, isMoreThanHalf = false, isPositiveArc = true, 17f, 0f)
-        arcToRelative(9f, 8f, 0f, isMoreThanHalf = false, isPositiveArc = true, -17f, 0f)
-        close()
-        circle(12f, 12f, 2.8f)
-    }
-
-    /**
-     * The same eye, closed and struck through. The pupil is gone rather than
-     * crossed out: a slash over a pupil produced three lines meeting in the
-     * middle of a nine-pixel circle, which at icon size was a smudge. An eye
-     * with no pupil and a rule across it reads instantly.
-     */
-    val EyeOff: ImageVector = stroked("eye-off") {
-        moveTo(3.5f, 12f)
-        arcToRelative(9f, 8f, 0f, isMoreThanHalf = false, isPositiveArc = true, 17f, 0f)
-        arcToRelative(9f, 8f, 0f, isMoreThanHalf = false, isPositiveArc = true, -17f, 0f)
-        close()
-        moveTo(4.5f, 19.5f)
-        lineTo(19.5f, 4.5f)
     }
 
     val Alert: ImageVector = stroked("alert") {

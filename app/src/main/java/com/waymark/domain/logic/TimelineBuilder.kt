@@ -61,7 +61,7 @@ sealed interface TimelineEntry {
 }
 
 /**
- * Turns a pile of reservations into the one thing a traveler actually reads:
+ * Turns a pile of bookings into the one thing a traveler actually reads:
  * a single column of days, in order, with the awkward bits between them named.
  */
 object TimelineBuilder {
@@ -154,85 +154,137 @@ object TimelineBuilder {
         else -> EventState.ACTIVE
     }
 
-    /** The bits between the bookings — the part that goes wrong. */
+    /**
+     * The bits between the bookings — the part that goes wrong.
+     *
+     * A connection is something *one traveler* makes. This used to walk the
+     * trip's segments in one chronological line regardless of who was on them,
+     * so a party travelling separately produced connections nobody was making:
+     * put two people on different flights out of the same airport and the app
+     * paired one person's arrival with the other person's departure and
+     * announced that "the onward flight leaves before this one lands". The
+     * itinerary was fine; the reading of it was not.
+     *
+     * So each traveler's own itinerary is walked separately and the results are
+     * merged. Where the party agrees on what comes before a booking, that link
+     * is the party's link and carries its verdict. Where they disagree — the
+     * definition of a split — no link is drawn at all, because there is no
+     * single connection to judge. Filtering the timeline to one traveler shows
+     * theirs, in full.
+     */
     fun links(
         segments: List<Segment>,
         dossier: TripDossier,
         checkedBags: Boolean = true,
     ): List<TimelineEntry.Link> {
-        val moving = segments.chronological()
-        val result = mutableListOf<TimelineEntry.Link>()
-        for (index in 1 until moving.size) {
-            val previous = moving[index - 1]
-            val next = moving[index]
-            val gapMinutes = ((next.startEpochMillis - previous.endEpochMillis) / 60_000L).toInt()
+        val itineraries = itineraries(segments, dossier)
 
-            // Stationary bookings (a hotel) overlap everything else by design.
-            if (previous is Segment.Lodging || next is Segment.Lodging) continue
-            if (samePlace(previous.destination, next.origin) &&
-                gapMinutes in 0..FREE_TIME_THRESHOLD_MINUTES &&
-                !(previous is Segment.Flight && next is Segment.Flight)
-            ) continue
+        // Keyed on the pair, so two travelers making the same connection
+        // describe it once.
+        val built = LinkedHashMap<Pair<String, String>, TimelineEntry.Link?>()
+        val predecessors = mutableMapOf<String, MutableSet<String>>()
 
-            val link = when {
-                previous is Segment.Flight && next is Segment.Flight -> {
-                    val verdict = ConnectionRisk.assess(
-                        inbound = previous,
-                        onward = next,
-                        checkedBags = checkedBags,
-                    )
-                    TimelineEntry.Link(
-                        fromSegment = previous,
-                        toSegment = next,
-                        nature = if (samePlace(previous.destination, next.origin)) {
-                            LinkNature.CONNECTION
-                        } else {
-                            LinkNature.TRANSFER
-                        },
-                        verdict = verdict,
-                        estimate = if (samePlace(previous.destination, next.origin)) {
-                            null
-                        } else {
-                            TransitEstimator.estimateBest(previous.destination, next.origin)
-                        },
-                        gapMinutes = gapMinutes,
-                        sortKey = next.startEpochMillis - 2,
-                    )
-                }
-
-                gapMinutes > FREE_TIME_THRESHOLD_MINUTES &&
-                    samePlace(previous.destination, next.origin) -> {
-                    TimelineEntry.Link(
-                        fromSegment = previous,
-                        toSegment = next,
-                        nature = LinkNature.FREE_TIME,
-                        verdict = null,
-                        estimate = null,
-                        gapMinutes = gapMinutes,
-                        sortKey = next.startEpochMillis - 2,
-                    )
-                }
-
-                else -> {
-                    val estimate = TransitEstimator.estimateBest(previous.destination, next.origin)
-                    TimelineEntry.Link(
-                        fromSegment = previous,
-                        toSegment = next,
-                        nature = LinkNature.TRANSFER,
-                        verdict = ConnectionRisk.assessGap(
-                            fromPlace = previous.destination,
-                            toPlace = next.origin,
-                            availableMinutes = gapMinutes,
-                        ),
-                        estimate = estimate,
-                        gapMinutes = gapMinutes,
-                        sortKey = next.startEpochMillis - 2,
-                    )
+        itineraries.forEach { own ->
+            for (index in 1 until own.size) {
+                val previous = own[index - 1]
+                val next = own[index]
+                predecessors.getOrPut(next.id) { mutableSetOf() } += previous.id
+                built.getOrPut(previous.id to next.id) {
+                    link(previous, next, checkedBags)
                 }
             }
-            result += link
         }
-        return result
+
+        return built.values
+            .filterNotNull()
+            .filter { predecessors[it.toSegment.id]?.size == 1 }
+            .sortedBy { it.sortKey }
+    }
+
+    /**
+     * One chronological list per traveler — or one list for the whole trip when
+     * there is no party to split, which is the ordinary single-traveler case
+     * and behaves exactly as it always did.
+     */
+    private fun itineraries(segments: List<Segment>, dossier: TripDossier): List<List<Segment>> {
+        val travelers = dossier.party.travelers
+        if (travelers.isEmpty()) return listOf(segments.chronological())
+        return travelers.map { traveler ->
+            segments.filter { it.involves(traveler.id) }.chronological()
+        }
+    }
+
+    /** The link between two consecutive bookings, or null where there is nothing to say. */
+    private fun link(
+        previous: Segment,
+        next: Segment,
+        checkedBags: Boolean,
+    ): TimelineEntry.Link? {
+        val gapMinutes = ((next.startEpochMillis - previous.endEpochMillis) / 60_000L).toInt()
+
+        // Stationary bookings (a hotel) overlap everything else by design.
+        if (previous is Segment.Lodging || next is Segment.Lodging) return null
+        if (samePlace(previous.destination, next.origin) &&
+            gapMinutes in 0..FREE_TIME_THRESHOLD_MINUTES &&
+            !(previous is Segment.Flight && next is Segment.Flight)
+        ) return null
+
+        return when {
+            previous is Segment.Flight && next is Segment.Flight -> {
+                val verdict = ConnectionRisk.assess(
+                    inbound = previous,
+                    onward = next,
+                    checkedBags = checkedBags,
+                )
+                TimelineEntry.Link(
+                    fromSegment = previous,
+                    toSegment = next,
+                    nature = if (samePlace(previous.destination, next.origin)) {
+                        LinkNature.CONNECTION
+                    } else {
+                        LinkNature.TRANSFER
+                    },
+                    verdict = verdict,
+                    estimate = if (samePlace(previous.destination, next.origin)) {
+                        null
+                    } else {
+                        TransitEstimator.estimateBest(previous.destination, next.origin)
+                    },
+                    gapMinutes = gapMinutes,
+                    sortKey = next.startEpochMillis - 2,
+                )
+            }
+
+            gapMinutes > FREE_TIME_THRESHOLD_MINUTES &&
+                samePlace(previous.destination, next.origin) -> {
+                TimelineEntry.Link(
+                    fromSegment = previous,
+                    toSegment = next,
+                    nature = LinkNature.FREE_TIME,
+                    verdict = null,
+                    estimate = null,
+                    gapMinutes = gapMinutes,
+                    sortKey = next.startEpochMillis - 2,
+                )
+            }
+
+            else -> {
+                val estimate = TransitEstimator.estimateBest(previous.destination, next.origin)
+                TimelineEntry.Link(
+                    fromSegment = previous,
+                    toSegment = next,
+                    nature = LinkNature.TRANSFER,
+                    verdict = ConnectionRisk.assessGap(
+                        fromPlace = previous.destination,
+                        toPlace = next.origin,
+                        availableMinutes = gapMinutes,
+                    ),
+                    estimate = estimate,
+                    gapMinutes = gapMinutes,
+                    sortKey = next.startEpochMillis - 2,
+                )
+            }
+        }
     }
 
     private fun samePlace(a: Place, b: Place): Boolean = when {

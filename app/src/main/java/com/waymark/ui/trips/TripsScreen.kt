@@ -269,7 +269,7 @@ private fun VersionLine(onClick: () -> Unit) {
  * Waymark used to write the London & Paris example into the database on first
  * run, so the first thing a new traveler saw was a stranger's holiday that they
  * had to delete before starting their own. The example is worth having — it is
- * the only way to see the timeline, the map and the vault with something in
+ * the only way to see the timeline, the map and the numbers with something in
  * them — so it is offered here rather than installed, one line quieter than the
  * button that starts a real trip.
  */
@@ -283,7 +283,7 @@ private fun EmptyShelf(loaded: Boolean, onLoadExample: (() -> Unit)?) {
         verticalArrangement = Arrangement.spacedBy(WaymarkSpacing.small),
     ) {
         Text(
-            text = if (loaded) "Nothing planned yet." else "Reading the vault…",
+            text = if (loaded) "Nothing planned yet." else "Reading the shelf…",
             style = Waymark.type.hint,
             color = Waymark.colors.textDim,
         )

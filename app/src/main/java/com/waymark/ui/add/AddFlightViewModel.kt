@@ -6,7 +6,6 @@ import com.waymark.data.catalog.Airports
 import com.waymark.data.catalog.Airports.Airport
 import com.waymark.data.catalog.FlightCatalog
 import com.waymark.data.repo.TripRepository
-import com.waymark.data.repo.VaultRepository
 import com.waymark.domain.logic.FlightDesignator
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.Traveler
@@ -19,7 +18,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZoneId
 import java.time.ZonedDateTime
 
 /**
@@ -79,7 +77,6 @@ data class AddFlightUiState(
 class AddFlightViewModel(
     private val tripId: String,
     private val trips: TripRepository,
-    private val vault: VaultRepository,
 ) : ViewModel() {
 
     private val mutable = MutableStateFlow(AddFlightUiState())
@@ -135,20 +132,8 @@ class AddFlightViewModel(
 
     fun save(onSaved: () -> Unit) {
         val segment = segmentOf(mutable.value) ?: return
-        val current = mutable.value
-
         viewModelScope.launch {
-            // The vault record is written first so the segment can be stored
-            // once, already pointing at it.
-            val reservation = vault.recordFor(
-                segment = segment,
-                label = "${segment.designator} · ${segment.origin.shortLabel} → " +
-                    segment.destination.shortLabel,
-                vendor = FlightCatalog.carrierName(segment.carrierCode),
-                confirmationCode = current.confirmationCode.ifBlank { null },
-                eTicketNumbers = current.eTickets.filterValues { it.isNotBlank() },
-            )
-            trips.saveSegment(segment.copy(reservationId = reservation.id))
+            trips.saveSegment(segment)
             mutable.update { it.copy(saved = true) }
             onSaved()
         }
@@ -161,8 +146,13 @@ class AddFlightViewModel(
         val departTime = ui.departTime ?: return null
         val arriveTime = ui.arriveTime ?: return null
 
-        val departure = ZonedDateTime.of(ui.date, departTime, ZoneId.of(origin.timeZoneId))
-        var arrival = ZonedDateTime.of(ui.date, arriveTime, ZoneId.of(destination.timeZoneId))
+        // `zoneOrUtc`, not `ZoneId.of`: the station directory is generated
+        // data, and one row with a zone this device's tzdb has never heard of
+        // would otherwise throw out of a composable and take the screen with
+        // it. A flight in the wrong zone is a bug; a crash is worse.
+        val departure = ZonedDateTime.of(ui.date, departTime, Segment.zoneOrUtc(origin.timeZoneId))
+        var arrival =
+            ZonedDateTime.of(ui.date, arriveTime, Segment.zoneOrUtc(destination.timeZoneId))
         // An arrival at or before departure means it lands the next day. A
         // westbound crossing of the date line can legitimately land "before"
         // it left in local terms, so only the instant comparison is trusted.
@@ -185,6 +175,9 @@ class AddFlightViewModel(
             aircraft = ui.aircraft.trim().ifBlank { null },
             cabin = ui.cabin.trim().ifBlank { null },
             seats = ui.seats.filterValues { it.isNotBlank() },
+            ticketNumbers = ui.eTickets.filterValues { it.isNotBlank() },
+            confirmationCode = ui.confirmationCode.trim().ifBlank { null },
+            bookedWith = FlightCatalog.carrierName(designator.carrier),
             operatedBy = FlightCatalog.carrierName(designator.carrier),
         )
     }

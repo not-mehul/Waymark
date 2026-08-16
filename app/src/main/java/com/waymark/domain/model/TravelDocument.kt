@@ -3,10 +3,12 @@ package com.waymark.domain.model
 import java.time.LocalDate
 
 /**
- * A passport, a visa, an insurance policy. The number is held sealed like
- * every other secret; the dates are held in the clear because the app has to
- * reason about them — an expiry warning that needs authentication to fire is
- * a warning that arrives at the airport.
+ * A passport, a visa, an insurance policy.
+ *
+ * The number used to be sealed and shown masked. The dates were always in the
+ * clear, because an expiry warning that needs authentication before it can fire
+ * is a warning that arrives at the airport — and once that was true of the
+ * dates, the ceremony around the number was buying nothing.
  */
 data class TravelDocument(
     val id: String,
@@ -20,14 +22,7 @@ data class TravelDocument(
     val note: String? = null,
     val fileUri: String? = null,
     val updatedAtMillis: Long = System.currentTimeMillis(),
-) {
-    /** What the vault shows before the reader authenticates. */
-    val maskedNumber: String
-        get() = when {
-            number.length <= 4 -> "•".repeat(number.length.coerceAtLeast(2))
-            else -> "•".repeat(number.length - 4) + number.takeLast(4)
-        }
-}
+)
 
 enum class DocumentKind {
     PASSPORT, VISA, ID_CARD, INSURANCE, VACCINATION, DRIVING_PERMIT, TICKET, OTHER;

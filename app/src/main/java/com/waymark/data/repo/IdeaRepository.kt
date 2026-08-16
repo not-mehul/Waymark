@@ -1,8 +1,6 @@
 package com.waymark.data.repo
 
 import androidx.room.withTransaction
-import com.waymark.data.catalog.DestinationGuide
-import com.waymark.data.catalog.DestinationGuide.toIdea
 import com.waymark.data.local.Mappers
 import com.waymark.data.local.WaymarkDatabase
 import com.waymark.domain.logic.IdeaBoard
@@ -65,12 +63,6 @@ class IdeaRepository(
         return idea
     }
 
-    /** Take a bundled suggestion onto the trip's own list. */
-    suspend fun adopt(suggestion: Idea): Idea {
-        val saved = suggestion.copy(id = newId(), addedAtMillis = System.currentTimeMillis())
-        save(saved)
-        return saved
-    }
 
     suspend fun setStatus(ideaId: String, status: IdeaStatus) {
         val existing = find(ideaId) ?: return
@@ -137,26 +129,6 @@ class IdeaRepository(
 
     /** A removed segment returns its idea to the list rather than deleting it. */
     suspend fun releaseSegment(segmentId: String) = ideas.releaseSegment(segmentId)
-
-    /**
-     * Bundled suggestions for the cities this trip actually visits, minus
-     * anything already on the list. Ids here are provisional; [adopt] mints a
-     * real one when the traveler takes it.
-     */
-    fun suggestionsFor(tripId: String, cities: Collection<String>, existing: List<Idea>): List<Idea> {
-        val offered = cities
-            .distinct()
-            .flatMap { city ->
-                DestinationGuide.forCity(city).map { entry ->
-                    entry.toIdea(
-                        id = "suggestion-${city.lowercase()}-${entry.title.hashCode()}",
-                        tripId = tripId,
-                        city = city,
-                    )
-                }
-            }
-        return IdeaBoard.unseenSuggestions(offered, existing)
-    }
 
     private fun newId(): String = "idea-${UUID.randomUUID().toString().take(8)}"
 }

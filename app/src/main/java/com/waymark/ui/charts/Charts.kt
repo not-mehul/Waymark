@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,6 +20,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -262,8 +264,14 @@ fun Meter(
 }
 
 /**
- * A ring for one proportion, with the figure in the middle. Used where the
- * number is the point and the ring is only there to give it a shape.
+ * A ring with a figure in the middle of it.
+ *
+ * The figure is drawn to fit. It used to be one `stat`-sized line centred in a
+ * 92dp ring, which was fine for "7" and wrong for "18452 km": eight characters
+ * at 30sp are wider than the ring is, so the number ran out over its own stroke
+ * on both sides. The type now steps down as the figure gets longer, and the
+ * text is bounded by the ring's inner width so it can never reach the stroke
+ * even if a figure arrives longer than anything anticipated here.
  */
 @Composable
 fun RingFigure(
@@ -274,6 +282,12 @@ fun RingFigure(
     diameter: Dp = 92.dp,
 ) {
     val colors = Waymark.colors
+    val stroke = 6.dp
+
+    // The ring's stroke, plus a margin either side so the glyphs are inside the
+    // circle rather than touching it.
+    val inner = diameter - stroke * 2 - WaymarkSpacing.small * 2
+
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -281,16 +295,16 @@ fun RingFigure(
     ) {
         Box(contentAlignment = Alignment.Center) {
             Canvas(modifier = Modifier.size(diameter)) {
-                val stroke = 6.dp.toPx()
-                val inset = stroke / 2
+                val width = stroke.toPx()
+                val inset = width / 2
                 drawArc(
                     color = colors.borderFaint,
                     startAngle = 0f,
                     sweepAngle = 360f,
                     useCenter = false,
                     topLeft = Offset(inset, inset),
-                    size = Size(size.width - stroke, size.height - stroke),
-                    style = Stroke(width = stroke),
+                    size = Size(size.width - width, size.height - width),
+                    style = Stroke(width = width),
                 )
                 drawArc(
                     color = colors.accentAmber,
@@ -298,11 +312,24 @@ fun RingFigure(
                     sweepAngle = 360f * fraction.coerceIn(0f, 1f),
                     useCenter = false,
                     topLeft = Offset(inset, inset),
-                    size = Size(size.width - stroke, size.height - stroke),
-                    style = Stroke(width = stroke),
+                    size = Size(size.width - width, size.height - width),
+                    style = Stroke(width = width),
                 )
             }
-            Text(text = figure, style = Waymark.type.stat, color = colors.textHeading)
+            Text(
+                text = figure,
+                style = when {
+                    figure.length <= 4 -> Waymark.type.stat
+                    figure.length <= 6 -> Waymark.type.sectionHeading
+                    figure.length <= 9 -> Waymark.type.dataLarge
+                    else -> Waymark.type.data
+                },
+                color = colors.textHeading,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = inner),
+            )
         }
         FieldLabel(caption)
     }

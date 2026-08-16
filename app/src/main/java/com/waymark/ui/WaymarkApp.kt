@@ -18,8 +18,6 @@ import com.waymark.ui.add.AddFlightViewModel
 import com.waymark.ui.analytics.AnalyticsScreen
 import com.waymark.ui.insights.InsightsScreen
 import com.waymark.ui.map.MapScreen
-import com.waymark.ui.packing.PackingScreen
-import com.waymark.ui.pass.BoardingPassScreen
 import com.waymark.ui.segment.SegmentScreen
 import com.waymark.ui.trip.TripScreen
 import com.waymark.ui.trip.TripViewModel
@@ -31,18 +29,14 @@ object Routes {
     const val TRIP = "trip/{tripId}"
     const val ADD_FLIGHT = "trip/{tripId}/add-flight"
     const val SEGMENT = "trip/{tripId}/segment/{segmentId}"
-    const val PASS = "trip/{tripId}/pass/{passId}"
     const val INSIGHTS = "trip/{tripId}/insights"
-    const val PACKING = "trip/{tripId}/packing"
     const val ANALYTICS = "trip/{tripId}/numbers"
     const val MAP = "trip/{tripId}/map"
 
     fun trip(tripId: String) = "trip/$tripId"
     fun addFlight(tripId: String) = "trip/$tripId/add-flight"
     fun segment(tripId: String, segmentId: String) = "trip/$tripId/segment/$segmentId"
-    fun pass(tripId: String, passId: String) = "trip/$tripId/pass/$passId"
     fun insights(tripId: String) = "trip/$tripId/insights"
-    fun packing(tripId: String) = "trip/$tripId/packing"
     fun analytics(tripId: String) = "trip/$tripId/numbers"
     fun map(tripId: String) = "trip/$tripId/map"
 }
@@ -76,9 +70,7 @@ fun WaymarkApp(
                 onBack = { navController.popBackStack() },
                 onAddFlight = { navController.navigate(Routes.addFlight(tripId)) },
                 onOpenSegment = { navController.navigate(Routes.segment(tripId, it)) },
-                onOpenPass = { navController.navigate(Routes.pass(tripId, it)) },
                 onOpenInsights = { navController.navigate(Routes.insights(tripId)) },
-                onOpenPacking = { navController.navigate(Routes.packing(tripId)) },
                 onOpenAnalytics = { navController.navigate(Routes.analytics(tripId)) },
                 onOpenMap = { navController.navigate(Routes.map(tripId)) },
             )
@@ -94,7 +86,6 @@ fun WaymarkApp(
                     AddFlightViewModel(
                         tripId = tripId,
                         trips = container.tripRepository,
-                        vault = container.vaultRepository,
                     )
                 }
             )
@@ -116,33 +107,6 @@ fun WaymarkApp(
             SegmentScreen(
                 segmentId = segmentId,
                 viewModel = viewModel(factory = tripFactory(container, tripId)),
-                onBack = { navController.popBackStack() },
-                onOpenPass = { navController.navigate(Routes.pass(tripId, it)) },
-            )
-        }
-
-        composable(
-            route = Routes.PASS,
-            arguments = listOf(
-                navArgument("tripId") { type = NavType.StringType },
-                navArgument("passId") { type = NavType.StringType },
-            ),
-        ) { entry ->
-            val tripId = entry.requireTripId()
-            val passId = entry.arguments?.getString("passId").orEmpty()
-            BoardingPassScreen(
-                passId = passId,
-                viewModel = viewModel(factory = tripFactory(container, tripId)),
-                onBack = { navController.popBackStack() },
-            )
-        }
-
-        composable(
-            route = Routes.PACKING,
-            arguments = listOf(navArgument("tripId") { type = NavType.StringType }),
-        ) { entry ->
-            PackingScreen(
-                viewModel = viewModel(factory = tripFactory(container, entry.requireTripId())),
                 onBack = { navController.popBackStack() },
             )
         }
@@ -185,15 +149,14 @@ private fun androidx.navigation.NavBackStackEntry.requireTripId(): String =
     arguments?.getString("tripId").orEmpty()
 
 /**
- * The trip view model is keyed by route, so the five tabs, the segment screen
- * and the pass screen each get one bound to the same trip id.
+ * The trip view model is keyed by route, so the three tabs and the segment
+ * screen each get one bound to the same trip id.
  */
 private fun tripFactory(container: AppContainer, tripId: String): ViewModelProvider.Factory =
     factory {
         TripViewModel(
             tripId = tripId,
             trips = container.tripRepository,
-            vault = container.vaultRepository,
             alerts = container.alertRepository,
             ideas = container.ideaRepository,
             preparations = container.preparationRepository,

@@ -5,7 +5,7 @@ import java.time.LocalDate
 
 /**
  * The worked example: a week in London and Paris with flights, a hotel, a
- * Eurostar, ideas, documents and a packing list already on it.
+ * Eurostar, ideas and documents already on it.
  *
  * This used to run itself on first launch, which meant every fresh install
  * opened on somebody else's holiday and a real first trip began by deleting a
@@ -18,7 +18,6 @@ import java.time.LocalDate
  */
 class SampleSeeder(
     private val trips: TripRepository,
-    private val vault: VaultRepository,
     private val ideas: IdeaRepository,
     private val preparations: PreparationRepository,
 ) {
@@ -29,11 +28,8 @@ class SampleSeeder(
         trips.saveTrip(bundle.trip)
         bundle.travelers.forEach { trips.addTraveler(bundle.trip.id, it) }
         trips.saveSegments(bundle.segments)
-        bundle.reservations.forEach { vault.save(it) }
-        bundle.passes.forEach { vault.savePass(it) }
         ideas.saveAll(bundle.ideas)
         bundle.documents.forEach { preparations.saveDocument(it) }
-        bundle.packing.forEach { preparations.savePackingItem(it) }
         return bundle.trip.id
     }
 

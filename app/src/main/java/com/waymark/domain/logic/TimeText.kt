@@ -10,7 +10,7 @@ import kotlin.math.abs
 
 /**
  * Every string the app prints for a time, a duration, or a date.
- * Kept in one place so the timeline, the map and the vault never disagree.
+ * Kept in one place so the timeline, the map and the numbers never disagree.
  */
 object TimeText {
 

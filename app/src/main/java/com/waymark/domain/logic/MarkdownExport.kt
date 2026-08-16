@@ -4,8 +4,6 @@ import com.waymark.domain.model.GroundMode
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
-import com.waymark.domain.model.PackingItem
-import com.waymark.domain.model.Reservation
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.TravelDocument
 import com.waymark.domain.model.TripDossier
@@ -20,22 +18,20 @@ import java.time.LocalDate
  * hierarchy and prose, not a table dump: days as headings, each booking as a
  * line that says the thing a traveler needs at that moment.
  *
- * **No secret ever leaves the vault through here.** Confirmation codes,
- * e-ticket numbers, passport numbers and PINs are encrypted on the device and
- * exporting them would put them in plain text in whatever the traveler pastes
- * this into. What the export carries instead is the shape of the record: that
- * a booking exists, with whom, and what kind of reference it holds. Anyone who
- * needs the number can open the vault on the phone.
+ * Booking references travel with it — a confirmation code is the reason to
+ * send somebody an itinerary in the first place, and there is no vault left to
+ * keep it behind. **Document numbers do not.** A passport number is a
+ * different class of thing from a hotel reference, and an itinerary pasted
+ * into a group chat should not carry one; the export names the document and
+ * states its expiry, which is the part anyone else needs to know.
  */
 object MarkdownExport {
 
     /** Everything the exporter needs, so it can stay a pure function. */
     data class Payload(
         val dossier: TripDossier,
-        val reservations: List<Reservation> = emptyList(),
         val ideas: List<Idea> = emptyList(),
         val documents: List<TravelDocument> = emptyList(),
-        val packing: List<PackingItem> = emptyList(),
         val analytics: TripAnalyticsReport? = null,
     )
 
@@ -68,7 +64,6 @@ object MarkdownExport {
 
         itinerary(payload)
         ideas(payload)
-        packing(payload)
         documents(payload)
         references(payload)
         numbers(payload)
@@ -76,10 +71,7 @@ object MarkdownExport {
         appendLine()
         appendLine("---")
         appendLine()
-        appendLine(
-            "Exported from Waymark. Confirmation codes, ticket and document numbers " +
-                "stay encrypted on the device and are deliberately not included."
-        )
+        appendLine("Exported from Waymark.")
     }
 
     // — Sections ——————————————————————————————————————————————————————————
@@ -170,9 +162,11 @@ object MarkdownExport {
     }
 
     private fun ideaLine(idea: Idea): String = buildString {
-        // A booked idea is already in the itinerary above; here it is ticked so
-        // the list doubles as a record of what actually happened.
-        append(if (idea.scheduledSegmentId != null) "- [x] " else "- [ ] ")
+        // Ticked when it is settled: either it has been done, or it is on the
+        // timeline above and will be. The list doubles as a record of what
+        // actually happened, which is most of what anyone re-reads it for.
+        val settled = idea.status == IdeaStatus.DONE || idea.scheduledSegmentId != null
+        append(if (settled) "- [x] " else "- [ ] ")
         append(idea.title)
         val notes = buildList {
             idea.plannedDate?.let { add(TimeText.dayCompact(it)) }
@@ -184,44 +178,13 @@ object MarkdownExport {
         idea.note?.let { append("  \n  $it") }
     }
 
-    private fun StringBuilder.packing(payload: Payload) {
-        if (payload.packing.isEmpty()) return
-
-        appendLine()
-        appendLine("## Packing")
-
-        val lists = payload.packing.groupBy { it.travelerId }
-        // The shared list first; it is the one that needs agreeing.
-        val ordered = listOf<String?>(null) + lists.keys.filterNotNull().sorted()
-        ordered.forEach { travelerId ->
-            val items = lists[travelerId].orEmpty()
-            if (items.isEmpty()) return@forEach
-            val name = travelerId?.let { id ->
-                payload.dossier.party.byId(id)?.displayName ?: "Someone"
-            } ?: "Shared"
-
-            appendLine()
-            appendLine("### $name")
-            appendLine()
-            items
-                .sortedWith(compareBy({ it.category.ordinal }, { it.title }))
-                .forEach { item ->
-                    append(if (item.packed) "- [x] " else "- [ ] ")
-                    append(item.title)
-                    if (item.quantity > 1) append(" ×${item.quantity}")
-                    if (item.essential) append(" **(essential)**")
-                    appendLine()
-                }
-        }
-    }
-
     private fun StringBuilder.documents(payload: Payload) {
         if (payload.documents.isEmpty()) return
 
         appendLine()
         appendLine("## Documents")
         appendLine()
-        appendLine("Numbers are held encrypted on the device and are not exported.")
+        appendLine("Document numbers are deliberately left out.")
         appendLine()
 
         payload.documents
@@ -236,25 +199,21 @@ object MarkdownExport {
             }
     }
 
-    /**
-     * What is booked and where the reference lives — never the reference
-     * itself. A traveler reading this on a laptop can see that the hotel is
-     * paid for and which name it is under; the code stays on the phone.
-     */
+    /** Every booking that carries a reference, with the reference. */
     private fun StringBuilder.references(payload: Payload) {
-        if (payload.reservations.isEmpty()) return
+        val booked = payload.dossier.segments
+            .filter { !it.confirmationCode.isNullOrBlank() }
+            .chronological()
+        if (booked.isEmpty()) return
 
         appendLine()
         appendLine("## Bookings")
         appendLine()
 
-        payload.reservations.sortedBy { it.label }.forEach { reservation ->
-            append("- **${reservation.label}**")
-            if (reservation.vendor.isNotBlank()) append(" · ${reservation.vendor}")
-            val held = reservation.secrets
-                .map { it.field.label }
-                .distinct()
-            if (held.isNotEmpty()) append(" — holds ${held.joinToString(", ").lowercase()}")
+        booked.forEach { segment ->
+            append("- **${segment.title}**")
+            segment.bookedWith?.takeIf { it.isNotBlank() }?.let { append(" · $it") }
+            append(" — `${segment.confirmationCode}`")
             appendLine()
         }
     }

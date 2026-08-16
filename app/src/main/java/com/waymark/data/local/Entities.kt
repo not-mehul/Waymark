@@ -80,7 +80,8 @@ data class SegmentEntity(
     val startZoneId: String,
     val endZoneId: String,
     val travelerIds: String?,
-    val reservationId: String?,
+    val confirmationCode: String?,
+    val bookedWith: String?,
     val note: String?,
     val originPlace: String,
     val destinationPlace: String?,
@@ -95,6 +96,7 @@ data class SegmentEntity(
     val aircraft: String? = null,
     val cabin: String? = null,
     val seats: String? = null,
+    val ticketNumbers: String? = null,
     val operatedBy: String? = null,
 
     // Lodging
@@ -111,66 +113,6 @@ data class SegmentEntity(
     val experienceName: String? = null,
     val category: String? = null,
     val curatedBy: String? = null,
-)
-
-@Entity(
-    tableName = "reservations",
-    foreignKeys = [
-        ForeignKey(
-            entity = TripEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["tripId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
-    indices = [Index("tripId"), Index("segmentId")],
-)
-data class ReservationEntity(
-    @PrimaryKey val id: String,
-    val tripId: String,
-    val segmentId: String?,
-    val label: String,
-    val vendor: String,
-    val kind: String,
-    val travelerIds: String?,
-    /** Sealed blob — never written or read in the clear. */
-    val secretsSealed: String?,
-    val documentUri: String?,
-    val updatedAtMillis: Long,
-)
-
-@Entity(
-    tableName = "boarding_passes",
-    foreignKeys = [
-        ForeignKey(
-            entity = TripEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["tripId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
-    indices = [Index("tripId"), Index("segmentId"), Index("travelerId")],
-)
-data class BoardingPassEntity(
-    @PrimaryKey val id: String,
-    val tripId: String,
-    val segmentId: String,
-    val travelerId: String,
-    val passengerName: String,
-    val designator: String,
-    val origin: String,
-    val destination: String,
-    val seat: String?,
-    val boardingGroup: String?,
-    val sequenceNumber: String?,
-    val gate: String?,
-    val boardingTimeMillis: Long?,
-    val cabin: String?,
-    val fastTrack: Boolean,
-    /** Sealed BCBP payload. */
-    val barcodeSealed: String,
-    val imageUri: String?,
-    val addedAtMillis: Long,
 )
 
 /**
@@ -210,9 +152,8 @@ data class IdeaEntity(
 )
 
 /**
- * Passports, visas, insurance. The number is sealed; the dates are not,
- * because an expiry warning that needs authentication to fire is a warning
- * that arrives at the airport.
+ * Passports, visas, insurance — the records that decide whether a trip
+ * happens at all.
  */
 @Entity(
     tableName = "documents",
@@ -231,41 +172,13 @@ data class DocumentEntity(
     val travelerId: String,
     val kind: String,
     val label: String,
-    /** Sealed. */
-    val numberSealed: String,
+    val number: String,
     val issuer: String?,
     val issuedOnEpochDay: Long?,
     val expiresOnEpochDay: Long?,
     val note: String?,
     val fileUri: String?,
     val updatedAtMillis: Long,
-)
-
-@Entity(
-    tableName = "packing_items",
-    foreignKeys = [
-        ForeignKey(
-            entity = TripEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["tripId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
-    indices = [Index("tripId"), Index("travelerId")],
-)
-data class PackingItemEntity(
-    @PrimaryKey val id: String,
-    val tripId: String,
-    /** Null means the item belongs to the party rather than one traveler. */
-    val travelerId: String?,
-    val title: String,
-    val category: String,
-    val quantity: Int,
-    val packed: Boolean,
-    val essential: Boolean,
-    val note: String?,
-    val source: String,
-    val addedAtMillis: Long,
 )
 
 /**

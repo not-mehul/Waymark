@@ -57,7 +57,7 @@ fun DeleteTripModal(
             text = buildString {
                 append(bookings)
                 append(if (bookings == 1) " booking" else " bookings")
-                append(", every idea, every packing list and every stored code ")
+                append(", every idea and every note ")
                 append("will be deleted from this device.")
             },
             style = Waymark.type.hint,
