@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-        The only colours declared outside the Compose token set: the launch
-        window, which exists before any Composable can paint. They mirror
-        `backgroundMid` in each theme.
+        The only colours declared outside the Compose token set, because
+        both are needed before any Composable can paint: the launch window,
+        which mirrors `backgroundMid` in each theme, and the launcher mark,
+        which is drawn by the system.
     -->
     <color name="window_dusk">#0F0D0B</color>
     <color name="window_dawn">#EFE6D8</color>
     <color name="launcher_background">#14110E</color>
-    <color name="launcher_foreground">#D4A574</color>
+    <color name="launcher_needle_lit">#D4A574</color>
+    <color name="launcher_needle_shade">#F5ECD9</color>
 </resources>

@@ -16,12 +16,12 @@
 
     <!-- The lit half: tip, right wing, tail. -->
     <path
-        android:fillColor="#D4A574"
+        android:fillColor="@color/launcher_needle_lit"
         android:pathData="M54,26 L75,64 L54,82 Z" />
 
     <!-- The shaded half, in cream, so the needle reads as a solid with a
          highlight rather than as a flat diamond. -->
     <path
-        android:fillColor="#F5ECD9"
+        android:fillColor="@color/launcher_needle_shade"
         android:pathData="M54,26 L33,64 L54,82 Z" />
 </vector>

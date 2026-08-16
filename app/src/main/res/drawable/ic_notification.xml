@@ -4,8 +4,12 @@
     android:viewportWidth="24"
     android:viewportHeight="24"
     android:tint="#FFFFFF">
-    <!-- The Waymark bearing needle, flattened for the status bar. -->
+    <!--
+        The Waymark needle as a flat silhouette. A status-bar icon is masked to
+        a single colour by the system, so the two-tone split of the launcher
+        cannot survive here: what is left is the outline both halves share.
+    -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M12,2.5 L18.5,20 L12,16.2 L5.5,20 Z" />
+        android:pathData="M12,2.5 L18.5,16.5 L12,21.5 L5.5,16.5 Z" />
 </vector>

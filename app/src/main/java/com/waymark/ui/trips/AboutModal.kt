@@ -43,6 +43,13 @@ fun AboutModal(onDismiss: () -> Unit) {
             style = Waymark.type.hint,
             color = Waymark.colors.textDim,
         )
+        Text(
+            text = "The other side of that: nothing is backed up off this device, and " +
+                "the key cannot leave it. Export a trip as markdown to keep a copy " +
+                "anywhere else.",
+            style = Waymark.type.hint,
+            color = Waymark.colors.textDim,
+        )
 
         Hairline()
 

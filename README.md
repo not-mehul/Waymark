@@ -68,10 +68,9 @@ beside their marks, so a cluster of hotels in one city does not print on top of
 itself; a label with nowhere to go is dropped and its mark stays.
 
 **Keep a list.** Not everything on a trip has a time on it. The Ideas board
-holds four kinds — **See, Eat, Do, Shop** — added a question at a time, with
-no date attached —
-saved, scheduled, or ticked off — readable three ways: by kind, by place, or by
-the day it is pencilled in for. A day is a date without a clock time, which is
+holds four kinds — **See, Eat, Do, Shop** — added a question at a time and
+saved without a date, then read three ways: by kind, by place, or by the day
+they are pencilled in for. A day is a date without a clock time, which is
 how planning actually happens; the board totals each day's estimates and says
 so when a day is overfull. Each traveler can mark what they want, so a
 party of four can see where their interests actually overlap. One tap promotes
@@ -421,10 +420,14 @@ be mistaken for a shippable one.
 
 Places where the app says less than it could:
 
-- **Nothing here is live, and the app says so.** Every flight time, delay, gate
-  and belt was typed in by a traveler, and every status carries the moment it
-  was reported. Waymark holds no network permission, so there is no version of
-  it that quietly starts calling a service.
+- **Nothing here is live, and the app says so.** Every flight time, gate and
+  terminal was typed in by a traveler. Waymark holds no network permission, so
+  there is no version of it that quietly starts calling a service.
+- **Offline cuts both ways.** Nothing is backed up off the device — Android
+  backup is switched off, because a restored copy of the vault would be
+  ciphertext under a key that never left the old phone. A trip lives on one
+  phone until it is exported as markdown. The About sheet says this too, rather
+  than leaving it to be discovered.
 - **The coastline is 1:110m and coarse.** Italy is a boot and Florida is a
   peninsula; it is not a navigational chart and no place is drawn to a
   resolution finer than about fifty kilometres. It is a basemap for reading a
