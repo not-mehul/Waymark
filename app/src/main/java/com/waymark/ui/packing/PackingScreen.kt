@@ -5,17 +5,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,17 +28,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waymark.domain.model.PackingCategory
 import com.waymark.domain.model.PackingItem
 import com.waymark.ui.charts.Meter
-import com.waymark.ui.components.EditorialNote
 import com.waymark.ui.components.FieldLabel
+import com.waymark.ui.components.Footnote
 import com.waymark.ui.components.GhostIconButton
 import com.waymark.ui.components.MutedButton
 import com.waymark.ui.components.OptionChip
 import com.waymark.ui.components.Panel
 import com.waymark.ui.components.PartyMark
 import com.waymark.ui.components.PrimaryButton
+import com.waymark.ui.components.ScreenScaffold
 import com.waymark.ui.components.SectionHeader
-import com.waymark.ui.components.SectionLabel
-import com.waymark.ui.components.WaymarkBackdrop
 import com.waymark.ui.components.WaymarkIcon
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.components.WaymarkModal
@@ -72,150 +67,124 @@ fun PackingScreen(
 
     val visible = state.packing.filter { it.travelerId == selected }
 
-    WaymarkBackdrop {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .systemBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = WaymarkSpacing.screenHorizontal),
-            verticalArrangement = Arrangement.spacedBy(WaymarkSpacing.small),
+    ScreenScaffold(
+        title = "The bag",
+        onBack = onBack,
+        spacing = WaymarkSpacing.small,
+    ) {
+
+        // Whose list
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                GhostIconButton(
-                    icon = WaymarkIcons.ArrowLeft,
-                    contentDescription = "Back",
-                    onClick = onBack,
-                )
-                Spacer(Modifier.weight(1f))
-                SectionLabel("Packing")
-            }
-
-            Text(
-                text = "The bag",
-                style = Waymark.type.screenTitle,
-                color = colors.textHeading,
+            OptionChip(
+                text = "Shared",
+                selected = selected == null,
+                onClick = { selected = null },
             )
-
-            // Whose list
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
-            ) {
+            party.forEach { traveler ->
                 OptionChip(
-                    text = "Shared",
-                    selected = selected == null,
-                    onClick = { selected = null },
-                )
-                party.forEach { traveler ->
-                    OptionChip(
-                        text = traveler.displayName,
-                        selected = selected == traveler.id,
-                        onClick = { selected = traveler.id },
-                        leading = {
-                            PartyMark(
-                                initials = traveler.initials,
-                                active = selected == traveler.id,
-                                size = 18.dp,
-                            )
-                        },
-                    )
-                }
-            }
-
-            // Everyone's progress at a glance — one meter each, sage, because
-            // no chart here compares them against one another.
-            Panel(modifier = Modifier.fillMaxWidth()) {
-                state.packingProgress.forEach { entry ->
-                    Meter(
-                        fraction = entry.fraction,
-                        label = entry.name +
-                            if (entry.essentialOutstanding > 0) {
-                                " · ${entry.essentialOutstanding} essential left"
-                            } else {
-                                ""
-                            },
-                        value = "${entry.packed}/${entry.total}",
-                        tint = if (entry.essentialOutstanding > 0) {
-                            colors.accentAmber
-                        } else {
-                            colors.accentSage
-                        },
-                    )
-                    Spacer(Modifier.height(WaymarkSpacing.snug))
-                }
-                if (state.packingProgress.all { it.total == 0 }) {
-                    Text(
-                        text = "Nothing on any list yet.",
-                        style = Waymark.type.hint,
-                        color = colors.textDim,
-                    )
-                }
-            }
-
-            if (visible.isEmpty()) {
-                Panel(faint = true, modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "This list is empty.",
-                        style = Waymark.type.hint,
-                        color = colors.textDim,
-                    )
-                    Spacer(Modifier.height(WaymarkSpacing.snug))
-                    Text(
-                        text = "Waymark can draft one from the itinerary — the nights, the " +
-                            "climate, the sockets, and whether anything involves water.",
-                        style = Waymark.type.bodySmall,
-                        color = colors.textMuted,
-                    )
-                }
-            }
-
-            PackingCategory.entries.forEach { category ->
-                val items = visible.filter { it.category == category }
-                if (items.isEmpty()) return@forEach
-
-                SectionHeader(category.label)
-                items.sortedBy { it.packed }.forEach { item ->
-                    PackingRow(
-                        item = item,
-                        onToggle = { viewModel.setPacked(item.id, !item.packed) },
-                        onDelete = { viewModel.deletePackingItem(item.id) },
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(WaymarkSpacing.small))
-            PrimaryButton(
-                text = "Draft from the itinerary",
-                icon = WaymarkIcons.Check,
-                onClick = { viewModel.suggestPacking(selected) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
-                MutedButton(
-                    text = "Add item",
-                    icon = WaymarkIcons.Plus,
-                    onClick = { adding = true },
-                    modifier = Modifier.weight(1f),
-                )
-                MutedButton(
-                    text = "Untick all",
-                    onClick = viewModel::unpackEverything,
-                    modifier = Modifier.weight(1f),
+                    text = traveler.displayName,
+                    selected = selected == traveler.id,
+                    onClick = { selected = traveler.id },
+                    leading = {
+                        PartyMark(
+                            initials = traveler.initials,
+                            active = selected == traveler.id,
+                            size = 18.dp,
+                        )
+                    },
                 )
             }
-
-            EditorialNote(
-                term = "Drafted, not dictated",
-                body = "Every suggested line can be deleted, and nothing is added twice. " +
-                    "The shared list is for the things one of you carries for both.",
-                modifier = Modifier.padding(top = WaymarkSpacing.small),
-            )
-            Spacer(Modifier.height(WaymarkSpacing.section))
         }
+
+        // Everyone's progress at a glance — one meter each, sage, because
+        // no chart here compares them against one another.
+        Panel(modifier = Modifier.fillMaxWidth()) {
+            state.packingProgress.forEach { entry ->
+                Meter(
+                    fraction = entry.fraction,
+                    label = entry.name +
+                        if (entry.essentialOutstanding > 0) {
+                            " · ${entry.essentialOutstanding} essential left"
+                        } else {
+                            ""
+                        },
+                    value = "${entry.packed}/${entry.total}",
+                    tint = if (entry.essentialOutstanding > 0) {
+                        colors.accentAmber
+                    } else {
+                        colors.accentSage
+                    },
+                )
+                Spacer(Modifier.height(WaymarkSpacing.snug))
+            }
+            if (state.packingProgress.all { it.total == 0 }) {
+                Text(
+                    text = "Nothing on any list yet.",
+                    style = Waymark.type.hint,
+                    color = colors.textDim,
+                )
+            }
+        }
+
+        if (visible.isEmpty()) {
+            Panel(faint = true, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "This list is empty.",
+                    style = Waymark.type.hint,
+                    color = colors.textDim,
+                )
+                Spacer(Modifier.height(WaymarkSpacing.snug))
+                Text(
+                    text = "Waymark can draft one from the itinerary — the nights, the " +
+                        "climate, the sockets, and whether anything involves water.",
+                    style = Waymark.type.bodySmall,
+                    color = colors.textMuted,
+                )
+            }
+        }
+
+        PackingCategory.entries.forEach { category ->
+            val items = visible.filter { it.category == category }
+            if (items.isEmpty()) return@forEach
+
+            SectionHeader(category.label)
+            items.sortedBy { it.packed }.forEach { item ->
+                PackingRow(
+                    item = item,
+                    onToggle = { viewModel.setPacked(item.id, !item.packed) },
+                    onDelete = { viewModel.deletePackingItem(item.id) },
+                )
+            }
+        }
+
+        Spacer(Modifier.height(WaymarkSpacing.small))
+        PrimaryButton(
+            text = "Draft from the itinerary",
+            icon = WaymarkIcons.Check,
+            onClick = { viewModel.suggestPacking(selected) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
+            MutedButton(
+                text = "Add item",
+                icon = WaymarkIcons.Plus,
+                onClick = { adding = true },
+                modifier = Modifier.weight(1f),
+            )
+            MutedButton(
+                text = "Untick all",
+                onClick = viewModel::unpackEverything,
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        Footnote(
+            "The shared list is for what one of you carries for both. Nothing is " +
+                "added twice, and every suggested line can be deleted."
+        )
     }
 
     if (adding) {

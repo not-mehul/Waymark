@@ -11,16 +11,19 @@ runtime dependencies beyond AndroidX.
 
 ## What it does
 
-**Type a flight number.** `BA286` and a date produce a populated segment:
-route, both local clocks, terminals, aircraft, block time. The schedule is
-bundled with the app, so the lookup answers on a plane, in a queue, or in a
-country where the SIM does not work. A live provider can be configured on top;
-it is never required.
+**Enter a flight.** A designator, a date, two airport codes and two clock
+times. Waymark calls no schedule service and no tracking API — it asks for no
+network permission at all — so what it contributes is only what an airport code
+already implies: coordinates and a time zone. That is enough to put the leg on
+the map, to work out that a 16:20 out of San Francisco lands the following
+morning, and to show the block time back as you type, which is the quickest way
+to catch a time entered in the wrong zone.
 
-**Track it.** Each flight carries a state — scheduled, boarding, en route,
-delayed, landed — with gate, belt, progress and, when airborne, a position on
-the chart. Everything is stamped with its source, so the traveler always knows
-whether they are reading a live feed or the offline model.
+**Track it by hand.** Each flight carries a state — on time, delayed, boarding,
+departed, landed, cancelled — with a delay, a gate, a terminal and a belt. All
+of it is reported by whoever is standing in front of the departure board, and
+all of it is stamped with when they reported it. A material change raises an
+alert once, and a change too small to matter raises nothing.
 
 **Keep the codes.** Confirmation codes, record locators, e-ticket numbers and
 boarding-pass payloads are sealed with AES-256-GCM under a key held in the
@@ -40,8 +43,15 @@ left gutter and, between the bookings, the part that actually goes wrong: the
 connection with a minimum-connection-time verdict, the transfer with a mode and
 a duration estimate, the four hours that belong to nobody.
 
-**See the geography.** An offline vector chart draws great-circle legs, the
-graticule, and every place whose coordinates the app holds. Pinch, pan, tap.
+**See the geography.** One offline map, two projections. The flat chart reads a
+region; the globe shows what a long haul actually is, with the far side of the
+world culled rather than flattened. Both draw real coastlines — Natural Earth's
+1:110m land polygons, simplified to about 1,400 points and shipped inside the
+binary — over water, under a graticule, with the trip's great-circle legs on
+top. Pinch to zoom either one, drag to pan the chart or turn the globe, tap a
+mark to open it. Labels are placed by a collision solver rather than pinned
+beside their marks, so a cluster of hotels in one city does not print on top of
+itself; a label with nowhere to go is dropped and its mark stays.
 
 **Keep a list.** Not everything on a trip has a time on it. The Ideas board
 holds places to see, food to try, walks and shops with no date attached —
@@ -69,9 +79,15 @@ haul. Per traveler plus a shared list, with meters for who is ready.
 
 **Count it.** A numbers screen: distance by mode, the shape of each day, where
 the hours go, nights per city, and a carbon estimate that shows its factors
-rather than asserting a figure. The trip is drawn on an orthographic globe you
-can turn with a finger — routes that pass behind the world are culled, which is
-the honest way to show how far away somewhere is.
+rather than asserting a figure, above the same globe you can turn with a finger.
+
+**Take it with you.** One tap exports the whole trip as markdown — days as
+headings, every booking as a line, the idea list and the packing list as
+checkboxes, the documents and bookings as an index — and hands it to the system
+share sheet. **No secret is ever exported.** Confirmation codes, e-ticket
+numbers and passport numbers stay sealed on the device; what leaves is the
+shape of the record, so a reader can see that the hotel is booked and under
+whose name without the code travelling with it.
 
 **Land informed.** Bundled destination notes — currency, plug, emergency
 number, airport transfer, transit, tipping, seasons, neighbourhoods — and a
@@ -106,7 +122,7 @@ the original CSS.
 | Theme switch with sliding amber knob, `role="switch"` | `ThemeToggle`, 220 ms eased |
 | Warm-brown shadows in Dawn, softened | `shadow` + `shadowStrength = 0.4f` |
 | Motion is responsiveness, not decoration | 150–220 ms transitions; nothing animates on load |
-| Voice: restrained, no marketing, italic term-definition asides | `EditorialNote`, and every string in the app |
+| Voice: restrained, no marketing, italic asides | `Footnote`, and every string in the app |
 
 Two deliberate departures, both documented at the call site:
 
@@ -144,21 +160,22 @@ com.waymark
 │   ├── model/      Trip, Traveler, Segment (sealed), Reservation, FlightStatus
 │   └── logic/      TimelineBuilder, ConnectionRisk, TransitEstimator,
 │                   PartySplitAnalyzer, IdeaBoard, DocumentWatch, PackingPlanner,
-│                   TripAnalytics, Geo (incl. orthographic globe), Bcbp, Code39
+│                   TripAnalytics, FlightUpdate, MarkdownExport, LabelPlacer,
+│                   Geo (incl. orthographic globe), Bcbp, Code39
 ├── data/
-│   ├── catalog/    Bundled airports, schedules, destination notes and guide,
+│   ├── catalog/    Bundled airports, coastline, destination notes and guide,
 │   │               sample trip
 │   ├── local/      Room entities, DAOs, codecs, SecretCipher (Keystore AES-GCM)
-│   ├── remote/     FlightStatusProvider: offline model + optional HTTP feed
 │   └── repo/       TripRepository, VaultRepository, FlightRepository,
 │                   IdeaRepository, PreparationRepository
-├── alerts/         DelayWatchWorker (WorkManager) + notification channels
+├── alerts/         DepartureWatchWorker (WorkManager) + notification channels
 ├── di/             AppContainer — the whole graph, readable top to bottom
 └── ui/
     ├── theme/      Tokens, type ramp, shapes, spacing
     ├── components/ Panel, buttons, chips, toggles, modal, icons, backdrop
     ├── charts/     BarSeries, DayLoadChart, Meter, RingFigure, SplitBar
-    ├── map/        RouteChart (flat) and Globe (orthographic)
+    ├── map/        WorldMap — one component, flat and orthographic projections
+    ├── export/     Markdown export and the share intent
     ├── trips/ trip/ add/ segment/ pass/ insights/ packing/ analytics/ vault/
 ```
 
@@ -173,18 +190,25 @@ traveler sets, secrets) go through explicit codecs rather than a JSON
 dependency.
 
 **Encryption.** `SecretCipher` seals with AES-256-GCM under a Keystore key. The
-key is *not* bound to user authentication: the background delay watcher and the
+key is *not* bound to user authentication: the departure reminder and the
 boarding-pass screen must work on a phone nobody is holding. What is gated —
 by `BiometricPrompt`, with graceful fallback where nothing is enrolled — is the
 moment a code becomes readable on screen.
 
-**Flight data.** `FlightStatusProvider` implementations are tried in order.
-`HttpFlightStatusProvider` is first and only available when a key is compiled
-in and the network is up; `OfflineFlightStatusProvider` is last and always
-answers. The offline model is deterministic — the same flight on the same day
-always yields the same schedule adjustment, so the app never contradicts itself
-between screens or across restarts — and its output is labelled as a model
-everywhere it surfaces. It is not a claim about the actual aircraft.
+**Flight data comes from the traveler, and only from the traveler.** There is
+no provider interface and no network client to configure; the manifest declares
+no `INTERNET` permission, so the app *cannot* call anything even by mistake.
+`FlightUpdate` folds a hand-entered report onto whatever was already known —
+a null field means "unchanged", not "cleared" — derives the estimated times,
+and decides whether the change is worth an alert. Re-entering the same delay
+stays silent; a delay that grows by a quarter of an hour does not.
+
+**The basemap.** `Coastline` holds Natural Earth's public-domain 1:110m land
+polygons, reduced by Ramer–Douglas–Peucker to 1,403 vertices across 50 rings —
+roughly one point per fifty kilometres of coast. Rings that crossed the
+antimeridian were clipped into separate closed pieces at generation time, which
+is what stops a filled landmass from becoming a stripe across the chart at the
+seam. It parses lazily, so a trip that never opens the map never pays for it.
 
 ---
 
@@ -220,27 +244,18 @@ sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 Then:
 
 ```bash
-./gradlew :app:testDebugUnitTest    # the 133 unit tests
+./gradlew :app:testDebugUnitTest    # the 168 unit tests
 ./gradlew :app:assembleDebug        # the APK
 ```
 
-The unit tests need no emulator and no device.
-
-Optional live flight feed — the app is fully functional without it:
-
-```properties
-# local.properties
-waymark.flightApiKey=…
-```
-
-The provider is shaped for AviationStack's `/flights` response; swapping
-vendors means changing `parse()` and the base URL, nothing else.
+The unit tests need no emulator and no device. There is nothing else to
+configure: no API key, no account, no service.
 
 ---
 
 ## Tests
 
-133 JVM unit tests over the domain and catalog layers:
+168 JVM unit tests over the domain and catalog layers:
 
 - `FlightDesignatorTest` — parsing `BA286`, `ba 286`, `BAW286`, `3U8888`, `U2 1234`
 - `Code39Test` — symbology invariants (nine elements, three wide, two wide bars
@@ -255,8 +270,10 @@ vendors means changing `parse()` and the base URL, nothing else.
 - `PartySplitAnalyzerTest` — the split window, coverage, warnings
 - `BcbpTest` — 60-character mandatory section, build/parse round-trip
 - `TransitAndTimeTest` — estimates, mode selection, duration and zone-shift text
-- `FlightCatalogTest` — catalog consistency, both local clocks, a westbound
-  date-line crossing that lands the previous day
+- `FlightCatalogTest` — the station table's consistency (real time zones, no
+  duplicate codes, coordinates in range) and the worked-example schedule that
+  seeds the sample trip, including a westbound date-line crossing that lands the
+  previous day
 - `IdeaBoardTest` — section ordering, per-traveler filtering, suggestions that
   exclude what is already on the list, and promotion to a timeline segment
 - `DestinationGuideTest` — guide integrity, including a check that every
@@ -271,29 +288,48 @@ vendors means changing `parse()` and the base URL, nothing else.
   exceed a day, carbon against the published factors
 - `GlobeProjectionTest` — orthographic projection inside the unit disc, the
   horizon as the culling boundary, and a centroid that survives the antimeridian
-- `OfflineFlightStatusProviderTest` — determinism, phase transitions, delay
-  distribution
+- `FlightUpdateTest` — a delay carrying from departure to arrival unless stated
+  separately, null meaning "unchanged", and the rule that keeps a re-entered
+  delay or a first-ever gate from raising an alert
+- `MarkdownExportTest` — including the one that matters: **no secret value from
+  the fixture appears anywhere in the exported document**
+- `LabelPlacerTest` — no two labels overlapping, no label covering a foreign
+  mark, everything inside the viewport, priority winning a contested slot, and
+  forty marks in one cluster yielding some labels rather than all or none
+- `CoastlineTest` — closed rings, real coordinates, no seam crossing from
+  interior longitudes, and a point-in-polygon check that Paris is on land and
+  the mid-Pacific is not
 
 ---
 
 ## Notes on honesty
 
-Three places where the app says less than it could:
+Places where the app says less than it could:
 
-- **The chart draws no coastline.** There is no tile server and no bundled
-  basemap. A schematic coastline traced from memory would look like data and be
-  nothing of the sort, so the chart draws the graticule, the legs, and the
-  places whose coordinates it actually holds.
+- **Nothing here is live, and the app says so.** Every flight time, delay, gate
+  and belt was typed in by a traveler, and every status carries the moment it
+  was reported. Waymark holds no network permission, so there is no version of
+  it that quietly starts calling a service.
+- **The coastline is 1:110m and coarse.** Italy is a boot and Florida is a
+  peninsula; it is not a navigational chart and no place is drawn to a
+  resolution finer than about fifty kilometres. It is a basemap for reading a
+  trip against, not for finding anything by.
 - **The barcode is Code 39 of the short reference**, not the full BCBP payload:
   sixty characters in a one-dimensional symbology is too dense to scan off a
   phone. Airlines use a 2D symbol for that, and an imported pass image is shown
   in preference to the rendered one.
 - **The carbon figure is a model, and says so on screen**, with its per-mode
   factors printed beside it. Lodging and meals are excluded rather than guessed.
-- **The offline flight model is a model.** It is deterministic, shaped like
-  real-world delay distributions, and labelled as such on every screen it
-  reaches.
 - **The guide is a briefing, not a guidebook.** Nine cities, a handful of
   entries each, bundled and offline. Where a place is listed, its coordinates
   are accurate to the block; where a dish is listed, it carries no coordinates,
   because a dish is not a place.
+
+---
+
+## Data
+
+Coastlines are derived from [Natural Earth](https://www.naturalearthdata.com)
+1:110m land polygons, which are in the public domain. Airport coordinates, time
+zones, destination notes and the city guide are hand-compiled and bundled.
+Everything else in the app was entered by whoever is using it.

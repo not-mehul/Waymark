@@ -3,9 +3,8 @@ package com.waymark.ui.add
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.waymark.data.catalog.Airports
+import com.waymark.data.catalog.Airports.Airport
 import com.waymark.data.catalog.FlightCatalog
-import com.waymark.data.repo.FlightLookup
-import com.waymark.data.repo.FlightRepository
 import com.waymark.data.repo.TripRepository
 import com.waymark.data.repo.VaultRepository
 import com.waymark.domain.logic.FlightDesignator
@@ -23,33 +22,59 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
+/**
+ * Everything on this screen was typed by the person flying. Nothing is fetched,
+ * guessed, or filled in from a schedule — the only thing the app contributes is
+ * the coordinates and time zone behind an airport code, which is what lets the
+ * same two letters put the flight on the map and on the right day.
+ */
 data class AddFlightUiState(
-    val input: String = "",
+    val designator: String = "",
     val date: LocalDate = LocalDate.now(),
-    val plan: FlightCatalog.FlightPlan? = null,
-    val unknownDesignator: FlightDesignator? = null,
-    val parseError: Boolean = false,
-    val searching: Boolean = false,
+    val origin: String = "",
+    val destination: String = "",
+    val departTime: String = "",
+    val arriveTime: String = "",
+
+    // Everything below is optional detail, off the ticket.
+    val departureTerminal: String = "",
+    val arrivalTerminal: String = "",
+    val aircraft: String = "",
+    val cabin: String = "",
+
     val party: List<Traveler> = emptyList(),
     val selectedTravelers: Set<String> = emptySet(),
     val confirmationCode: String = "",
     val eTickets: Map<String, String> = emptyMap(),
     val seats: Map<String, String> = emptyMap(),
     val saved: Boolean = false,
-
-    // Manual entry, for a flight the catalog has never met.
-    val manualOrigin: String = "",
-    val manualDestination: String = "",
-    val manualDepartTime: String = "",
-    val manualArriveTime: String = "",
 ) {
-    val canLookUp: Boolean get() = FlightDesignator.looksComplete(input)
-    val canSaveManually: Boolean
-        get() = unknownDesignator != null &&
-            Airports.find(manualOrigin) != null &&
-            Airports.find(manualDestination) != null &&
-            parseClock(manualDepartTime) != null &&
-            parseClock(manualArriveTime) != null
+    val parsedDesignator: FlightDesignator? get() = FlightDesignator.parse(designator)
+    val originAirport: Airport? get() = Airports.find(origin)
+    val destinationAirport: Airport? get() = Airports.find(destination)
+    val departure: LocalTime? get() = parseClock(departTime)
+    val arrival: LocalTime? get() = parseClock(arriveTime)
+
+    /** Only the four facts a flight cannot exist without are required. */
+    val canSave: Boolean
+        get() = parsedDesignator != null &&
+            originAirport != null &&
+            destinationAirport != null &&
+            originAirport?.code != destinationAirport?.code &&
+            departure != null &&
+            arrival != null
+
+    /** Station suggestions for whichever end is being typed into. */
+    fun suggestionsFor(field: Field): List<Airport> {
+        val query = if (field == Field.ORIGIN) origin else destination
+        if (query.length < 2) return emptyList()
+        val exact = Airports.find(query)
+        // Once the code resolves exactly there is nothing left to suggest.
+        if (exact != null && query.trim().length == 3) return emptyList()
+        return Airports.search(query, limit = 4)
+    }
+
+    enum class Field { ORIGIN, DESTINATION }
 
     companion object {
         /** "0815", "08:15", "8:15" all mean the same thing to a tired traveler. */
@@ -65,15 +90,10 @@ data class AddFlightUiState(
     }
 }
 
-/**
- * Type a flight number, get a flight. The catalog answers instantly and
- * offline; the network provider refines the result when it is available.
- */
 class AddFlightViewModel(
     private val tripId: String,
     private val trips: TripRepository,
     private val vault: VaultRepository,
-    private val flights: FlightRepository,
 ) : ViewModel() {
 
     private val mutable = MutableStateFlow(AddFlightUiState())
@@ -89,52 +109,25 @@ class AddFlightViewModel(
         }
     }
 
-    fun onInputChange(text: String) {
-        mutable.update {
-            it.copy(
-                input = text.uppercase(),
-                plan = null,
-                unknownDesignator = null,
-                parseError = false,
-                saved = false,
-            )
-        }
-    }
+    fun setDesignator(text: String) = mutable.update { it.copy(designator = text.uppercase()) }
 
-    fun onDateChange(date: LocalDate) {
-        mutable.update { it.copy(date = date, plan = null) }
-        if (mutable.value.canLookUp) lookUp()
-    }
+    fun setDate(date: LocalDate) = mutable.update { it.copy(date = date) }
 
-    fun lookUp() {
-        val current = mutable.value
-        viewModelScope.launch {
-            mutable.update { it.copy(searching = true) }
-            when (val result = flights.lookup(current.input, current.date)) {
-                is FlightLookup.Found -> mutable.update {
-                    it.copy(
-                        plan = result.plan,
-                        unknownDesignator = null,
-                        parseError = false,
-                        searching = false,
-                    )
-                }
+    fun setOrigin(text: String) = mutable.update { it.copy(origin = text.uppercase()) }
 
-                is FlightLookup.Unknown -> mutable.update {
-                    it.copy(
-                        plan = null,
-                        unknownDesignator = result.designator,
-                        parseError = false,
-                        searching = false,
-                    )
-                }
+    fun setDestination(text: String) = mutable.update { it.copy(destination = text.uppercase()) }
 
-                FlightLookup.Unparseable -> mutable.update {
-                    it.copy(plan = null, unknownDesignator = null, parseError = true, searching = false)
-                }
-            }
-        }
-    }
+    fun setDepartTime(text: String) = mutable.update { it.copy(departTime = text) }
+
+    fun setArriveTime(text: String) = mutable.update { it.copy(arriveTime = text) }
+
+    fun setDepartureTerminal(text: String) = mutable.update { it.copy(departureTerminal = text) }
+
+    fun setArrivalTerminal(text: String) = mutable.update { it.copy(arrivalTerminal = text) }
+
+    fun setAircraft(text: String) = mutable.update { it.copy(aircraft = text) }
+
+    fun setCabin(text: String) = mutable.update { it.copy(cabin = text) }
 
     fun toggleTraveler(travelerId: String) {
         mutable.update { current ->
@@ -154,25 +147,9 @@ class AddFlightViewModel(
         it.copy(seats = it.seats + (travelerId to value.uppercase()))
     }
 
-    fun setManual(
-        origin: String? = null,
-        destination: String? = null,
-        departTime: String? = null,
-        arriveTime: String? = null,
-    ) = mutable.update {
-        it.copy(
-            manualOrigin = origin?.uppercase() ?: it.manualOrigin,
-            manualDestination = destination?.uppercase() ?: it.manualDestination,
-            manualDepartTime = departTime ?: it.manualDepartTime,
-            manualArriveTime = arriveTime ?: it.manualArriveTime,
-        )
-    }
-
-    /** Save the looked-up plan, or the hand-entered one, as a segment. */
     fun save(onSaved: () -> Unit) {
+        val segment = segmentOf(mutable.value) ?: return
         val current = mutable.value
-        val segment = current.plan?.let { toSegment(it, current) } ?: manualSegment(current)
-        if (segment == null) return
 
         viewModelScope.launch {
             // The vault record is written first so the segment can be stored
@@ -185,45 +162,24 @@ class AddFlightViewModel(
                 confirmationCode = current.confirmationCode.ifBlank { null },
                 eTicketNumbers = current.eTickets.filterValues { it.isNotBlank() },
             )
-            val stored = segment.copy(reservationId = reservation.id)
-            trips.saveSegment(stored)
-            flights.refresh(listOf(stored))
+            trips.saveSegment(segment.copy(reservationId = reservation.id))
             mutable.update { it.copy(saved = true) }
             onSaved()
         }
     }
 
-    private fun toSegment(plan: FlightCatalog.FlightPlan, ui: AddFlightUiState): Segment.Flight =
-        Segment.Flight(
-            id = TripRepository.newId("seg"),
-            tripId = tripId,
-            carrierCode = plan.designator.takeWhile { !it.isDigit() },
-            flightNumber = plan.designator.dropWhile { !it.isDigit() },
-            origin = plan.origin,
-            destination = plan.destination,
-            startEpochMillis = plan.departure.toInstant().toEpochMilli(),
-            endEpochMillis = plan.arrival.toInstant().toEpochMilli(),
-            startZoneId = plan.origin.timeZoneId,
-            endZoneId = plan.destination.timeZoneId,
-            travelerIds = ui.selectedTravelers,
-            departureTerminal = plan.departureTerminal,
-            arrivalTerminal = plan.arrivalTerminal,
-            aircraft = plan.aircraft,
-            cabin = plan.cabins.firstOrNull(),
-            seats = ui.seats.filterValues { it.isNotBlank() },
-            operatedBy = plan.carrierName,
-        )
-
-    private fun manualSegment(ui: AddFlightUiState): Segment.Flight? {
-        val designator = ui.unknownDesignator ?: return null
-        val origin = Airports.find(ui.manualOrigin)?.toPlace() ?: return null
-        val destination = Airports.find(ui.manualDestination)?.toPlace() ?: return null
-        val departTime = AddFlightUiState.parseClock(ui.manualDepartTime) ?: return null
-        val arriveTime = AddFlightUiState.parseClock(ui.manualArriveTime) ?: return null
+    private fun segmentOf(ui: AddFlightUiState): Segment.Flight? {
+        val designator = ui.parsedDesignator ?: return null
+        val origin = ui.originAirport?.toPlace() ?: return null
+        val destination = ui.destinationAirport?.toPlace() ?: return null
+        val departTime = ui.departure ?: return null
+        val arriveTime = ui.arrival ?: return null
 
         val departure = ZonedDateTime.of(ui.date, departTime, ZoneId.of(origin.timeZoneId))
         var arrival = ZonedDateTime.of(ui.date, arriveTime, ZoneId.of(destination.timeZoneId))
-        // An arrival before departure means it lands the next day.
+        // An arrival at or before departure means it lands the next day. A
+        // westbound crossing of the date line can legitimately land "before"
+        // it left in local terms, so only the instant comparison is trusted.
         if (!arrival.toInstant().isAfter(departure.toInstant())) arrival = arrival.plusDays(1)
 
         return Segment.Flight(
@@ -238,6 +194,10 @@ class AddFlightViewModel(
             startZoneId = origin.timeZoneId,
             endZoneId = destination.timeZoneId,
             travelerIds = ui.selectedTravelers,
+            departureTerminal = ui.departureTerminal.trim().ifBlank { null },
+            arrivalTerminal = ui.arrivalTerminal.trim().ifBlank { null },
+            aircraft = ui.aircraft.trim().ifBlank { null },
+            cabin = ui.cabin.trim().ifBlank { null },
             seats = ui.seats.filterValues { it.isNotBlank() },
             operatedBy = FlightCatalog.carrierName(designator.carrier),
         )

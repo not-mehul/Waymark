@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.waymark.domain.logic.PartySplitAnalyzer
 import com.waymark.domain.logic.TimeText
 import com.waymark.domain.model.Segment
-import com.waymark.ui.components.EditorialNote
+import com.waymark.ui.components.Footnote
 import com.waymark.ui.components.FieldLabel
 import com.waymark.ui.components.GhostIconButton
 import com.waymark.ui.components.NoticeBanner
@@ -207,10 +207,9 @@ fun PartyTab(
             }
         }
 
-        EditorialNote(
-            term = "Splits",
-            body = "A window opens when two travelers are on different bookings, or " +
-                "when one has nothing booked at all. Rejoining closes it.",
+        Footnote(
+            "A split opens when travelers are on different bookings, or one has " +
+                "nothing booked. Rejoining closes it."
         )
         Spacer(Modifier.height(WaymarkSpacing.section))
     }

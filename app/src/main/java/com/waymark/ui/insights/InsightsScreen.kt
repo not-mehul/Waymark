@@ -4,32 +4,24 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waymark.data.catalog.DestinationGuide
 import com.waymark.data.catalog.DestinationInsights
 import com.waymark.domain.model.IdeaKind
-import com.waymark.ui.components.EditorialNote
 import com.waymark.ui.components.FieldLabel
-import com.waymark.ui.components.GhostIconButton
+import com.waymark.ui.components.Footnote
 import com.waymark.ui.components.Hairline
 import com.waymark.ui.components.Panel
+import com.waymark.ui.components.ScreenScaffold
 import com.waymark.ui.components.SectionHeader
-import com.waymark.ui.components.SectionLabel
-import com.waymark.ui.components.WaymarkBackdrop
-import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
 import com.waymark.ui.trip.TripViewModel
@@ -54,157 +46,128 @@ fun InsightsScreen(
         ?.distinctBy { it.city }
         .orEmpty()
 
-    WaymarkBackdrop {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .systemBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = WaymarkSpacing.screenHorizontal),
-            verticalArrangement = Arrangement.spacedBy(WaymarkSpacing.small),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                GhostIconButton(
-                    icon = WaymarkIcons.ArrowLeft,
-                    contentDescription = "Back",
-                    onClick = onBack,
+    ScreenScaffold(
+        title = "On arrival",
+        onBack = onBack,
+        spacing = WaymarkSpacing.small,
+    ) {
+
+        if (cities.isEmpty()) {
+            Panel(faint = true, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "No notes bundled for this destination yet.",
+                    style = Waymark.type.hint,
+                    color = colors.textDim,
                 )
-                Spacer(Modifier.weight(1f))
-                SectionLabel("Destination notes")
+            }
+        }
+
+        cities.forEach { insight ->
+            SectionHeader(insight.city)
+            Panel(modifier = Modifier.fillMaxWidth()) {
+                Fact("Money", insight.currency)
+                Fact("Power", "${insight.plugTypes} · ${insight.voltage}")
+                Fact("Emergency", insight.emergencyNumber)
+                Fact("Water", insight.tapWater)
+                Fact("Tipping", insight.tipping)
+                Spacer(Modifier.height(WaymarkSpacing.small))
+                Hairline()
+                Spacer(Modifier.height(WaymarkSpacing.small))
+                Fact("From the airport", insight.airportTransfer)
+                Fact("Getting around", insight.transitNote)
+                Fact("Season", insight.seasonNote)
+                Fact("A word", insight.greeting)
             }
 
-            Text(
-                text = "On arrival",
-                style = Waymark.type.screenTitle,
-                color = colors.textHeading,
-            )
+            val guide = DestinationGuide.forCity(insight.city)
+            val dishes = guide.filter { it.kind == IdeaKind.DISH }
+            val seeing = guide.filter { it.kind != IdeaKind.DISH }
 
-            if (cities.isEmpty()) {
+            if (dishes.isNotEmpty()) {
                 Panel(faint = true, modifier = Modifier.fillMaxWidth()) {
+                    FieldLabel("Food to try")
+                    Spacer(Modifier.height(WaymarkSpacing.snug))
+                    dishes.forEach { entry ->
+                        Text(
+                            text = entry.title,
+                            style = Waymark.type.bodySmall,
+                            color = colors.textHeading,
+                        )
+                        Text(
+                            text = entry.note,
+                            style = Waymark.type.hint,
+                            color = colors.textDim,
+                        )
+                        Spacer(Modifier.height(WaymarkSpacing.snug))
+                    }
                     Text(
-                        text = "No notes bundled for this destination yet.",
+                        text = "Add any of these to the trip's list from the Ideas tab.",
                         style = Waymark.type.hint,
-                        color = colors.textDim,
+                        color = colors.textFaint,
                     )
                 }
             }
 
-            cities.forEach { insight ->
-                SectionHeader(insight.city)
-                Panel(modifier = Modifier.fillMaxWidth()) {
-                    Fact("Money", insight.currency)
-                    Fact("Power", "${insight.plugTypes} · ${insight.voltage}")
-                    Fact("Emergency", insight.emergencyNumber)
-                    Fact("Water", insight.tapWater)
-                    Fact("Tipping", insight.tipping)
-                    Spacer(Modifier.height(WaymarkSpacing.small))
-                    Hairline()
-                    Spacer(Modifier.height(WaymarkSpacing.small))
-                    Fact("From the airport", insight.airportTransfer)
-                    Fact("Getting around", insight.transitNote)
-                    Fact("Season", insight.seasonNote)
-                    Fact("A word", insight.greeting)
-                }
-
-                val guide = DestinationGuide.forCity(insight.city)
-                val dishes = guide.filter { it.kind == IdeaKind.DISH }
-                val seeing = guide.filter { it.kind != IdeaKind.DISH }
-
-                if (dishes.isNotEmpty()) {
-                    Panel(faint = true, modifier = Modifier.fillMaxWidth()) {
-                        FieldLabel("Food to try")
-                        Spacer(Modifier.height(WaymarkSpacing.snug))
-                        dishes.forEach { entry ->
-                            Text(
-                                text = entry.title,
-                                style = Waymark.type.bodySmall,
-                                color = colors.textHeading,
-                            )
-                            Text(
-                                text = entry.note,
-                                style = Waymark.type.hint,
-                                color = colors.textDim,
-                            )
-                            Spacer(Modifier.height(WaymarkSpacing.snug))
-                        }
-                        Text(
-                            text = "Add any of these to the trip's list from the Ideas tab.",
-                            style = Waymark.type.hint,
-                            color = colors.textFaint,
-                        )
-                    }
-                }
-
-                if (seeing.isNotEmpty()) {
-                    Panel(faint = true, modifier = Modifier.fillMaxWidth()) {
-                        FieldLabel("Worth the walk")
-                        Spacer(Modifier.height(WaymarkSpacing.snug))
-                        seeing.forEach { entry ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                Text(
-                                    text = entry.title,
-                                    style = Waymark.type.bodySmall,
-                                    color = colors.textHeading,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Text(
-                                    text = listOfNotNull(
-                                        entry.priceBand?.label,
-                                        entry.typicalMinutes?.let { "${it}m" },
-                                    ).joinToString(" · "),
-                                    style = Waymark.type.fieldLabel,
-                                    color = colors.textFaint,
-                                )
-                            }
-                            Text(
-                                text = entry.note,
-                                style = Waymark.type.hint,
-                                color = colors.textDim,
-                            )
-                            Spacer(Modifier.height(WaymarkSpacing.snug))
-                        }
-                    }
-                }
-
+            if (seeing.isNotEmpty()) {
                 Panel(faint = true, modifier = Modifier.fillMaxWidth()) {
-                    FieldLabel("Where to stay near")
+                    FieldLabel("Worth the walk")
                     Spacer(Modifier.height(WaymarkSpacing.snug))
-                    insight.neighbourhoods.forEach { neighbourhood ->
+                    seeing.forEach { entry ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Text(
-                                text = neighbourhood.name,
+                                text = entry.title,
                                 style = Waymark.type.bodySmall,
                                 color = colors.textHeading,
+                                modifier = Modifier.weight(1f),
                             )
                             Text(
-                                text = neighbourhood.character,
-                                style = Waymark.type.hint,
-                                color = colors.textDim,
-                                modifier = Modifier.padding(start = WaymarkSpacing.small),
+                                text = listOfNotNull(
+                                    entry.priceBand?.label,
+                                    entry.typicalMinutes?.let { "${it}m" },
+                                ).joinToString(" · "),
+                                style = Waymark.type.fieldLabel,
+                                color = colors.textFaint,
                             )
                         }
-                        Spacer(Modifier.height(WaymarkSpacing.tight))
+                        Text(
+                            text = entry.note,
+                            style = Waymark.type.hint,
+                            color = colors.textDim,
+                        )
+                        Spacer(Modifier.height(WaymarkSpacing.snug))
                     }
                 }
             }
 
-            EditorialNote(
-                term = "Bundled",
-                body = "These notes ship with the app and need no connection. " +
-                    "They are a briefing, not a guidebook.",
-                modifier = Modifier.padding(top = WaymarkSpacing.small),
-            )
-            Spacer(Modifier.height(WaymarkSpacing.section))
+            Panel(faint = true, modifier = Modifier.fillMaxWidth()) {
+                FieldLabel("Where to stay near")
+                Spacer(Modifier.height(WaymarkSpacing.snug))
+                insight.neighbourhoods.forEach { neighbourhood ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = neighbourhood.name,
+                            style = Waymark.type.bodySmall,
+                            color = colors.textHeading,
+                        )
+                        Text(
+                            text = neighbourhood.character,
+                            style = Waymark.type.hint,
+                            color = colors.textDim,
+                            modifier = Modifier.padding(start = WaymarkSpacing.small),
+                        )
+                    }
+                    Spacer(Modifier.height(WaymarkSpacing.tight))
+                }
+            }
         }
+
+        Footnote("Bundled with the app. A briefing, not a guidebook.")
     }
 }
 

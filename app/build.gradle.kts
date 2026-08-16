@@ -16,15 +16,6 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        // Live flight data is optional: with no key the app runs entirely on its
-        // bundled offline catalog. Put `waymark.flightApiKey=…` in local.properties
-        // to enable the network provider.
-        val flightApiKey: String = providers.gradleProperty("waymark.flightApiKey").orNull
-            ?: System.getenv("WAYMARK_FLIGHT_API_KEY")
-            ?: ""
-        buildConfigField("String", "FLIGHT_API_KEY", "\"$flightApiKey\"")
-        buildConfigField("String", "FLIGHT_API_BASE", "\"https://api.aviationstack.com/v1\"")
     }
 
     buildTypes {
@@ -49,7 +40,6 @@ android {
 
     buildFeatures {
         compose = true
-        buildConfig = true
     }
 
     packaging {

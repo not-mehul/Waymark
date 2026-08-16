@@ -1,7 +1,7 @@
 package com.waymark
 
 import android.app.Application
-import com.waymark.alerts.DelayWatch
+import com.waymark.alerts.DepartureWatch
 import com.waymark.alerts.Notifications
 import com.waymark.di.AppContainer
 import kotlinx.coroutines.CoroutineScope
@@ -20,7 +20,7 @@ class WaymarkApplication : Application() {
         super.onCreate()
         container = AppContainer(this)
         Notifications.createChannels(this)
-        DelayWatch.schedule(this)
+        DepartureWatch.schedule(this)
         scope.launch { container.seeder.seedIfEmpty() }
     }
 }

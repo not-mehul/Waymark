@@ -63,6 +63,14 @@ data class WaymarkColors(
     val dangerWash: Color,
     val noticeWash: Color,
 
+    // The map. Water and land are the only two places in the system where a
+    // colour carries meaning rather than emphasis, so they get their own
+    // tokens rather than borrowing a surface that happens to look right.
+    val mapWater: Color,
+    val mapLand: Color,
+    val mapCoast: Color,
+    val mapGrid: Color,
+
     val isDusk: Boolean,
 ) {
     /** Composable alpha over the accent, standing in for the CSS RGB triples. */
@@ -114,6 +122,13 @@ val DuskColors = WaymarkColors(
     dangerWash = Color(0x33450A0A),
     noticeWash = Color(0x1AFCD34D),
 
+    // Water reads as water by being the one cool note in a warm system; land
+    // is the same stone the panels are cut from, lifted a step.
+    mapWater = Color(0xFF0B1114),
+    mapLand = Color(0xFF262220),
+    mapCoast = Color(0x8A78716C),
+    mapGrid = Color(0x3378716C),
+
     isDusk = true,
 )
 
@@ -159,6 +174,13 @@ val DawnColors = WaymarkColors(
 
     dangerWash = Color(0x1FC0392B),
     noticeWash = Color(0x24E0A92A),
+
+    // Dawn inverts the relationship: the land is the paper, and the water is
+    // the wash printed over it.
+    mapWater = Color(0xFFD7E0E0),
+    mapLand = Color(0xFFF6EFE2),
+    mapCoast = Color(0x99938A7C),
+    mapGrid = Color(0x40786950),
 
     isDusk = false,
 )

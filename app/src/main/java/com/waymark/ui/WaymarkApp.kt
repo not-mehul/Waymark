@@ -94,7 +94,6 @@ fun WaymarkApp(
                         tripId = tripId,
                         trips = container.tripRepository,
                         vault = container.vaultRepository,
-                        flights = container.flightRepository,
                     )
                 }
             )

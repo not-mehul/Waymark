@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The only directory Waymark ever shares out of, and it holds nothing but
+    exports the traveler asked for. Cache, so the system reclaims it without
+    leaving copies of an itinerary lying around.
+-->
+<paths>
+    <cache-path name="exports" path="exports/" />
+</paths>

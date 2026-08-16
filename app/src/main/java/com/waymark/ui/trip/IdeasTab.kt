@@ -26,7 +26,7 @@ import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
 import com.waymark.domain.logic.TimeText
-import com.waymark.ui.components.EditorialNote
+import com.waymark.ui.components.Footnote
 import com.waymark.ui.components.FieldLabel
 import com.waymark.ui.components.GhostIconButton
 import com.waymark.ui.components.MutedButton
@@ -248,10 +248,8 @@ fun IdeasTab(
                     SuggestionCard(suggestion = suggestion, onAdopt = onAdopt)
                 }
                 item {
-                    EditorialNote(
-                        term = "Bundled",
-                        body = "Suggestions ship with the app for the cities on this trip. " +
-                            "Taking one copies it to your list; the rest stay out of the way.",
+                    Footnote(
+                        "Bundled for the cities on this trip. Taking one copies it across.",
                         modifier = Modifier.padding(top = WaymarkSpacing.snug),
                     )
                 }

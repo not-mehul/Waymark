@@ -12,6 +12,7 @@ import com.waymark.data.repo.VaultRepository
 import com.waymark.domain.logic.DayPlan
 import com.waymark.domain.logic.DocumentVerdict
 import com.waymark.domain.logic.DocumentWatch
+import com.waymark.domain.logic.FlightUpdate
 import com.waymark.domain.logic.CityGroup
 import com.waymark.domain.logic.IdeaBoard
 import com.waymark.domain.logic.IdeaSection
@@ -40,7 +41,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -205,10 +205,6 @@ class TripViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TripUiState())
 
-    init {
-        refresh()
-    }
-
     fun selectTab(next: TripTab) {
         tabState.value = next
     }
@@ -217,18 +213,26 @@ class TripViewModel(
         travelerFilter.update { current -> if (current == travelerId) null else travelerId }
     }
 
-    /** Pull live state for this trip's flights. Safe to call often. */
-    fun refresh() {
+    /**
+     * Record what the traveler saw on the board. This is the only way a flight's
+     * state ever changes: there is no feed to poll, so nothing moves unless
+     * somebody reports it.
+     */
+    fun reportFlight(segmentId: String, update: FlightUpdate) {
+        val flight = state.value.flights.firstOrNull { it.id == segmentId } ?: return
         viewModelScope.launch {
             refreshing.value = true
             try {
-                val segments = state.value.dossier?.segments
-                    ?: trips.observeSegments(tripId).first()
-                flights.refresh(segments.filterIsInstance<Segment.Flight>())
+                flights.record(flight, update)
             } finally {
                 refreshing.value = false
             }
         }
+    }
+
+    /** Put a flight back on its booked times, forgetting any hand-entered state. */
+    fun clearFlightReport(segmentId: String) {
+        viewModelScope.launch { flights.clearStatus(segmentId) }
     }
 
     fun acknowledgeAlerts(segmentId: String) {

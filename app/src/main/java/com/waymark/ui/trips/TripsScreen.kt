@@ -16,9 +16,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -27,9 +26,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waymark.domain.logic.TimeText
 import com.waymark.domain.model.Trip
 import com.waymark.domain.model.TripStatus
-import com.waymark.ui.components.EditorialHeading
-import com.waymark.ui.components.EditorialNote
-import com.waymark.ui.components.FieldLabel
 import com.waymark.ui.components.Panel
 import com.waymark.ui.components.PrimaryButton
 import com.waymark.ui.components.SectionHeader
@@ -42,8 +38,13 @@ import com.waymark.ui.theme.WaymarkSpacing
 import java.time.Instant
 
 /**
- * The shelf of trips. Quiet by design: a title, a line of prose, and the
- * itineraries in date order with the one that matters at the top.
+ * The shelf of trips.
+ *
+ * The masthead is the whole of the app's front door: the name, one line
+ * underneath it, and then the itineraries. It used to carry a tracked eyebrow,
+ * a two-line serif lockup with an italic second word, a tagline, and a
+ * footnote about offline storage — five pieces of copy before the first trip.
+ * The name and the tagline say it; the rest was the app talking about itself.
  */
 @Composable
 fun TripsScreen(
@@ -68,17 +69,22 @@ fun TripsScreen(
         ) {
             item { Masthead() }
 
+            // Under way first, then ahead, then behind. Headings appear only
+            // where there is more than one group to tell apart.
+            val grouped = state.active.isNotEmpty() &&
+                (state.upcoming.isNotEmpty() || state.past.isNotEmpty())
+
             if (state.active.isNotEmpty()) {
-                item { SectionHeader("Under way") }
+                if (grouped) item { SectionHeader("Under way") }
                 items(state.active, key = { it.id }) { trip ->
                     TripCard(trip = trip, onClick = { onOpenTrip(trip.id) })
                 }
             }
 
-            item { SectionHeader("Ahead") }
-            if (state.upcoming.isEmpty()) {
+            if (state.upcoming.isEmpty() && state.active.isEmpty()) {
                 item { EmptyShelf(loaded = state.loaded) }
             } else {
+                if (grouped && state.upcoming.isNotEmpty()) item { SectionHeader("Ahead") }
                 items(state.upcoming, key = { it.id }) { trip ->
                     TripCard(trip = trip, onClick = { onOpenTrip(trip.id) })
                 }
@@ -100,15 +106,6 @@ fun TripsScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-
-            item {
-                EditorialNote(
-                    term = "Offline",
-                    body = "Schedules, codes and passes are held on this device. " +
-                        "Nothing is uploaded, and everything here opens with the radio off.",
-                    modifier = Modifier.padding(top = WaymarkSpacing.small),
-                )
-            }
         }
     }
 
@@ -127,25 +124,26 @@ fun TripsScreen(
 
 @Composable
 private fun Masthead() {
-    Column(modifier = Modifier.padding(bottom = WaymarkSpacing.small)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column {
-                FieldLabel("Travel logistics")
-                Spacer(Modifier.height(WaymarkSpacing.snug))
-                EditorialHeading(lead = "Waymark", emphasis = "one column")
-            }
-            ThemeToggle()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = WaymarkSpacing.small),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Waymark",
+                style = Waymark.type.pageTitle,
+                color = Waymark.colors.textHeading,
+            )
+            Text(
+                text = "Your whole trip, offline.",
+                style = Waymark.type.tagline,
+                color = Waymark.colors.textDim,
+            )
         }
-        Spacer(Modifier.height(WaymarkSpacing.small))
-        Text(
-            text = "Every reservation, every traveler, in the order they happen.",
-            style = Waymark.type.tagline,
-            color = Waymark.colors.textDim,
-        )
+        ThemeToggle()
     }
 }
 
@@ -221,22 +219,16 @@ private fun TripCard(
 
 @Composable
 private fun EmptyShelf(loaded: Boolean) {
-    Panel(faint = true, modifier = Modifier.fillMaxWidth()) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = WaymarkSpacing.medium),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = if (loaded) {
-                    "No itineraries yet."
-                } else {
-                    "Reading the vault…"
-                },
-                style = Waymark.type.hint,
-                color = Waymark.colors.textDim,
-            )
-        }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = WaymarkSpacing.large),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = if (loaded) "Nothing planned yet." else "Reading the vault…",
+            style = Waymark.type.hint,
+            color = Waymark.colors.textDim,
+        )
     }
 }

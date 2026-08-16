@@ -15,8 +15,12 @@ enum class FlightState {
 }
 
 /**
- * A live-ish view of one flight. Produced by a [com.waymark.data.remote.FlightStatusProvider]
- * and cached so the timeline still says something sensible with the radio off.
+ * What the app believes about one flight.
+ *
+ * There is no feed behind this. Every field was entered by a traveler reading
+ * a departure board, folded in by [com.waymark.domain.logic.FlightUpdate], and
+ * stamped with the moment they entered it — which is why [observedAtMillis] is
+ * shown wherever a status is, rather than being an implementation detail.
  */
 data class FlightStatus(
     val segmentId: String,

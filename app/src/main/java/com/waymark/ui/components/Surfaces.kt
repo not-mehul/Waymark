@@ -116,32 +116,6 @@ fun Hairline(modifier: Modifier = Modifier, strong: Boolean = false) {
     )
 }
 
-/** Serif heading with a single italic word carrying the emphasis. */
-@Composable
-fun EditorialHeading(
-    lead: String,
-    emphasis: String? = null,
-    modifier: Modifier = Modifier,
-) {
-    val colors = Waymark.colors
-    Column(modifier = modifier) {
-        Text(
-            text = lead,
-            style = Waymark.type.pageTitle,
-            color = colors.textHeading,
-        )
-        if (emphasis != null) {
-            Text(
-                text = emphasis,
-                style = Waymark.type.pageTitle.copy(
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                ),
-                color = colors.accentAmber,
-            )
-        }
-    }
-}
-
 /** A number that matters, in serif, with its label beneath in tracked mono. */
 @Composable
 fun Stat(
@@ -160,28 +134,6 @@ fun Stat(
             overflow = TextOverflow.Ellipsis,
         )
         FieldLabel(label)
-    }
-}
-
-/** The italic term-definition aside used for footnotes. */
-@Composable
-fun EditorialNote(
-    term: String,
-    body: String,
-    modifier: Modifier = Modifier,
-) {
-    val colors = Waymark.colors
-    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.tight)) {
-        Text(
-            text = "$term.",
-            style = Waymark.type.hint,
-            color = colors.textMuted,
-        )
-        Text(
-            text = body,
-            style = Waymark.type.hint,
-            color = colors.textDim,
-        )
     }
 }
 
