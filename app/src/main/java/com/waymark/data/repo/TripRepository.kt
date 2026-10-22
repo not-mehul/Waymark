@@ -173,6 +173,6 @@ class TripRepository(private val database: WaymarkDatabase) {
 
     companion object {
         fun newId(prefix: String): String =
-            "$prefix-${UUID.randomUUID().toString().take(8)}"
+            "$prefix-${UUID.randomUUID()}"
     }
 }

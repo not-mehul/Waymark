@@ -33,6 +33,7 @@ data class AddFlightUiState(
     val destination: String = "",
     val departTime: LocalTime? = null,
     val arriveTime: LocalTime? = null,
+    val arrivalDayOffset: Int = 0,
 
     // Everything below is optional detail, off the ticket.
     val departureTerminal: String = "",
@@ -53,12 +54,18 @@ data class AddFlightUiState(
 
     /** Only the four facts a flight cannot exist without are required. */
     val canSave: Boolean
-        get() = parsedDesignator != null &&
-            originAirport != null &&
-            destinationAirport != null &&
-            originAirport?.code != destinationAirport?.code &&
-            departTime != null &&
-            arriveTime != null
+        get() {
+            if (parsedDesignator == null || originAirport == null || destinationAirport == null ||
+                originAirport?.code == destinationAirport?.code || departTime == null || arriveTime == null
+            ) return false
+
+            // Validate that arrival is actually after departure
+            val origin = originAirport ?: return false
+            val destination = destinationAirport ?: return false
+            val departure = ZonedDateTime.of(date, departTime, Segment.zoneOrUtc(origin.timeZoneId))
+            val arrival = ZonedDateTime.of(date.plusDays(arrivalDayOffset.toLong()), arriveTime, Segment.zoneOrUtc(destination.timeZoneId))
+            return arrival.toInstant().isAfter(departure.toInstant())
+        }
 
     /** Station suggestions for whichever end is being typed into. */
     fun suggestionsFor(field: Field): List<Airport> {
@@ -103,6 +110,8 @@ class AddFlightViewModel(
     fun setDepartTime(time: LocalTime) = mutable.update { it.copy(departTime = time) }
 
     fun setArriveTime(time: LocalTime) = mutable.update { it.copy(arriveTime = time) }
+
+    fun setArrivalDayOffset(days: Int) = mutable.update { it.copy(arrivalDayOffset = days) }
 
     fun setDepartureTerminal(text: String) = mutable.update { it.copy(departureTerminal = text) }
 
@@ -152,11 +161,12 @@ class AddFlightViewModel(
         // it. A flight in the wrong zone is a bug; a crash is worse.
         val departure = ZonedDateTime.of(ui.date, departTime, Segment.zoneOrUtc(origin.timeZoneId))
         var arrival =
-            ZonedDateTime.of(ui.date, arriveTime, Segment.zoneOrUtc(destination.timeZoneId))
-        // An arrival at or before departure means it lands the next day. A
-        // westbound crossing of the date line can legitimately land "before"
-        // it left in local terms, so only the instant comparison is trusted.
-        if (!arrival.toInstant().isAfter(departure.toInstant())) arrival = arrival.plusDays(1)
+            ZonedDateTime.of(ui.date.plusDays(ui.arrivalDayOffset.toLong()), arriveTime, Segment.zoneOrUtc(destination.timeZoneId))
+        // Ensure arrival is after departure. If not, keep adding days until it is.
+        // This handles transpacific and other long-haul flights that cross multiple days.
+        while (!arrival.toInstant().isAfter(departure.toInstant())) {
+            arrival = arrival.plusDays(1)
+        }
 
         return Segment.Flight(
             id = TripRepository.newId("seg"),

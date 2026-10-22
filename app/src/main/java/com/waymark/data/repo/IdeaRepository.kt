@@ -130,5 +130,5 @@ class IdeaRepository(
     /** A removed segment returns its idea to the list rather than deleting it. */
     suspend fun releaseSegment(segmentId: String) = ideas.releaseSegment(segmentId)
 
-    private fun newId(): String = "idea-${UUID.randomUUID().toString().take(8)}"
+    private fun newId(): String = "idea-${UUID.randomUUID()}"
 }

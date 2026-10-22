@@ -200,13 +200,15 @@ class TripViewModel(
     /**
      * Turn a completed [PlanDraft] into a segment.
      *
-     * A station code resolves to a real airport; anything else becomes a named
-     * place in the trip's own zone with no coordinates, because the map draws
-     * what it knows and says nothing about what it does not.
+     * A station code resolves to a real airport; for free-text places, look up
+     * the timezone from the city if possible, falling back to the trip's home zone.
      */
     fun addPlan(draft: PlanDraft) {
         if (!draft.named) return
-        val zoneId = state.value.dossier?.trip?.homeZoneId ?: ZoneId.systemDefault().id
+        val cityZoneId = if (draft.where.length >= 3) {
+            Airports.search(draft.where, limit = 1).firstOrNull()?.timeZoneId
+        } else null
+        val zoneId = cityZoneId ?: state.value.dossier?.trip?.homeZoneId ?: ZoneId.systemDefault().id
         val origin = resolvePlace(draft.where, draft.title, zoneId)
         val destination = if (draft.isGround) {
             resolvePlace(draft.destination, draft.destination, zoneId)
@@ -384,8 +386,9 @@ class TripViewModel(
     }
 
     /**
-     * Put an idea on the timeline. The trip's own zone is used unless the idea
-     * carries a place with one of its own — a museum keeps its city's clock.
+     * Put an idea on the timeline. The idea's place timezone is used if it has one.
+     * If not, look up the timezone from the city using the airport catalog.
+     * Fall back to the trip's home zone only if the city is unrecognized.
      */
     fun scheduleIdea(
         idea: Idea,
@@ -394,11 +397,17 @@ class TripViewModel(
         minutesOverride: Int? = null,
     ) {
         viewModelScope.launch {
-            val zone = Segment.zoneOrUtc(
-                idea.place?.timeZoneId
-                    ?: state.value.dossier?.trip?.homeZoneId
-                    ?: java.time.ZoneId.systemDefault().id
-            )
+            // Prefer place timezone, then city lookup, then home zone, then system default
+            val timeZoneId = idea.place?.timeZoneId
+                ?: run {
+                    if (idea.city.isNotBlank()) {
+                        Airports.search(idea.city, limit = 1).firstOrNull()?.timeZoneId
+                    } else null
+                }
+                ?: state.value.dossier?.trip?.homeZoneId
+                ?: java.time.ZoneId.systemDefault().id
+
+            val zone = Segment.zoneOrUtc(timeZoneId)
             ideas.schedule(
                 idea = idea,
                 date = date,

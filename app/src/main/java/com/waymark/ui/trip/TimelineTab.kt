@@ -81,7 +81,7 @@ fun TimelineTab(
             }
         }
 
-        itemsIndexed(state.timeline, key = { _, entry -> entryKey(entry) }) { index, entry ->
+        itemsIndexed(state.timeline, key = { idx, entry -> entryKey(idx, entry) }) { index, entry ->
             // A short stagger down the column, capped inside settleIn so a
             // forty-entry itinerary does not take a second to appear.
             Column(modifier = Modifier.settleIn(order = index)) {
@@ -126,8 +126,8 @@ fun TimelineTab(
     }
 }
 
-private fun entryKey(entry: TimelineEntry): String = when (entry) {
-    is TimelineEntry.DayBreak -> "day-${entry.date}"
+private fun entryKey(index: Int, entry: TimelineEntry): String = when (entry) {
+    is TimelineEntry.DayBreak -> "day-${entry.date}-$index"
     is TimelineEntry.Event -> entry.id
     is TimelineEntry.Link -> entry.id
     is TimelineEntry.Now -> "now"
