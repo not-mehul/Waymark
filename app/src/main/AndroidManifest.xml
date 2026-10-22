@@ -46,11 +46,19 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
 
-            <!-- A trip or a backup, exported from Waymark on this or another phone. -->
+            <!--
+                A trip or a backup, exported from Waymark on this or another
+                phone: shared in, or opened from a file manager or a mail app.
+            -->
             <intent-filter android:label="@string/share_open_trip">
                 <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/json" />
+            </intent-filter>
+            <intent-filter android:label="@string/share_open_trip">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
                 <data android:mimeType="application/json" />
             </intent-filter>
 

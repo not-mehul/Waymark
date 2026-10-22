@@ -141,6 +141,9 @@ android {
         // Lint runs in CI on every push; a warning is a note, an error is a stop.
         abortOnError = true
         checkDependencies = false
+        // Every finding in the build log, not only the first error.
+        textReport = true
+        textOutput = file("stdout")
         // The app asks for no network permission and needs none: nothing to update from.
         disable += "GradleDependency"
         disable += "NewerVersionAvailable"
