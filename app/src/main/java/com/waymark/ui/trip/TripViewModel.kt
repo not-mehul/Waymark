@@ -185,10 +185,6 @@ class TripViewModel(
         reminders.set(category, lead)
     }
 
-    fun acknowledgeAlerts(segmentId: String) {
-        viewModelScope.launch { alerts.acknowledge(segmentId) }
-    }
-
     fun setTravelers(segmentId: String, travelerIds: Set<String>) {
         viewModelScope.launch { trips.setTravelers(segmentId, travelerIds) }
     }

@@ -71,8 +71,4 @@ class TripsViewModel(
     fun loadExample(onLoaded: (String) -> Unit) {
         viewModelScope.launch { onLoaded(seeder.seed()) }
     }
-
-    fun deleteTrip(tripId: String) {
-        viewModelScope.launch { trips.deleteTrip(tripId) }
-    }
 }

@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.map
  * There is no feed to watch and no status to track — the app knows only what
  * is on the itinerary and what time it is — so the entire alert surface is
  * "something you booked is about to happen". Each reminder is written once
- * against a signature, so the worker can run every half hour without a flight
+ * against a signature, so the worker can run every 15 minutes without a flight
  * being announced twice.
  */
 class AlertRepository(database: WaymarkDatabase) {
