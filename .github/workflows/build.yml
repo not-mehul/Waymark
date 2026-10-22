@@ -97,6 +97,12 @@ jobs:
       - name: Android lint
         run: ./gradlew --no-daemon lintDebug
 
+      # Warnings do not fail the build, so they are printed where they will
+      # be seen rather than left in a report nobody downloads.
+      - name: Lint findings
+        if: always()
+        run: cat app/build/reports/lint-results-debug.txt 2>/dev/null || echo "No lint report."
+
       - name: Upload reports on failure
         if: failure()
         uses: actions/upload-artifact@v4
