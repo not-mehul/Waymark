@@ -37,6 +37,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkShapes
@@ -218,7 +219,8 @@ fun ThemeToggle(modifier: Modifier = Modifier) {
     ) {
         Box(
             modifier = Modifier
-                .offset(x = knobOffset)
+                // Read in layout, so the slide re-places the knob without recomposing.
+                .offset { IntOffset(knobOffset.roundToPx(), 0) }
                 .size(knob)
                 .clip(WaymarkShapes.control)
                 .background(colors.accentAmber)
@@ -259,8 +261,8 @@ private fun ToggleGlyph(icon: ImageVector, centre: Dp, tint: Color) {
 fun NoticeBanner(
     icon: ImageVector,
     headline: String,
-    detail: String? = null,
     modifier: Modifier = Modifier,
+    detail: String? = null,
     critical: Boolean = false,
     onClick: (() -> Unit)? = null,
     /** Shows a close control; the banner itself does not remember being closed. */

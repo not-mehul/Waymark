@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkShapes
@@ -107,7 +108,7 @@ fun TabRail(
             )
             Box(
                 modifier = Modifier
-                    .offset(x = indicatorOffset)
+                    .offset { IntOffset(indicatorOffset.roundToPx(), 0) }
                     .width(indicatorWidth)
                     .height(2.dp)
                     .background(colors.accentAmber)

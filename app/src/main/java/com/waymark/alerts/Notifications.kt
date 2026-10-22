@@ -42,7 +42,6 @@ object Notifications {
     private const val CHANNEL_DEPARTURES = "waymark.departures"
 
     fun createChannels(context: Context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = context.getSystemService<NotificationManager>() ?: return
 
         manager.createNotificationChannel(

@@ -1,5 +1,6 @@
 package com.waymark.alerts
 
+import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
@@ -72,6 +73,9 @@ object ReminderAlarm {
      * Android 12), and otherwise "while idle", which Doze honours within a few
      * minutes rather than at its next maintenance window.
      */
+    // Exact only below Android 12, where it needs no permission; lint cannot
+    // see the version check.
+    @SuppressLint("MissingPermission")
     fun set(context: Context, atMillis: Long?) {
         val alarms = context.getSystemService<AlarmManager>() ?: return
         val pending = pendingIntent(context)
