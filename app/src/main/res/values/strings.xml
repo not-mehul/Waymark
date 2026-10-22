@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Waymark</string>
+    <string name="widget_name">Waymark · Next up</string>
+    <string name="share_add_to_trip">Add to a Waymark trip</string>
+    <string name="share_open_trip">Open in Waymark</string>
+    <string name="widget_description">The next booking on any trip, and how long until it.</string>
 </resources>

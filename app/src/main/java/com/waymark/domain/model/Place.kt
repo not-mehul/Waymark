@@ -1,5 +1,6 @@
 package com.waymark.domain.model
 
+import com.waymark.domain.logic.LatLon
 import java.io.Serializable
 import java.time.ZoneId
 
@@ -15,8 +16,9 @@ data class Place(
     val code: String? = null,
     val city: String = "",
     val country: String = "",
-    val latitude: Double = 0.0,
-    val longitude: Double = 0.0,
+    /** Null when nobody knows where it is — a hotel typed by name, say. */
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val timeZoneId: String = "UTC",
     val address: String? = null,
 ) : Serializable {
@@ -27,6 +29,8 @@ data class Place(
     val shortLabel: String
         get() = code ?: city.ifBlank { name }
 
-    val hasCoordinates: Boolean
-        get() = latitude != 0.0 || longitude != 0.0
+    val position: LatLon?
+        get() = if (latitude != null && longitude != null) LatLon(latitude, longitude) else null
+
+    val hasCoordinates: Boolean get() = position != null
 }

@@ -1,6 +1,7 @@
 package com.waymark.ui.components
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -55,9 +56,18 @@ class ReminderPermission internal constructor(
     /** True when the app may post — always true below Android 13. */
     val granted: Boolean,
     private val onRequest: () -> Unit,
+    private val onRequestOnce: () -> Unit,
 ) {
     /** Ask, or send the traveler where the switch lives if asking is spent. */
     fun request() = onRequest()
+
+    /**
+     * Ask the first time something is booked, and never again on its own: the
+     * reminders sheet says plainly when Android is blocking them, and a second
+     * unprompted ask would be nagging. Saving any kind of booking calls this,
+     * not only a flight — a train or a table is just as worth a reminder.
+     */
+    fun requestOnce() = onRequestOnce()
 }
 
 /**
@@ -66,7 +76,7 @@ class ReminderPermission internal constructor(
  * not throw.
  */
 val LocalReminderPermission: ProvidableCompositionLocal<ReminderPermission> =
-    compositionLocalOf { ReminderPermission(granted = true, onRequest = {}) }
+    compositionLocalOf { ReminderPermission(granted = true, onRequest = {}, onRequestOnce = {}) }
 
 /** Wrap the app once, at the root. */
 @Composable
@@ -88,6 +98,10 @@ fun ProvideReminderPermission(content: @Composable () -> Unit) {
         onDispose { owner.lifecycle.removeObserver(observer) }
     }
 
+    val asked = remember {
+        context.getSharedPreferences(PERMISSION_PREFERENCES, Context.MODE_PRIVATE)
+    }
+
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { allowed ->
@@ -96,23 +110,37 @@ fun ProvideReminderPermission(content: @Composable () -> Unit) {
     }
 
     val permission = remember(granted, refused) {
-        ReminderPermission(granted = granted) {
-            when {
-                granted -> Unit
-                refused || !Notifications.needsRequest(context) -> {
-                    runCatching {
-                        context.startActivity(
-                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                                .setData(Uri.fromParts("package", context.packageName, null))
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        )
-                    }
-                    Unit
+        ReminderPermission(
+            granted = granted,
+            onRequestOnce = {
+                if (!granted && Notifications.needsRequest(context) &&
+                    !asked.getBoolean(KEY_ASKED, false)
+                ) {
+                    asked.edit().putBoolean(KEY_ASKED, true).apply()
+                    launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
-                else -> launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
-        }
+            },
+            onRequest = {
+                when {
+                    granted -> Unit
+                    refused || !Notifications.needsRequest(context) -> {
+                        runCatching {
+                            context.startActivity(
+                                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                                    .setData(Uri.fromParts("package", context.packageName, null))
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        }
+                        Unit
+                    }
+                    else -> launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            },
+        )
     }
 
     CompositionLocalProvider(LocalReminderPermission provides permission, content = content)
 }
+
+private const val PERMISSION_PREFERENCES = "waymark.permissions"
+private const val KEY_ASKED = "notifications.asked"

@@ -48,14 +48,14 @@ object MarkdownExport {
         val trip = payload.dossier.trip
         val party = payload.dossier.party
 
-        appendLine("# ${trip.name}")
+        appendLine("# ${md(trip.name)}")
         appendLine()
-        appendLine("*${trip.destinationSummary}*")
+        appendLine("*${md(trip.destinationSummary)}*")
         appendLine()
         appendLine("**${TimeText.dateRange(trip.startDate(), trip.endDate())}**")
         if (party.travelers.isNotEmpty()) {
             appendLine()
-            appendLine(party.travelers.joinToString(" · ") { it.displayName })
+            appendLine(party.travelers.joinToString(" · ") { md(it.displayName) })
         }
 
         itinerary(payload)
@@ -97,38 +97,38 @@ object MarkdownExport {
         val who = travelerNames(segment.travelerIds, payload)
         val detail = when (segment) {
             is Segment.Flight -> buildList {
-                add("**${segment.designator}** ${segment.origin.shortLabel} → ${segment.destination.shortLabel}")
+                add("**${md(segment.designator)}** ${md(segment.origin.shortLabel)} → ${md(segment.destination.shortLabel)}")
                 add(
                     "lands ${TimeText.clock(segment.end)}" +
                         (TimeText.dayOffsetSuffix(segment.start, segment.end)?.let { " ($it)" } ?: "")
                 )
-                segment.departureTerminal?.let { add("terminal $it") }
-                segment.aircraft?.let { add(it) }
-                segment.cabin?.let { add(it) }
+                segment.departureTerminal?.let { add("terminal ${md(it)}") }
+                segment.aircraft?.let { add(md(it)) }
+                segment.cabin?.let { add(md(it)) }
             }.joinToString(", ")
 
             is Segment.Lodging -> buildList {
-                add("**${segment.propertyName}**")
+                add("**${md(segment.propertyName)}**")
                 add("${segment.nights} night${if (segment.nights == 1L) "" else "s"}")
-                segment.roomDescription?.let { add(it) }
-                segment.origin.city.takeIf { it.isNotBlank() }?.let { add(it) }
+                segment.roomDescription?.let { add(md(it)) }
+                segment.origin.city.takeIf { it.isNotBlank() }?.let { add(md(it)) }
             }.joinToString(", ")
 
             is Segment.Ground -> buildList {
-                add("**${modeLabel(segment.mode)}** ${segment.origin.shortLabel} → ${segment.destination.shortLabel}")
+                add("**${modeLabel(segment.mode)}** ${md(segment.origin.shortLabel)} → ${md(segment.destination.shortLabel)}")
                 add(TimeText.durationBetween(segment.startEpochMillis, segment.endEpochMillis))
-                segment.provider?.let { add(it) }
+                segment.provider?.let { add(md(it)) }
             }.joinToString(", ")
 
             is Segment.Experience -> buildList {
-                add("**${segment.name}**")
-                add(segment.category)
-                segment.origin.city.takeIf { it.isNotBlank() }?.let { add(it) }
+                add("**${md(segment.name)}**")
+                add(md(segment.category))
+                segment.origin.city.takeIf { it.isNotBlank() }?.let { add(md(it)) }
             }.joinToString(", ")
         }
 
         val suffix = if (who.isNullOrBlank()) "" else " — $who"
-        val note = segment.note?.let { "  \n  $it" }.orEmpty()
+        val note = segment.note?.let { "  \n  ${md(it)}" }.orEmpty()
         return "- `$clock` $detail$suffix$note"
     }
 
@@ -143,7 +143,7 @@ object MarkdownExport {
             .toSortedMap()
             .forEach { (city, cityIdeas) ->
                 appendLine()
-                appendLine("### $city")
+                appendLine("### ${md(city)}")
                 appendLine()
                 IdeaKind.entries.forEach { kind ->
                     val ofKind = cityIdeas.filter { it.kind == kind }
@@ -162,15 +162,15 @@ object MarkdownExport {
         // actually happened, which is most of what anyone re-reads it for.
         val settled = idea.status == IdeaStatus.DONE || idea.scheduledSegmentId != null
         append(if (settled) "- [x] " else "- [ ] ")
-        append(idea.title)
+        append(md(idea.title))
         val notes = buildList {
             idea.plannedDate?.let { add(TimeText.dayCompact(it)) }
             idea.typicalMinutes?.let { add(TimeText.duration(it)) }
             idea.priceBand?.let { add(it.label) }
-            idea.bestTime?.let { add(it) }
+            idea.bestTime?.let { add(md(it)) }
         }
         if (notes.isNotEmpty()) append(" — ${notes.joinToString(", ")}")
-        idea.note?.let { append("  \n  $it") }
+        idea.note?.let { append("  \n  ${md(it)}") }
     }
 
     /** Every booking that carries a reference, with the reference. */
@@ -185,9 +185,9 @@ object MarkdownExport {
         appendLine()
 
         booked.forEach { segment ->
-            append("- **${segment.title}**")
-            segment.bookedWith?.takeIf { it.isNotBlank() }?.let { append(" · $it") }
-            append(" — `${segment.confirmationCode}`")
+            append("- **${md(segment.title)}**")
+            segment.bookedWith?.takeIf { it.isNotBlank() }?.let { append(" · ${md(it)}") }
+            append(" — ${code(segment.confirmationCode.orEmpty())}")
             appendLine()
         }
     }
@@ -203,11 +203,11 @@ object MarkdownExport {
         appendLine("| Distance | ${Geo.formatDistance(report.totalDistanceKm)} |")
         appendLine("| Flown | ${Geo.formatDistance(report.flownKm)} |")
         appendLine("| Hours moving | ${"%.1f".format(Locale.ROOT, report.hoursMoving)} |")
-        appendLine("| Time zones crossed | ${report.timeZonesCrossed} |")
-        appendLine("| Countries | ${report.countriesVisited.joinToString(", ")} |")
+        appendLine("| Clock changes | ${report.clockChanges} (${"%.0f".format(Locale.ROOT, report.hoursShifted)}h) |")
+        appendLine("| Countries | ${md(report.countriesVisited.joinToString(", "))} |")
         appendLine("| Estimated carbon | ${report.carbonKg.toInt()} kg CO₂e |")
         report.longestLegLabel?.let {
-            appendLine("| Longest leg | $it, ${Geo.formatDistance(report.longestLegKm)} |")
+            appendLine("| Longest leg | ${md(it)}, ${Geo.formatDistance(report.longestLegKm)} |")
         }
     }
 
@@ -220,9 +220,42 @@ object MarkdownExport {
     private fun travelerNames(ids: Set<String>, payload: Payload): String? {
         val party = payload.dossier.party.travelers
         if (ids.isEmpty() || ids.size == party.size) return null
-        return party.filter { it.id in ids }.joinToString(", ") { it.displayName }
+        return party.filter { it.id in ids }.joinToString(", ") { md(it.displayName) }
             .ifBlank { null }
     }
 
     private fun modeLabel(mode: GroundMode): String = mode.label
+
+    /**
+     * User text, made inert. A hotel called "*The* Rooms", a note with an
+     * underscore or a trip named "#2" would otherwise restyle the document
+     * around it, and a pipe would break the numbers table. Only what changes
+     * meaning is escaped — "St. Pancras" stays readable as plain text — plus a
+     * leading list or heading marker, which only matters at the start of a line.
+     */
+    internal fun md(text: String): String {
+        val escaped = buildString(text.length) {
+            text.forEach { character ->
+                if (character in INLINE_SPECIALS) append('\\')
+                append(character)
+            }
+        }
+        return when {
+            escaped.isEmpty() -> escaped
+            escaped[0] in LINE_START_SPECIALS -> "\\$escaped"
+            ORDERED_ITEM.containsMatchIn(escaped) -> escaped.replaceFirst(".", "\\.")
+            else -> escaped
+        }
+    }
+
+    /** A reference in a code span, wide enough to hold any backticks inside it. */
+    internal fun code(text: String): String {
+        val fence = "`".repeat((Regex("`+").findAll(text).maxOfOrNull { it.value.length } ?: 0) + 1)
+        val pad = if (text.startsWith('`') || text.endsWith('`')) " " else ""
+        return "$fence$pad$text$pad$fence"
+    }
+
+    private const val INLINE_SPECIALS = "\\`*_[]<>|~"
+    private const val LINE_START_SPECIALS = "#-+="
+    private val ORDERED_ITEM = Regex("^\\d+\\.")
 }

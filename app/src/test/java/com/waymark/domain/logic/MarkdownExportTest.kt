@@ -3,6 +3,7 @@ package com.waymark.domain.logic
 import com.waymark.data.catalog.SampleItinerary
 import com.waymark.domain.model.TripDossier
 import com.waymark.domain.model.TripParty
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -117,5 +118,27 @@ class MarkdownExportTest {
     @Test
     fun `the document closes with its provenance`() {
         assertTrue(markdown.trimEnd().endsWith("Exported from Waymark."))
+    }
+
+    @Test
+    fun `user text cannot restyle the document`() {
+        assertEquals("\\*The\\* Rooms", MarkdownExport.md("*The* Rooms"))
+        assertEquals("a\\_b \\| c", MarkdownExport.md("a_b | c"))
+        assertEquals("\\#2", MarkdownExport.md("#2"))
+        assertEquals("\\- not a list", MarkdownExport.md("- not a list"))
+        assertEquals("1\\. not a list", MarkdownExport.md("1. not a list"))
+        // Ordinary punctuation is left alone, so the file still reads as text.
+        assertEquals("St. Pancras (Euston Road)", MarkdownExport.md("St. Pancras (Euston Road)"))
+    }
+
+    @Test
+    fun `a reference with a backtick still fits in a code span`() {
+        assertEquals("`K7QH2P`", MarkdownExport.code("K7QH2P"))
+        assertEquals("``AB`C``", MarkdownExport.code("AB`C"))
+    }
+
+    @Test
+    fun `the numbers table counts clock changes`() {
+        assertTrue(markdown.contains("| Clock changes |"))
     }
 }

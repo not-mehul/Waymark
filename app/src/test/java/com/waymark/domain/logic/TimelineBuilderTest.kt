@@ -158,4 +158,58 @@ class TimelineBuilderTest {
         assertEquals("seg-first", links.first().fromSegment.id)
         assertTrue(links.first().verdict != null)
     }
+
+    /**
+     * CX880 leaves Hong Kong after midnight on the 6th and lands in Los
+     * Angeles on the evening of the 5th. A dinner the night before and the
+     * hotel on arrival make the dates run 5th, 6th, 5th — which used to crash
+     * the timeline with a duplicate list key.
+     */
+    @Test
+    fun `a date that comes round twice heads the column twice, with distinct keys`() {
+        val hongKong = java.time.ZoneId.of("Asia/Hong_Kong")
+        val losAngeles = java.time.ZoneId.of("America/Los_Angeles")
+        fun at(date: String, time: String, zone: java.time.ZoneId) =
+            java.time.ZonedDateTime.of(LocalDate.parse(date), java.time.LocalTime.parse(time), zone)
+                .toInstant().toEpochMilli()
+        val hkg = com.waymark.domain.model.Place("Hong Kong International", "HKG", "Hong Kong", timeZoneId = hongKong.id)
+        val lax = com.waymark.domain.model.Place("Los Angeles International", "LAX", "Los Angeles", timeZoneId = losAngeles.id)
+        val segments = listOf(
+            Segment.Experience(
+                id = "dinner", tripId = "t", name = "Dinner", category = "Food",
+                origin = hkg.copy(name = "Restaurant", code = null),
+                startEpochMillis = at("2026-11-05", "19:00", hongKong),
+                endEpochMillis = at("2026-11-05", "21:00", hongKong),
+                startZoneId = hongKong.id, endZoneId = hongKong.id,
+            ),
+            Segment.Flight(
+                id = "cx880", tripId = "t", carrierCode = "CX", flightNumber = "880",
+                origin = hkg, destination = lax,
+                startEpochMillis = at("2026-11-06", "00:50", hongKong),
+                endEpochMillis = at("2026-11-05", "22:15", losAngeles),
+                startZoneId = hongKong.id, endZoneId = losAngeles.id,
+            ),
+            Segment.Lodging(
+                id = "hotel", tripId = "t", propertyName = "Hotel",
+                origin = lax.copy(name = "Hotel", code = null),
+                startEpochMillis = at("2026-11-05", "23:30", losAngeles),
+                endEpochMillis = at("2026-11-07", "11:00", losAngeles),
+                startZoneId = losAngeles.id, endZoneId = losAngeles.id,
+            ),
+        )
+        val trip = dossier.copy(segments = segments, party = TripParty("t", emptyList()))
+        val entries = TimelineBuilder.build(trip, now = Instant.parse("2026-11-01T00:00:00Z"))
+
+        val keys = entries.map { it.key }
+        assertEquals("duplicate keys in $keys", keys.size, keys.toSet().size)
+        val fifths = entries.filterIsInstance<TimelineEntry.DayBreak>()
+            .count { it.date == LocalDate.parse("2026-11-05") }
+        assertEquals(2, fifths)
+    }
+
+    @Test
+    fun `keys are unique on the worked example too`() {
+        val keys = TimelineBuilder.build(dossier, now = duringTrip).map { it.key }
+        assertEquals(keys.size, keys.toSet().size)
+    }
 }

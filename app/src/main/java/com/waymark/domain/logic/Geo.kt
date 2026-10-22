@@ -58,8 +58,16 @@ object Geo {
         return 2 * EARTH_RADIUS_KM * asin(min(1.0, sqrt(h)))
     }
 
-    fun distanceKm(a: Place, b: Place): Double =
-        distanceKm(LatLon(a.latitude, a.longitude), LatLon(b.latitude, b.longitude))
+    /**
+     * Zero when either end has no coordinates: an unknown distance is not an
+     * enormous one, and a hotel typed by name must not be priced as a trip to
+     * wherever latitude zero, longitude zero happens to be.
+     */
+    fun distanceKm(a: Place, b: Place): Double {
+        val from = a.position ?: return 0.0
+        val to = b.position ?: return 0.0
+        return distanceKm(from, to)
+    }
 
     /** Initial bearing from [a] to [b], degrees clockwise from north. */
     fun bearingDegrees(a: LatLon, b: LatLon): Double {

@@ -9,12 +9,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
+import com.waymark.domain.model.PriceBand
 import com.waymark.ui.components.ChoiceCard
 import com.waymark.ui.components.DateField
 import com.waymark.ui.components.FieldLabel
@@ -36,25 +37,42 @@ import java.time.LocalTime
 /**
  * Add something the traveler heard about, one question at a time.
  *
- * Three steps: what kind, what it is, and — only when a trip touches more than
- * one city — where. The note rides along with the name because "the bookshop
- * off Charing Cross Road" and "Anna said the upstairs room" are one thought.
+ * What kind, what it is, a few optional details — the address, the price, the
+ * best time to go, how long it takes — and, only when a trip touches more
+ * than one city, where. The note rides along with the name because "the
+ * bookshop off Charing Cross Road" and "Anna said the upstairs room" are one
+ * thought.
  */
 @Composable
 fun AddIdeaModal(
     cities: List<String>,
     onDismiss: () -> Unit,
-    onAdd: (title: String, kind: IdeaKind, city: String, note: String?) -> Unit,
+    onAdd: (IdeaDraft) -> Unit,
 ) {
-    var step by remember { mutableStateOf(0) }
-    var kind by remember { mutableStateOf<IdeaKind?>(null) }
-    var title by remember { mutableStateOf("") }
-    var note by remember { mutableStateOf("") }
-    var city by remember { mutableStateOf(cities.firstOrNull().orEmpty()) }
+    var step by rememberSaveable { mutableStateOf(0) }
+    var kind by rememberSaveable { mutableStateOf<IdeaKind?>(null) }
+    var title by rememberSaveable { mutableStateOf("") }
+    var note by rememberSaveable { mutableStateOf("") }
+    var address by rememberSaveable { mutableStateOf("") }
+    var price by rememberSaveable { mutableStateOf<PriceBand?>(null) }
+    var bestTime by rememberSaveable { mutableStateOf("") }
+    var minutesText by rememberSaveable { mutableStateOf("") }
+    var city by rememberSaveable { mutableStateOf(cities.firstOrNull().orEmpty()) }
 
     val needsCity = cities.size > 1
-    val steps = if (needsCity) listOf("Kind", "What", "Where") else listOf("Kind", "What")
+    val steps = listOf("Kind", "What", "Details") + if (needsCity) listOf("Where") else emptyList()
     val last = steps.lastIndex
+
+    fun draft() = IdeaDraft(
+        title = title,
+        kind = kind ?: IdeaKind.SEE,
+        city = city,
+        note = note.ifBlank { null },
+        address = address,
+        priceBand = price,
+        bestTime = bestTime.ifBlank { null },
+        minutes = minutesText.filter { it.isDigit() }.toIntOrNull()?.takeIf { it > 0 },
+    )
 
     StepFlow(
         steps = steps,
@@ -107,16 +125,55 @@ fun AddIdeaModal(
                 )
                 StepFooter(
                     onBack = { step = 0 },
+                    forwardLabel = "Next",
+                    forwardEnabled = title.isNotBlank(),
+                    onForward = { step = 2 },
+                )
+            }
+
+            2 -> {
+                StepQuestion("Anything else worth knowing?")
+                WaymarkTextField(
+                    value = address,
+                    onValueChange = { address = it },
+                    label = "Address",
+                    placeholder = "13 Lincoln's Inn Fields",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                FieldLabel("Price")
+                Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.tight)) {
+                    PriceBand.entries.forEach { band ->
+                        OptionChip(
+                            text = band.label,
+                            selected = price == band,
+                            onClick = { price = if (price == band) null else band },
+                        )
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
+                    WaymarkTextField(
+                        value = bestTime,
+                        onValueChange = { bestTime = it },
+                        label = "Best time",
+                        placeholder = "Weekday mornings",
+                        modifier = Modifier.weight(2f),
+                    )
+                    WaymarkTextField(
+                        value = minutesText,
+                        onValueChange = { minutesText = it },
+                        label = "Minutes",
+                        placeholder = "90",
+                        mono = true,
+                        keyboardType = KeyboardType.Number,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                StepFooter(
+                    onBack = { step = 1 },
                     forwardLabel = if (needsCity) "Next" else "Add",
                     forwardEnabled = title.isNotBlank(),
                     finishing = !needsCity,
-                    onForward = {
-                        if (needsCity) {
-                            step = 2
-                        } else {
-                            onAdd(title, kind ?: IdeaKind.SEE, city, note.ifBlank { null })
-                        }
-                    },
+                    onForward = { if (needsCity) step = last else onAdd(draft()) },
                 )
             }
 
@@ -132,13 +189,11 @@ fun AddIdeaModal(
                     )
                 }
                 StepFooter(
-                    onBack = { step = 1 },
+                    onBack = { step = 2 },
                     forwardLabel = "Add",
                     forwardEnabled = city.isNotBlank(),
                     finishing = true,
-                    onForward = {
-                        onAdd(title, kind ?: IdeaKind.SEE, city, note.ifBlank { null })
-                    },
+                    onForward = { onAdd(draft()) },
                 )
             }
         }
@@ -156,9 +211,9 @@ fun ScheduleIdeaModal(
     onDismiss: () -> Unit,
     onSchedule: (LocalDate, LocalTime, Int?) -> Unit,
 ) {
-    var date by remember { mutableStateOf(defaultDate) }
-    var time by remember { mutableStateOf(LocalTime.of(10, 0)) }
-    var minutesText by remember { mutableStateOf((idea.typicalMinutes ?: 60).toString()) }
+    var date by rememberSaveable { mutableStateOf(defaultDate) }
+    var time by rememberSaveable { mutableStateOf(LocalTime.of(10, 0)) }
+    var minutesText by rememberSaveable { mutableStateOf((idea.typicalMinutes ?: 60).toString()) }
 
     val minutes = minutesText.filter { it.isDigit() }.toIntOrNull()
 

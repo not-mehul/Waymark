@@ -5,7 +5,7 @@ import com.waymark.domain.model.SegmentKind
 import com.waymark.domain.model.chronological
 
 /**
- * How long before something starts the traveler wants to hear about it.
+ * How long before something the traveler wants to hear about it.
  *
  * Stored as minutes rather than an enum so the set of offered choices can change
  * without a migration, and `0` means off — which is a real answer, not an
@@ -19,12 +19,7 @@ value class Lead(val minutes: Int) {
     companion object {
         val OFF = Lead(0)
 
-        /**
-         * The choices offered per category. Fifteen minutes is the floor
-         * because the check that raises these runs on a fifteen-minute
-         * schedule; anything finer would be a promise the platform will not
-         * keep.
-         */
+        /** The choices offered for a booking's start. */
         val CHOICES: List<Lead> = listOf(
             OFF,
             Lead(15),
@@ -39,29 +34,47 @@ value class Lead(val minutes: Int) {
     }
 }
 
+/** What a reminder is about: the booking starting, check-in opening, or time to go. */
+enum class ReminderMoment(val signaturePrefix: String) {
+    START("reminder"),
+    CHECK_IN("checkin"),
+    LEAVE("leave"),
+}
+
 /**
- * A category of thing that can be reminded about, and what it is called on the
- * settings screen.
+ * A kind of reminder, and what it is called on the settings sheet.
  *
- * These are the four segment kinds, named for what a traveler would call them
- * rather than for the class. The defaults are the ones that survive contact
- * with a real trip: three hours before a flight is roughly when leaving for the
- * airport starts to matter; a booked table needs an hour; a hotel check-in is
- * not something anyone needs waking for, so it starts off.
+ * Four are about a booking starting, named for what a traveler would call the
+ * kind of booking. Two are about flights in particular: online check-in, which
+ * opens about a day ahead and is the thing most often remembered too late, and
+ * the moment to leave for the airport — worked out from where the trip is
+ * before the flight and how long the journey to the airport takes.
  */
 enum class ReminderCategory(
     val kind: SegmentKind,
+    val moment: ReminderMoment,
     val label: String,
     val detail: String,
     val default: Lead,
+    val choices: List<Lead> = Lead.CHOICES,
 ) {
-    FLIGHTS(SegmentKind.FLIGHT, "Flights", "Before a departure", Lead(3 * 60)),
-    GROUND(SegmentKind.GROUND, "Trains and transfers", "Before a ground leg", Lead(60)),
-    BOOKINGS(SegmentKind.EXPERIENCE, "Bookings", "Before a table, a tour, a ticket", Lead(60)),
-    STAYS(SegmentKind.LODGING, "Stays", "Before a check-in", Lead.OFF);
+    FLIGHTS(SegmentKind.FLIGHT, ReminderMoment.START, "Flights", "Before a departure", Lead(3 * 60)),
+    LEAVE(
+        SegmentKind.FLIGHT, ReminderMoment.LEAVE, "Leave for the airport",
+        "Warning before it is time to go", Lead(30),
+        listOf(Lead.OFF, Lead(15), Lead(30), Lead(60)),
+    ),
+    CHECK_IN(
+        SegmentKind.FLIGHT, ReminderMoment.CHECK_IN, "Online check-in",
+        "Before departure, when check-in usually opens", Lead(24 * 60),
+        listOf(Lead.OFF, Lead(24 * 60), Lead(36 * 60), Lead(48 * 60)),
+    ),
+    GROUND(SegmentKind.GROUND, ReminderMoment.START, "Trains and transfers", "Before a ground leg", Lead(60)),
+    BOOKINGS(SegmentKind.EXPERIENCE, ReminderMoment.START, "Bookings", "Before a table, a tour, a ticket", Lead(60)),
+    STAYS(SegmentKind.LODGING, ReminderMoment.START, "Stays", "Before a check-in", Lead.OFF);
 
     companion object {
-        fun of(kind: SegmentKind): ReminderCategory = entries.first { it.kind == kind }
+        fun forSegment(kind: SegmentKind): List<ReminderCategory> = entries.filter { it.kind == kind }
     }
 }
 
@@ -78,7 +91,7 @@ data class ReminderPreferences(
 
     /** For the menu row: "Flights 3h · Bookings 1h", or what is off. */
     fun summary(): String {
-        val on = ReminderCategory.entries.filter { this[it].isOn }
+        val on = ReminderCategory.entries.filter { this[it].isOn && it.moment == ReminderMoment.START }
         if (on.isEmpty()) return "Off for everything"
         return on.joinToString(" · ") { "${it.label} ${TimeText.duration(this[it].minutes)}" }
     }
@@ -91,6 +104,8 @@ data class ReminderPreferences(
 /** One reminder that is ready to be posted. */
 data class DueReminder(
     val segmentId: String,
+    val tripId: String,
+    val moment: ReminderMoment,
     /** What the booking is called, for the notification's own record. */
     val label: String,
     /** Stable across runs, so a thing is announced once rather than every check. */
@@ -101,54 +116,164 @@ data class DueReminder(
 )
 
 /**
- * Which of a trip's bookings are close enough to say something about.
+ * Which of a trip's bookings are close enough to say something about, and when
+ * the next one will be.
  *
- * This used to be four lines inside a WorkManager worker, and it only knew
- * about flights: a hotel check-in, a Eurostar and a booked table all passed
- * unremarked, which made "reminders" a promise the app kept for a quarter of
- * what it stored. It is a plain function over segments and a clock now, so the
- * decision of what is due — the part that is easy to get subtly wrong — is
- * tested on the JVM rather than inferred from a phone that did or did not buzz.
+ * A plain function over segments and a clock, so the decision of what is due —
+ * the part that is easy to get subtly wrong — is tested on the JVM rather than
+ * inferred from a phone that did or did not buzz.
  *
- * The rule is the same for every category: a booking is due when its start is
- * within the category's lead time and has not already gone. The signature
- * carries the segment and its start time and deliberately **not** the
- * countdown, so a run at two hours out does not re-announce what a run at three
- * hours out already said — but moving a booking does raise a fresh reminder,
- * which is correct: the time changed.
+ * Every reminder has a moment it fires and a moment after which it is no use:
+ * a departure reminder after the departure, a check-in reminder once check-in
+ * has closed, a "time to leave" half an hour after the time to leave. The
+ * signature carries the booking and its start and deliberately **not** the
+ * countdown, so a check at two hours out does not re-announce what one at
+ * three hours out already said — but moving a booking raises a fresh one.
  */
 object ReminderPlanner {
 
+    /** Online check-in closes about an hour before departure. */
+    private const val CHECK_IN_CLOSES_MINUTES = 60
+
+    /** "Time to leave" stays useful a little after the time has come. */
+    private const val LEAVE_GRACE_MINUTES = 30
+
+    /** How early to be at the airport. */
+    private const val AIRPORT_DOMESTIC_MINUTES = 120
+    private const val AIRPORT_INTERNATIONAL_MINUTES = 180
+
+    /** Farther than this from the airport is not a journey "to the airport". */
+    private const val MAX_AIRPORT_JOURNEY_KM = 150.0
+
+    private data class Plan(
+        val segment: Segment,
+        val category: ReminderCategory,
+        val fireAtMillis: Long,
+        val usefulUntilMillis: Long,
+    )
+
+    /**
+     * Everything due at [nowMillis]. [itinerary] is every booking of the trips
+     * concerned — the time to leave for an airport depends on where the trip
+     * is before the flight, not only on the flight.
+     */
     fun due(
-        segments: List<Segment>,
+        itinerary: List<Segment>,
         preferences: ReminderPreferences,
         nowMillis: Long,
-    ): List<DueReminder> = segments
-        .chronological()
-        .mapNotNull { segment ->
-            val lead = preferences[ReminderCategory.of(segment.kind)]
-            if (!lead.isOn) return@mapNotNull null
-
-            val untilStart = segment.startEpochMillis - nowMillis
-            if (untilStart < 0L) return@mapNotNull null
-            if (untilStart > lead.minutes * 60_000L) return@mapNotNull null
-
-            val minutesOut = (untilStart / 60_000L).toInt()
+    ): List<DueReminder> = plans(itinerary, preferences)
+        .filter { nowMillis >= it.fireAtMillis && nowMillis < it.usefulUntilMillis }
+        .map { plan ->
             DueReminder(
-                segmentId = segment.id,
-                label = labelOf(segment),
-                signature = "reminder|${segment.id}|${segment.startEpochMillis}",
-                headline = headline(segment, minutesOut),
-                detail = detail(segment),
-                startEpochMillis = segment.startEpochMillis,
+                segmentId = plan.segment.id,
+                tripId = plan.segment.tripId,
+                moment = plan.category.moment,
+                label = labelOf(plan.segment),
+                signature = signature(plan.category.moment, plan.segment),
+                headline = headline(plan.segment, plan.category.moment, nowMillis, itinerary),
+                detail = detail(plan.segment, plan.category.moment, itinerary),
+                startEpochMillis = plan.segment.startEpochMillis,
             )
         }
 
-    /** The longest lead in use, so the caller knows how far ahead to read. */
-    fun lookAheadMillis(preferences: ReminderPreferences): Long =
-        ReminderCategory.entries
-            .maxOf { preferences[it].minutes }
-            .toLong() * 60_000L
+    /** When the next reminder falls due after [nowMillis], or null if none ever will. */
+    fun nextDueAt(
+        itinerary: List<Segment>,
+        preferences: ReminderPreferences,
+        nowMillis: Long,
+    ): Long? = plans(itinerary, preferences)
+        .map { it.fireAtMillis }
+        .filter { it > nowMillis }
+        .minOrNull()
+
+    /** A reminder's text as of now — what the trip screen's banner says, live. */
+    fun headline(
+        segment: Segment,
+        moment: ReminderMoment,
+        nowMillis: Long,
+        itinerary: List<Segment> = listOf(segment),
+    ): String = when (moment) {
+        ReminderMoment.START -> startHeadline(segment, minutesUntil(segment.startEpochMillis, nowMillis))
+        ReminderMoment.CHECK_IN -> "Check in online for ${labelOf(segment)}"
+        ReminderMoment.LEAVE -> {
+            val leaveBy = leaveBy(segment, itinerary)
+            val place = segment.origin.shortLabel
+            if (leaveBy == null || nowMillis >= leaveBy) {
+                "Time to leave for $place"
+            } else {
+                "Leave for $place in ${TimeText.duration(minutesUntil(leaveBy, nowMillis))}"
+            }
+        }
+    }
+
+    /** Which moment a stored reminder was about, from its signature. */
+    fun momentOf(signature: String): ReminderMoment =
+        ReminderMoment.entries.firstOrNull { signature.startsWith("${it.signaturePrefix}|") }
+            ?: ReminderMoment.START
+
+    fun signature(moment: ReminderMoment, segment: Segment): String =
+        "${moment.signaturePrefix}|${segment.id}|${segment.startEpochMillis}"
+
+    private fun plans(itinerary: List<Segment>, preferences: ReminderPreferences): List<Plan> =
+        itinerary.chronological().flatMap { segment ->
+            ReminderCategory.forSegment(segment.kind).mapNotNull { category ->
+                val lead = preferences[category]
+                if (!lead.isOn) return@mapNotNull null
+                val leadMillis = lead.minutes * 60_000L
+                when (category.moment) {
+                    ReminderMoment.START -> Plan(
+                        segment, category,
+                        fireAtMillis = segment.startEpochMillis - leadMillis,
+                        usefulUntilMillis = segment.startEpochMillis + 1,
+                    )
+
+                    ReminderMoment.CHECK_IN -> Plan(
+                        segment, category,
+                        fireAtMillis = segment.startEpochMillis - leadMillis,
+                        usefulUntilMillis = segment.startEpochMillis - CHECK_IN_CLOSES_MINUTES * 60_000L,
+                    )
+
+                    ReminderMoment.LEAVE -> leaveBy(segment, itinerary)?.let { leaveBy ->
+                        Plan(
+                            segment, category,
+                            fireAtMillis = leaveBy - leadMillis,
+                            usefulUntilMillis = minOf(
+                                leaveBy + LEAVE_GRACE_MINUTES * 60_000L,
+                                segment.startEpochMillis,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+
+    /**
+     * When to set off for a flight's airport: the journey there from wherever
+     * the trip is before it, plus time at the airport. Null when there is no
+     * journey to make — a connection, or a place the app cannot locate.
+     */
+    fun leaveBy(flight: Segment, itinerary: List<Segment>): Long? {
+        if (flight !is Segment.Flight) return null
+        val from = departurePoint(flight, itinerary) ?: return null
+        if (!from.hasCoordinates || !flight.origin.hasCoordinates) return null
+        if (from.code != null && from.code == flight.origin.code) return null
+        // Next door is already there; a city away is a gap in the itinerary,
+        // not a journey to the airport anyone could be reminded about.
+        val km = Geo.distanceKm(from, flight.origin)
+        if (km < 0.5 || km > MAX_AIRPORT_JOURNEY_KM) return null
+        val journey = TransitEstimator.estimateBest(from, flight.origin).totalMinutes
+        return flight.startEpochMillis - (airportMinutes(flight) + journey) * 60_000L
+    }
+
+    private fun airportMinutes(flight: Segment.Flight): Int {
+        val from = flight.origin.country
+        val to = flight.destination.country
+        val international = from.isNotBlank() && to.isNotBlank() && from != to
+        return if (international) AIRPORT_INTERNATIONAL_MINUTES else AIRPORT_DOMESTIC_MINUTES
+    }
+
+    private fun minutesUntil(targetMillis: Long, nowMillis: Long): Int =
+        ((targetMillis - nowMillis).coerceAtLeast(0L) / 60_000L).toInt()
 
     private fun labelOf(segment: Segment): String = when (segment) {
         is Segment.Flight -> segment.designator
@@ -157,7 +282,7 @@ object ReminderPlanner {
         is Segment.Experience -> segment.name
     }
 
-    private fun headline(segment: Segment, minutesOut: Int): String {
+    private fun startHeadline(segment: Segment, minutesOut: Int): String {
         val whenText = if (minutesOut < 1) "now" else "in ${TimeText.duration(minutesOut)}"
         return when (segment) {
             is Segment.Flight -> "${segment.designator} departs $whenText"
@@ -167,7 +292,32 @@ object ReminderPlanner {
         }
     }
 
-    private fun detail(segment: Segment): String = when (segment) {
+    private fun detail(segment: Segment, moment: ReminderMoment, itinerary: List<Segment>): String =
+        when (moment) {
+            ReminderMoment.START -> startDetail(segment)
+            ReminderMoment.CHECK_IN ->
+                "Departs ${TimeText.dayCompact(segment.start.toLocalDate())} at " +
+                    "${TimeText.clock(segment.start)} from ${segment.origin.shortLabel}"
+            ReminderMoment.LEAVE -> leaveDetail(segment, itinerary)
+        }
+
+    private fun leaveDetail(flight: Segment, itinerary: List<Segment>): String {
+        val from = departurePoint(flight, itinerary)
+        val airport = (flight as? Segment.Flight)?.let(::airportMinutes) ?: AIRPORT_DOMESTIC_MINUTES
+        return buildString {
+            if (from != null) {
+                val journey = TransitEstimator.estimateBest(from, flight.origin)
+                append("${journey.summary} from ${from.name}, ")
+            }
+            append("to be there ${TimeText.duration(airport)} before ${labelOf(flight)}")
+        }
+    }
+
+    /** Where the traveler sets off from for a flight: wherever the trip was just before it. */
+    private fun departurePoint(flight: Segment, itinerary: List<Segment>) =
+        Whereabouts.before(itinerary.filter { it.id != flight.id }, flight.startEpochMillis - 1)
+
+    private fun startDetail(segment: Segment): String = when (segment) {
         is Segment.Flight -> buildString {
             append(segment.origin.shortLabel)
             segment.departureTerminal?.let { append(", terminal $it") }

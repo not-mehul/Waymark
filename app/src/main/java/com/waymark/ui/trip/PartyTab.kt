@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -13,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,9 +22,12 @@ import androidx.compose.ui.unit.dp
 import com.waymark.domain.logic.PartySplitAnalyzer
 import com.waymark.domain.logic.TimeText
 import com.waymark.domain.model.Segment
+import com.waymark.domain.model.Traveler
+import com.waymark.ui.components.ConfirmModal
 import com.waymark.ui.components.FieldLabel
 import com.waymark.ui.components.GhostIconButton
 import com.waymark.ui.components.NoticeBanner
+import com.waymark.ui.components.OptionChip
 import com.waymark.ui.components.Panel
 import com.waymark.ui.components.PartyMark
 import com.waymark.ui.components.PrimaryButton
@@ -30,6 +35,8 @@ import com.waymark.ui.components.SectionHeader
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.components.WaymarkModal
 import com.waymark.ui.components.WaymarkTextField
+import com.waymark.ui.people.TravelerProfileModal
+import com.waymark.ui.people.profileSummary
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
 import java.time.Instant
@@ -42,12 +49,16 @@ import java.time.Instant
 fun PartyTab(
     state: TripUiState,
     onAddTraveler: (String, String?) -> Unit,
+    onAddExisting: (String) -> Unit,
+    onUpdateTraveler: (Traveler) -> Unit,
     onRemoveTraveler: (String) -> Unit,
     onFilterTraveler: (String?) -> Unit,
 ) {
     val colors = Waymark.colors
     val dossier = state.dossier
-    var adding by remember { mutableStateOf(false) }
+    var adding by rememberSaveable { mutableStateOf(false) }
+    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+    var removingId by rememberSaveable { mutableStateOf<String?>(null) }
     val coverage = remember(dossier) { dossier?.let(PartySplitAnalyzer::coverage).orEmpty() }
 
     Column(
@@ -97,25 +108,20 @@ fun PartyTab(
                         )
                     }
                     GhostIconButton(
+                        icon = WaymarkIcons.Pencil,
+                        contentDescription = "Edit ${entry.traveler.displayName}",
+                        onClick = { editingId = entry.traveler.id },
+                    )
+                    GhostIconButton(
                         icon = WaymarkIcons.Trash,
                         contentDescription = "Remove ${entry.traveler.displayName}",
-                        onClick = { onRemoveTraveler(entry.traveler.id) },
+                        onClick = { removingId = entry.traveler.id },
                     )
                 }
 
-                if (entry.traveler.seatPreference.name != "NONE" ||
-                    entry.traveler.mealPreference != null
-                ) {
+                profileSummary(entry.traveler)?.let { summary ->
                     Spacer(Modifier.height(WaymarkSpacing.snug))
-                    Text(
-                        text = listOfNotNull(
-                            entry.traveler.seatPreference.name.takeIf { it != "NONE" }
-                                ?.lowercase()?.replace('_', ' '),
-                            entry.traveler.mealPreference,
-                        ).joinToString(" · "),
-                        style = Waymark.type.hint,
-                        color = colors.textDim,
-                    )
+                    Text(text = summary, style = Waymark.type.hint, color = colors.textDim)
                 }
 
                 if (entry.missingFromSegments.isNotEmpty()) {
@@ -215,12 +221,55 @@ fun PartyTab(
 
     if (adding) {
         AddTravelerModal(
+            others = state.otherTravelers,
             onDismiss = { adding = false },
             onAdd = { name, nickname ->
                 onAddTraveler(name, nickname)
                 adding = false
             },
+            onAddExisting = { id ->
+                onAddExisting(id)
+                adding = false
+            },
         )
+    }
+
+    editingId?.let { id ->
+        dossier?.party?.byId(id)?.let { traveler ->
+            TravelerProfileModal(
+                traveler = traveler,
+                onDismiss = { editingId = null },
+                onSave = {
+                    onUpdateTraveler(it)
+                    editingId = null
+                },
+            )
+        }
+    }
+
+    removingId?.let { id ->
+        val traveler = dossier?.party?.byId(id)
+        if (traveler != null) {
+            // Bookings nobody else is on cannot stay: there would be no one
+            // left on them. Say how many before they go.
+            val onlyTheirs = dossier?.segments.orEmpty().count { it.travelerIds == setOf(id) }
+            ConfirmModal(
+                title = "Take ${traveler.displayName} off this trip",
+                message = if (onlyTheirs == 0) {
+                    "Their name comes off every booking they share with the others."
+                } else {
+                    "$onlyTheirs booking" + (if (onlyTheirs == 1) " only they are on goes" else "s only they are on go") +
+                        " with them, and their name comes off the rest."
+                },
+                detail = "Their profile stays if they are on another trip.",
+                confirmLabel = "Remove",
+                onDismiss = { removingId = null },
+                onConfirm = {
+                    onRemoveTraveler(id)
+                    removingId = null
+                },
+            )
+        }
     }
 }
 
@@ -233,11 +282,35 @@ private fun zoneFor(state: TripUiState, millis: Long): String =
         ?: "UTC"
 
 @Composable
-private fun AddTravelerModal(onDismiss: () -> Unit, onAdd: (String, String?) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var nickname by remember { mutableStateOf("") }
+private fun AddTravelerModal(
+    others: List<Traveler>,
+    onDismiss: () -> Unit,
+    onAdd: (String, String?) -> Unit,
+    onAddExisting: (String) -> Unit,
+) {
+    var name by rememberSaveable { mutableStateOf("") }
+    var nickname by rememberSaveable { mutableStateOf("") }
 
     WaymarkModal(title = "Add traveler", eyebrow = "Party", onDismiss = onDismiss) {
+        // Somebody who has travelled with you before comes with their seat,
+        // their meal and their loyalty numbers already filled in.
+        if (others.isNotEmpty()) {
+            FieldLabel("Travelled with you before")
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
+            ) {
+                others.forEach { other ->
+                    OptionChip(
+                        text = other.displayName,
+                        selected = false,
+                        onClick = { onAddExisting(other.id) },
+                        leading = { PartyMark(initials = other.initials, size = 18.dp) },
+                    )
+                }
+            }
+            FieldLabel("Or someone new")
+        }
         WaymarkTextField(
             value = name,
             onValueChange = { name = it },

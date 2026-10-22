@@ -8,12 +8,13 @@ import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
 import com.waymark.domain.model.Place
+import com.waymark.domain.model.copyCommon
+import com.waymark.domain.model.normaliseParty
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
-import java.util.UUID
 
 /**
  * The list of things a trip wants to do, and the bridge from that list onto
@@ -35,7 +36,12 @@ class IdeaRepository(
 
     suspend fun saveAll(items: List<Idea>) = ideas.upsertAll(items.map(Mappers::toEntity))
 
-    suspend fun delete(ideaId: String) = ideas.delete(ideaId)
+    /** Returns what was removed, so the screen can offer it back. */
+    suspend fun delete(ideaId: String): Idea? {
+        val existing = find(ideaId) ?: return null
+        ideas.delete(ideaId)
+        return existing
+    }
 
     /** Add something the traveler typed rather than something the guide offered. */
     suspend fun add(
@@ -47,9 +53,11 @@ class IdeaRepository(
         place: Place? = null,
         typicalMinutes: Int? = null,
         interestedTravelerIds: Set<String> = emptySet(),
+        priceBand: com.waymark.domain.model.PriceBand? = null,
+        bestTime: String? = null,
     ): Idea {
         val idea = Idea(
-            id = newId(),
+            id = TripRepository.newId("idea"),
             tripId = tripId,
             title = title.trim(),
             kind = kind,
@@ -58,26 +66,25 @@ class IdeaRepository(
             note = note?.trim()?.ifBlank { null },
             typicalMinutes = typicalMinutes,
             interestedTravelerIds = interestedTravelerIds,
+            priceBand = priceBand,
+            bestTime = bestTime?.trim()?.ifBlank { null },
         )
         save(idea)
         return idea
     }
 
 
+    /**
+     * Done, not yet, or set aside. An idea that is on the timeline stays tied
+     * to its booking through all of it: marking it done does not orphan the
+     * booking, and "not yet" puts it back on the timeline where it still is,
+     * rather than on the list as though it had never been scheduled.
+     */
     suspend fun setStatus(ideaId: String, status: IdeaStatus) {
         val existing = find(ideaId) ?: return
-        save(
-            existing.copy(
-                status = status,
-                // Un-scheduling releases the link; the segment is dealt with
-                // separately by whoever removed it.
-                scheduledSegmentId = if (status == IdeaStatus.SCHEDULED) {
-                    existing.scheduledSegmentId
-                } else {
-                    null
-                },
-            )
-        )
+        val linked = existing.scheduledSegmentId?.takeIf { segments.find(it) != null }
+        val next = if (status == IdeaStatus.SAVED && linked != null) IdeaStatus.SCHEDULED else status
+        save(existing.copy(status = next, scheduledSegmentId = linked))
     }
 
     /** Pencil an idea in for a day, or rub the day out. */
@@ -114,7 +121,12 @@ class IdeaRepository(
             minutesOverride = minutesOverride,
         )
         database.withTransaction {
-            segments.upsert(Mappers.toEntity(segment))
+            val party = database.travelerDao().forTrip(idea.tripId).map { it.id }.toSet()
+            segments.upsert(
+                Mappers.toEntity(
+                    segment.copyCommon(travelerIds = normaliseParty(segment.travelerIds, party))
+                )
+            )
             ideas.upsert(
                 Mappers.toEntity(
                     idea.copy(
@@ -129,6 +141,4 @@ class IdeaRepository(
 
     /** A removed segment returns its idea to the list rather than deleting it. */
     suspend fun releaseSegment(segmentId: String) = ideas.releaseSegment(segmentId)
-
-    private fun newId(): String = "idea-${UUID.randomUUID()}"
 }

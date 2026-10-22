@@ -338,7 +338,6 @@ object SampleItinerary {
             startEpochMillis = segments.minOf { it.startEpochMillis },
             endEpochMillis = segments.maxOf { it.endEpochMillis },
             homeZoneId = pacific.id,
-            coverPlace = bloomsbury,
         )
 
         // A few things on the list with no date on them yet — the half of a

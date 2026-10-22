@@ -32,26 +32,9 @@ data class Idea(
     val interestedTravelerIds: Set<String> = emptySet(),
     val status: IdeaStatus = IdeaStatus.SAVED,
     val scheduledSegmentId: String? = null,
-    val source: String = SOURCE_TRAVELER,
     val addedAtMillis: Long = System.currentTimeMillis(),
 ) {
     val hasLocation: Boolean get() = place?.hasCoordinates == true
-
-    /** On the list with a day against it, but no booking behind it yet. */
-    val isPencilled: Boolean get() = plannedDate != null && status == IdeaStatus.SAVED
-
-    /**
-     * Something to look for rather than somewhere to go — a dish, a pastry, a
-     * local beer. It is a property of the idea, not a category of its own: an
-     * eating idea with an address is a restaurant, and one without is a thing
-     * to order wherever you end up.
-     */
-    val isPlaceless: Boolean get() = kind == IdeaKind.EAT && place == null
-
-    companion object {
-        const val SOURCE_TRAVELER = "Added by you"
-        const val SOURCE_GUIDE = "Bundled guide"
-    }
 }
 
 /**
@@ -109,7 +92,7 @@ enum class IdeaStatus {
     /** Seen, eaten, walked. */
     DONE,
 
-    /** Considered and declined — kept so it stops being suggested. */
+    /** Considered and set aside for this trip; kept, and hidden until asked for. */
     DISMISSED;
 
     val label: String

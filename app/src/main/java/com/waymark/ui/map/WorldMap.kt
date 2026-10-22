@@ -25,7 +25,9 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -64,11 +66,27 @@ fun WorldMap(
     routes: List<ChartRoute>,
     projection: MapProjection,
     modifier: Modifier = Modifier,
+    /** What the map shows, for a screen reader — the canvas itself says nothing. */
+    description: String? = null,
     onSelect: (String) -> Unit = {},
     overlay: @Composable BoxScope.() -> Unit = {},
 ) {
     val colors = Waymark.colors
     val measurer = rememberTextMeasurer()
+
+    // Everything that does not depend on where the map is looking is worked
+    // out once, not on every frame of a pinch: the labels' text layouts, and
+    // each leg's great circle in degrees.
+    val labels = remember(places, measurer) {
+        places.associate { it.id to measurer.measure(it.label, LABEL_STYLE) }
+    }
+    val legs = remember(routes) {
+        routes.map { route ->
+            route to if (route.flying) Geo.arc(route.from, route.to, ROUTE_SAMPLES) else listOf(route.from, route.to)
+        }
+    }
+    // One path, reset and refilled for every landmass and grid line.
+    val scratch = remember { Path() }
 
     val focus = remember(places, routes) {
         Geo.centroid(
@@ -94,6 +112,9 @@ fun WorldMap(
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
+                .then(
+                    if (description != null) Modifier.semantics { contentDescription = description } else Modifier
+                )
                 // Fit the trip once, on the first real layout — in the layout
                 // phase, not the draw phase, so the viewport is settled before
                 // anything is painted.
@@ -147,7 +168,7 @@ fun WorldMap(
                             }
                             .filter { (_, point) -> (point - tap).getDistance() < threshold }
                             .minByOrNull { (_, point) -> (point - tap).getDistance() }
-                            ?.let { onSelect(it.first.id) }
+                            ?.first?.segmentId?.let(onSelect)
                     }
                 }
         ) {
@@ -167,11 +188,12 @@ fun WorldMap(
 
             view.drawWater(this, colors.mapWater, colors.mapLand)
             view.clip(this) {
-                drawLand(view, colors.mapLand, colors.mapCoast)
-                drawGraticule(view, colors.mapGrid)
-                routes.forEach { route ->
+                drawLand(view, colors.mapLand, colors.mapCoast, scratch)
+                drawGraticule(view, colors.mapGrid, scratch)
+                legs.forEach { (route, samples) ->
                     drawRoute(
                         route = route,
+                        samples = samples,
                         view = view,
                         flight = colors.accentAmber,
                         ground = colors.accentSage,
@@ -181,7 +203,7 @@ fun WorldMap(
                 drawMarks(
                     places = places,
                     view = view,
-                    measurer = measurer,
+                    layouts = labels,
                     station = colors.accentAmber,
                     stay = colors.accentSage,
                     stop = colors.textDim,
@@ -363,7 +385,7 @@ private class GlobeView(
  * The land. Filled, because a coastline drawn as a line reads as a route, and
  * the whole point of the basemap is that it recedes.
  */
-private fun DrawScope.drawLand(view: MapView, fill: Color, coast: Color) {
+private fun DrawScope.drawLand(view: MapView, fill: Color, coast: Color, path: Path) {
     // At world scale every ring matters; zoomed in, the small islands are the
     // ones that cost the most and say the least.
     val minimum = if (view.worldFraction > 0.4f) 0 else 12
@@ -372,7 +394,7 @@ private fun DrawScope.drawLand(view: MapView, fill: Color, coast: Color) {
         if (ring.size < minimum) return@forEach
         runsOf(ring, view).forEach { run ->
             if (run.size < 3) return@forEach
-            val path = Path()
+            path.reset()
             run.forEachIndexed { index, point ->
                 if (index == 0) path.moveTo(point.x, point.y) else path.lineTo(point.x, point.y)
             }
@@ -383,7 +405,7 @@ private fun DrawScope.drawLand(view: MapView, fill: Color, coast: Color) {
             }
             path.close()
             drawPath(path, fill)
-            drawPath(path, coast, style = Stroke(width = 1f))
+            drawPath(path, coast, style = HAIRLINE)
         }
     }
 }
@@ -435,36 +457,31 @@ private fun closeAlongLimb(path: Path, view: GlobeView, from: Offset, to: Offset
     }
 }
 
-private fun DrawScope.drawGraticule(view: MapView, color: Color) {
-    val step = view.graticuleStep
+private fun DrawScope.drawGraticule(view: MapView, color: Color, path: Path) {
+    graticule(view.graticuleStep).forEach { line -> strokeSampled(line, view, color, path) }
+}
 
-    // Meridians run pole to pole; on a globe they curve, so both projections
-    // sample rather than drawing a straight line.
-    var lon = -180
-    while (lon <= 180) {
-        strokeMeridian(view, lon.toDouble(), color)
-        lon += step
+/**
+ * The grid at one spacing, sampled: meridians run pole to pole and parallels
+ * stop short of the poles, and on a globe both curve, so both projections
+ * sample rather than drawing a straight line. There are four spacings, each
+ * built the first time it is drawn and kept.
+ */
+private fun graticule(step: Int): List<List<LatLon>> = GRATICULES.getOrPut(step) {
+    val meridians = (-180..180 step step).map { lon ->
+        (-90..90 step 3).map { LatLon(it.toDouble(), lon.toDouble()) }
     }
-
-    var lat = -60
-    while (lat <= 60) {
-        strokeParallel(view, lat.toDouble(), color)
-        lat += step
+    val parallels = (-60..60 step step).map { lat ->
+        (-180..180 step 4).map { LatLon(lat.toDouble(), it.toDouble()) }
     }
+    meridians + parallels
 }
 
-private fun DrawScope.strokeMeridian(view: MapView, lon: Double, color: Color) {
-    val points = (-90..90 step 3).map { LatLon(it.toDouble(), lon) }
-    strokeSampled(points, view, color)
-}
+/** Drawn on the main thread only, so a plain map is enough. */
+private val GRATICULES = HashMap<Int, List<List<LatLon>>>()
 
-private fun DrawScope.strokeParallel(view: MapView, lat: Double, color: Color) {
-    val points = (-180..180 step 4).map { LatLon(lat, it.toDouble()) }
-    strokeSampled(points, view, color)
-}
-
-private fun DrawScope.strokeSampled(points: List<LatLon>, view: MapView, color: Color) {
-    val path = Path()
+private fun DrawScope.strokeSampled(points: List<LatLon>, view: MapView, color: Color, path: Path) {
+    path.reset()
     var started = false
     points.forEachIndexed { index, point ->
         if (!view.visible(point)) {
@@ -481,21 +498,17 @@ private fun DrawScope.strokeSampled(points: List<LatLon>, view: MapView, color: 
             path.lineTo(screen.x, screen.y)
         }
     }
-    drawPath(path, color, style = Stroke(width = 1f))
+    drawPath(path, color, style = HAIRLINE)
 }
 
 private fun DrawScope.drawRoute(
     route: ChartRoute,
+    samples: List<LatLon>,
     view: MapView,
     flight: Color,
     ground: Color,
     behind: Color,
 ) {
-    val samples = if (route.flying) {
-        Geo.arc(route.from, route.to, ROUTE_SAMPLES)
-    } else {
-        listOf(route.from, route.to)
-    }
     val width = 1.8.dp.toPx()
     val effect = if (route.flying) {
         null
@@ -550,7 +563,7 @@ private fun DrawScope.drawRoute(
 private fun DrawScope.drawMarks(
     places: List<ChartPlace>,
     view: MapView,
-    measurer: TextMeasurer,
+    layouts: Map<String, TextLayoutResult>,
     station: Color,
     stay: Color,
     stop: Color,
@@ -588,12 +601,9 @@ private fun DrawScope.drawMarks(
         }
     }
 
-    val style = TextStyle(fontSize = 10.sp, letterSpacing = 0.6.sp)
-    val layouts = onScreen.associate { it.place.id to measurer.measure(it.place.label, style) }
-
     val placements = LabelPlacer.place(
-        requests = onScreen.map { drawn ->
-            val layout = layouts.getValue(drawn.place.id)
+        requests = onScreen.mapNotNull { drawn ->
+            val layout = layouts[drawn.place.id] ?: return@mapNotNull null
             LabelPlacer.Request(
                 id = drawn.place.id,
                 anchorX = drawn.point.x,
@@ -641,6 +651,8 @@ private fun fitViewport(points: List<MapPoint>, size: Size): Pair<MapPoint, Floa
 }
 
 private const val ROUTE_SAMPLES = 72
+private val LABEL_STYLE = TextStyle(fontSize = 10.sp, letterSpacing = 0.6.sp)
+private val HAIRLINE = Stroke(width = 1f)
 private const val FLAT_MIN = 0.55f
 private const val FLAT_MAX = 400f
 private const val GLOBE_MIN = 1f

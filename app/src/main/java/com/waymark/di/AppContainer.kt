@@ -7,6 +7,7 @@ import com.waymark.data.catalog.Airports
 import com.waymark.data.catalog.Cities
 import com.waymark.data.catalog.CityDirectory
 import com.waymark.data.local.ReminderStore
+import com.waymark.data.local.ThemeStore
 import com.waymark.data.local.WaymarkDatabase
 import com.waymark.data.repo.AlertRepository
 import com.waymark.data.repo.IdeaRepository
@@ -30,10 +31,15 @@ class AppContainer(context: Context) {
 
     val reminderStore: ReminderStore by lazy { ReminderStore(appContext) }
 
+    val themeStore: ThemeStore by lazy { ThemeStore(appContext) }
+
     val tripRepository: TripRepository by lazy { TripRepository(database) }
     val alertRepository: AlertRepository by lazy { AlertRepository(database) }
     val ideaRepository: IdeaRepository by lazy { IdeaRepository(database) }
-    val seeder: SampleSeeder by lazy { SampleSeeder(tripRepository, ideaRepository) }
+    val seeder: SampleSeeder by lazy { SampleSeeder(database, tripRepository, ideaRepository) }
+
+    /** Requests from outside the app's own screens: a tapped reminder, a shared email, a file. */
+    val inbox: Inbox by lazy { Inbox() }
 
     /**
      * Read the world directory of stations into memory.

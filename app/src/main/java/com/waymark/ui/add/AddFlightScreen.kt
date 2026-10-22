@@ -257,7 +257,7 @@ fun AddFlightScreen(
             icon = WaymarkIcons.Check,
             onClick = {
                 viewModel.save {
-                    if (!reminders.granted) reminders.request()
+                    reminders.requestOnce()
                     onDone()
                 }
             },

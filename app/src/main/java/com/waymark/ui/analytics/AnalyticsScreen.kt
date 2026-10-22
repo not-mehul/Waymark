@@ -15,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waymark.domain.logic.Geo
-import com.waymark.domain.logic.LatLon
 import com.waymark.domain.logic.TimeText
 import com.waymark.domain.logic.TripAnalytics
 import com.waymark.domain.model.Segment
@@ -86,7 +85,7 @@ fun AnalyticsScreen(
                     label = "Countries",
                     emphasised = true,
                 )
-                Stat(value = report.timeZonesCrossed.toString(), label = "Time zones")
+                Stat(value = report.clockChanges.toString(), label = "Clock changes")
                 Stat(value = report.dayLoads.size.toString(), label = "Days")
             }
         }
@@ -230,11 +229,8 @@ fun AnalyticsScreen(
                                 segment.endEpochMillis,
                             ),
                             "${Geo.bearingDegrees(
-                                LatLon(segment.origin.latitude, segment.origin.longitude),
-                                LatLon(
-                                    segment.destination.latitude,
-                                    segment.destination.longitude,
-                                ),
+                                segment.origin.position!!,
+                                segment.destination.position!!,
                             ).toInt()}°",
                         ).joinToString("  ·  "),
                         style = Waymark.type.hint,

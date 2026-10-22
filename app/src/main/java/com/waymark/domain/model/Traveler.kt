@@ -10,8 +10,8 @@ data class Traveler(
     val nickname: String? = null,
     val seatPreference: SeatPreference = SeatPreference.NONE,
     val mealPreference: String? = null,
+    /** Frequent-flyer and hotel programme numbers, as printed: "BA 12345678". */
     val loyaltyRefs: List<String> = emptyList(),
-    val documentRef: String? = null,
     val contactPhone: String? = null,
 ) {
     val displayName: String get() = nickname ?: fullName

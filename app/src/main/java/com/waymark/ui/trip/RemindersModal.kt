@@ -29,15 +29,16 @@ import com.waymark.ui.theme.WaymarkSpacing
 /**
  * How far ahead of each kind of booking to be told about it.
  *
- * One row per category, each with the same row of lead times, because the
- * question is identical for all four and a control that changes shape between
- * rows would only make it look harder than it is. "Off" is the first choice
+ * One row per category, each with its row of lead times: the same nine for a
+ * booking starting, and a shorter list where only a few answers make sense —
+ * check-in opens a day or two ahead, and nobody wants a six-hour warning to
+ * leave for the airport. "Off" is the first choice
  * rather than a separate switch: switching a category off *is* choosing a lead
  * time, and giving it a toggle of its own would mean two controls that can
  * disagree.
  *
  * The permission notice sits at the top rather than beside a row, because it
- * governs all four: Android's answer is one answer for the app.
+ * governs every row: Android's answer is one answer for the app.
  */
 @Composable
 fun RemindersModal(
@@ -50,7 +51,7 @@ fun RemindersModal(
 
     WaymarkModal(
         title = "Reminders",
-        eyebrow = if (preferences.anyOn) "Before it starts" else "All off",
+        eyebrow = if (preferences.anyOn) "Before it happens" else "All off",
         onDismiss = onDismiss,
     ) {
         if (!permission.granted) {
@@ -98,13 +99,13 @@ fun RemindersModal(
             Spacer(Modifier.height(WaymarkSpacing.snug))
 
             // Nine choices do not fit across a phone, and wrapping them into
-            // three ragged rows per category makes four categories unreadable.
+            // three ragged rows per category makes six categories unreadable.
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.tight),
             ) {
-                items(Lead.CHOICES.size) { position ->
-                    val lead = Lead.CHOICES[position]
+                items(category.choices.size) { position ->
+                    val lead = category.choices[position]
                     OptionChip(
                         text = leadLabel(lead),
                         selected = preferences[category] == lead,
@@ -123,6 +124,8 @@ private fun leadLabel(lead: Lead): String =
 
 private fun iconFor(category: ReminderCategory) = when (category) {
     ReminderCategory.FLIGHTS -> WaymarkIcons.Plane
+    ReminderCategory.LEAVE -> WaymarkIcons.Clock
+    ReminderCategory.CHECK_IN -> WaymarkIcons.Ticket
     ReminderCategory.GROUND -> WaymarkIcons.Train
     ReminderCategory.BOOKINGS -> WaymarkIcons.Ticket
     ReminderCategory.STAYS -> WaymarkIcons.Bed

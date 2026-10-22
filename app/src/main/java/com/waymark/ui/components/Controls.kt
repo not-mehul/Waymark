@@ -263,6 +263,8 @@ fun NoticeBanner(
     modifier: Modifier = Modifier,
     critical: Boolean = false,
     onClick: (() -> Unit)? = null,
+    /** Shows a close control; the banner itself does not remember being closed. */
+    onDismiss: (() -> Unit)? = null,
 ) {
     val colors = Waymark.colors
     Row(
@@ -290,7 +292,10 @@ fun NoticeBanner(
             tint = if (critical) colors.danger else colors.accentBright,
             size = 17.dp,
         )
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
             Text(
                 text = headline,
                 style = Waymark.type.bodySmall,
@@ -300,5 +305,53 @@ fun NoticeBanner(
                 Text(text = it, style = Waymark.type.hint, color = colors.textDim)
             }
         }
+        onDismiss?.let {
+            GhostIconButton(
+                icon = WaymarkIcons.Close,
+                contentDescription = "Dismiss",
+                onClick = it,
+                modifier = Modifier.size(28.dp),
+            )
+        }
+    }
+}
+
+/**
+ * "Removed — Undo", along the foot of the screen for a few seconds after
+ * something is deleted. Cheaper than a confirmation for things that are easy
+ * to recreate, and kinder than neither.
+ */
+@Composable
+fun UndoBar(
+    message: String,
+    onUndo: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = Waymark.colors
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(WaymarkShapes.panel)
+            .background(colors.modal)
+            .border(1.dp, colors.amber(0.35f), WaymarkShapes.panel)
+            .padding(horizontal = WaymarkSpacing.small, vertical = WaymarkSpacing.snug),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.small),
+    ) {
+        Text(
+            text = message,
+            style = Waymark.type.bodySmall,
+            color = colors.textBody,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = "Undo",
+            style = Waymark.type.control,
+            color = colors.accentAmber,
+            modifier = Modifier
+                .clip(WaymarkShapes.control)
+                .clickable(role = Role.Button, onClick = onUndo)
+                .padding(horizontal = WaymarkSpacing.small, vertical = WaymarkSpacing.tight),
+        )
     }
 }

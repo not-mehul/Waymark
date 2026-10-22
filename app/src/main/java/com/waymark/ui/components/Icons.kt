@@ -349,16 +349,107 @@ object WaymarkIcons {
         lineTo(9.5f, 19f)
     }
 
-    val ChevronUp: ImageVector = stroked("chevron-up") {
-        moveTo(5f, 14.5f)
-        lineTo(12f, 7.5f)
-        lineTo(19f, 14.5f)
+    /** A box with its lid on: a trip put away. */
+    val Archive: ImageVector = stroked("archive") {
+        moveTo(3f, 4f)
+        lineTo(21f, 4f)
+        lineTo(21f, 8f)
+        lineTo(3f, 8f)
+        close()
+        moveTo(5f, 8f)
+        lineTo(5f, 20f)
+        lineTo(19f, 20f)
+        lineTo(19f, 8f)
+        moveTo(10f, 12f)
+        lineTo(14f, 12f)
     }
 
-    val ChevronDown: ImageVector = stroked("chevron-down") {
-        moveTo(5f, 9.5f)
-        lineTo(12f, 16.5f)
-        lineTo(19f, 9.5f)
+    /** Down into a tray: saving a copy somewhere. The mirror of [Share]. */
+    val Download: ImageVector = stroked("download") {
+        moveTo(12f, 3.5f)
+        lineTo(12f, 15f)
+        moveTo(7.5f, 10.5f)
+        lineTo(12f, 15f)
+        lineTo(16.5f, 10.5f)
+        moveTo(5f, 12.5f)
+        lineTo(5f, 20.5f)
+        lineTo(19f, 20.5f)
+        lineTo(19f, 12.5f)
+    }
+
+    /** Three finder squares and a scatter: a trip as a code. */
+    val QrCode: ImageVector = stroked("qr-code") {
+        moveTo(4f, 4f)
+        lineTo(10f, 4f)
+        lineTo(10f, 10f)
+        lineTo(4f, 10f)
+        close()
+        moveTo(14f, 4f)
+        lineTo(20f, 4f)
+        lineTo(20f, 10f)
+        lineTo(14f, 10f)
+        close()
+        moveTo(4f, 14f)
+        lineTo(10f, 14f)
+        lineTo(10f, 20f)
+        lineTo(4f, 20f)
+        close()
+        moveTo(14f, 14f)
+        lineTo(16f, 14f)
+        moveTo(20f, 14f)
+        lineTo(20f, 16f)
+        moveTo(14f, 18f)
+        lineTo(14f, 20f)
+        lineTo(20f, 20f)
+    }
+
+    /** Three ruled lines with markers: the map read as a list. */
+    val List: ImageVector = stroked("list") {
+        moveTo(9f, 6f)
+        lineTo(20f, 6f)
+        moveTo(9f, 12f)
+        lineTo(20f, 12f)
+        moveTo(9f, 18f)
+        lineTo(20f, 18f)
+        moveTo(4f, 6f)
+        lineTo(4.01f, 6f)
+        moveTo(4f, 12f)
+        lineTo(4.01f, 12f)
+        moveTo(4f, 18f)
+        lineTo(4.01f, 18f)
+    }
+
+    /** Viewfinder corners across a line: reading a boarding pass. */
+    val Scan: ImageVector = stroked("scan") {
+        moveTo(3f, 8f)
+        lineTo(3f, 3f)
+        lineTo(8f, 3f)
+        moveTo(16f, 3f)
+        lineTo(21f, 3f)
+        lineTo(21f, 8f)
+        moveTo(21f, 16f)
+        lineTo(21f, 21f)
+        lineTo(16f, 21f)
+        moveTo(8f, 21f)
+        lineTo(3f, 21f)
+        lineTo(3f, 16f)
+        moveTo(7f, 12f)
+        lineTo(17f, 12f)
+    }
+
+    /** A clipboard: text pasted in from somewhere else. */
+    val Clipboard: ImageVector = stroked("clipboard") {
+        moveTo(9f, 4.5f)
+        lineTo(6f, 4.5f)
+        lineTo(6f, 21f)
+        lineTo(18f, 21f)
+        lineTo(18f, 4.5f)
+        lineTo(15f, 4.5f)
+        moveTo(9f, 3f)
+        lineTo(15f, 3f)
+        lineTo(15f, 6.5f)
+        lineTo(9f, 6.5f)
+        close()
     }
 
     val ArrowLeft: ImageVector = stroked("arrow-left") {
@@ -466,29 +557,6 @@ object WaymarkIcons {
         lineTo(7f, 20f)
         lineTo(17f, 20f)
         lineTo(18f, 7f)
-    }
-
-    /**
-     * The mark used for the app itself: a surveyor's north needle.
-     *
-     * Two long triangles meeting on a vertical axis — the figure at the centre
-     * of every compass rose ever printed on a chart, and the oldest way there
-     * is of drawing "this way". It is one closed outline and one line, which
-     * is as few strokes as a navigational mark can be made of, and it holds up
-     * at 18dp in a menu and at 108dp on a home screen without redrawing.
-     *
-     * It replaces a needle inside a ring: at icon size the ring and the needle
-     * competed, and the launcher version of it had the ring centred a third of
-     * the way up the canvas, so the two halves of the mark did not even meet.
-     */
-    val Waymark: ImageVector = stroked("waymark") {
-        moveTo(12f, 3f)
-        lineTo(18.5f, 16f)
-        lineTo(12f, 21f)
-        lineTo(5.5f, 16f)
-        close()
-        moveTo(12f, 3f)
-        lineTo(12f, 21f)
     }
 
     private fun stroked(name: String, path: PathBuilder.() -> Unit): ImageVector =

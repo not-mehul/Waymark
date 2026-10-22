@@ -15,22 +15,29 @@ import com.waymark.domain.model.chronological
  */
 object Whereabouts {
 
-    fun at(segments: List<Segment>, atMillis: Long): Place? {
+    /**
+     * Where the trip is at [atMillis], or — before anything has happened —
+     * where it is about to start: the best guess for resolving a place.
+     */
+    fun at(segments: List<Segment>, atMillis: Long): Place? =
+        before(segments, atMillis) ?: segments.chronological().firstOrNull()?.origin
+
+    /**
+     * Where the trip is known to be at [atMillis]: inside a stay or a booked
+     * visit, or wherever the last thing before it ended. Null before anything
+     * has happened, when "where the traveler is" is genuinely not known.
+     */
+    fun before(segments: List<Segment>, atMillis: Long): Place? {
         val ordered = segments.chronological()
 
-        // Inside a stay or a booked visit: there.
         ordered.lastOrNull { segment ->
             (segment is Segment.Lodging || segment is Segment.Experience) &&
                 atMillis in segment.startEpochMillis..segment.endEpochMillis
         }?.let { return it.origin }
 
-        // Otherwise wherever the last thing before it ended...
-        ordered.filter { it.endEpochMillis <= atMillis }
+        return ordered.filter { it.endEpochMillis <= atMillis }
             .maxByOrNull { it.endEpochMillis }
-            ?.let { return it.destination }
-
-        // ...or, before anything has happened, where the first thing starts.
-        return ordered.firstOrNull()?.origin
+            ?.destination
     }
 
     fun zoneIdAt(segments: List<Segment>, atMillis: Long, fallback: String): String =
@@ -38,5 +45,5 @@ object Whereabouts {
 
     /** A position to rank same-named cities against, when the place has one. */
     fun positionAt(segments: List<Segment>, atMillis: Long): LatLon? =
-        at(segments, atMillis)?.takeIf { it.hasCoordinates }?.let { LatLon(it.latitude, it.longitude) }
+        at(segments, atMillis)?.position
 }

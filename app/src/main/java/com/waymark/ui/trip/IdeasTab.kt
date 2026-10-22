@@ -1,5 +1,6 @@
 package com.waymark.ui.trip
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,10 +17,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.waymark.domain.logic.TimeText
@@ -56,14 +58,15 @@ fun IdeasTab(
     onToggleInterest: (String, String) -> Unit,
     onDelete: (String) -> Unit,
     onSchedule: (Idea) -> Unit,
-    onAddIdea: (String, IdeaKind, String, String?) -> Unit,
+    onAddIdea: (IdeaDraft) -> Unit,
     onPencilDay: (String, LocalDate?) -> Unit,
-    tripDays: List<LocalDate>,
+    onShowDismissed: (Boolean) -> Unit,
 ) {
     val colors = Waymark.colors
-    var composing by remember { mutableStateOf(false) }
-    var grouping by remember { mutableStateOf(IdeaGrouping.KIND) }
+    var composing by rememberSaveable { mutableStateOf(false) }
+    var grouping by rememberSaveable { mutableStateOf(IdeaGrouping.KIND) }
     val party = state.dossier?.party?.travelers.orEmpty()
+    val tripDays = state.tripDays
 
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
@@ -193,6 +196,23 @@ fun IdeasTab(
             }
         }
 
+        if (state.ideaTally.dismissed > 0) {
+            item {
+                Text(
+                    text = if (state.showDismissed) {
+                        "Hide what was set aside"
+                    } else {
+                        "Show ${state.ideaTally.dismissed} set aside"
+                    },
+                    style = Waymark.type.control,
+                    color = colors.textDim,
+                    modifier = Modifier
+                        .padding(vertical = WaymarkSpacing.tight)
+                        .clickable(role = Role.Button) { onShowDismissed(!state.showDismissed) },
+                )
+            }
+        }
+
         if (state.ideaSections.isEmpty()) {
             item {
                 Panel(faint = true, modifier = Modifier.fillMaxWidth()) {
@@ -222,8 +242,8 @@ fun IdeasTab(
         AddIdeaModal(
             cities = state.cities,
             onDismiss = { composing = false },
-            onAdd = { title, kind, city, note ->
-                onAddIdea(title, kind, city, note)
+            onAdd = { draft ->
+                onAddIdea(draft)
                 composing = false
             },
         )
@@ -244,7 +264,8 @@ private fun IdeaCard(
     val colors = Waymark.colors
     val done = idea.status == IdeaStatus.DONE
     val scheduled = idea.status == IdeaStatus.SCHEDULED
-    var expanded by remember(idea.id) { mutableStateOf(false) }
+    val setAside = idea.status == IdeaStatus.DISMISSED
+    var expanded by rememberSaveable(idea.id) { mutableStateOf(false) }
 
     Panel(
         modifier = Modifier.fillMaxWidth(),
@@ -271,20 +292,21 @@ private fun IdeaCard(
                     style = Waymark.type.cardTitle.copy(
                         textDecoration = if (done) TextDecoration.LineThrough else null,
                     ),
-                    color = if (done) colors.textFaint else colors.textHeading,
+                    color = if (done || setAside) colors.textFaint else colors.textHeading,
                 )
                 Text(
                     text = listOfNotNull(
                         idea.city.ifBlank { null },
                         idea.place?.address,
                         idea.priceBand?.label,
-                        idea.typicalMinutes?.let { "${it}m" },
+                        idea.typicalMinutes?.let { TimeText.duration(it) },
                     ).joinToString("  ·  "),
                     style = Waymark.type.dataSmall,
                     color = colors.textDim,
                 )
             }
             when {
+                setAside -> FieldLabel("Not this trip", color = colors.textFaint)
                 scheduled -> FieldLabel("On the timeline", color = colors.accentSage)
                 idea.plannedDate != null -> FieldLabel(
                     TimeText.dayCompact(idea.plannedDate),
@@ -359,21 +381,40 @@ private fun IdeaCard(
             }
 
             Spacer(Modifier.height(WaymarkSpacing.small))
-            Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
-                if (!scheduled) {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
+            ) {
+                if (setAside) {
                     MutedButton(
-                        text = "Schedule",
-                        icon = WaymarkIcons.Clock,
-                        onClick = { onSchedule(idea) },
+                        text = "Bring it back",
+                        icon = WaymarkIcons.Plus,
+                        onClick = { onSetStatus(idea.id, IdeaStatus.SAVED) },
                     )
+                } else {
+                    if (!scheduled) {
+                        MutedButton(
+                            text = "Schedule",
+                            icon = WaymarkIcons.Clock,
+                            onClick = { onSchedule(idea) },
+                        )
+                    }
+                    MutedButton(
+                        text = if (done) "Not yet" else "Done",
+                        icon = WaymarkIcons.Check,
+                        onClick = {
+                            onSetStatus(idea.id, if (done) IdeaStatus.SAVED else IdeaStatus.DONE)
+                        },
+                    )
+                    if (!scheduled && !done) {
+                        MutedButton(
+                            text = "Not this trip",
+                            icon = WaymarkIcons.Archive,
+                            onClick = { onSetStatus(idea.id, IdeaStatus.DISMISSED) },
+                        )
+                    }
                 }
-                MutedButton(
-                    text = if (done) "Not yet" else "Done",
-                    icon = WaymarkIcons.Check,
-                    onClick = {
-                        onSetStatus(idea.id, if (done) IdeaStatus.SAVED else IdeaStatus.DONE)
-                    },
-                )
+                // Removed at once, with an undo along the foot of the screen.
                 GhostIconButton(
                     icon = WaymarkIcons.Trash,
                     contentDescription = "Remove ${idea.title}",

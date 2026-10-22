@@ -54,6 +54,8 @@ class TransitAndTimeTest {
         val unknown = Place(name = "Somewhere")
         val estimate = TransitEstimator.estimate(bloomsbury, unknown, GroundMode.TAXI)
         assertEquals(TransitEstimate.Confidence.LOW, estimate.confidence)
+        // Unknown is not "the far side of the world": no travel time is invented.
+        assertEquals(0, estimate.travelMinutes)
     }
 
     @Test

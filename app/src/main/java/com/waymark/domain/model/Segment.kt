@@ -183,3 +183,62 @@ fun <T : Segment> List<T>.chronological(): List<T> = sortedWith(
 
 fun Segment.involves(travelerId: String): Boolean =
     travelerIds.isEmpty() || travelerId in travelerIds
+
+/**
+ * A copy with the fields every kind shares replaced.
+ *
+ * `Segment` is a sealed class of four data classes with no common `copy`, so
+ * anything that changes a booking without caring what kind it is — its times,
+ * its party, its reference, the trip it belongs to — goes through here rather
+ * than repeating the same four-way `when` at every call site.
+ */
+fun Segment.copyCommon(
+    id: String = this.id,
+    tripId: String = this.tripId,
+    startEpochMillis: Long = this.startEpochMillis,
+    endEpochMillis: Long = this.endEpochMillis,
+    startZoneId: String = this.startZoneId,
+    endZoneId: String = this.endZoneId,
+    travelerIds: Set<String> = this.travelerIds,
+    confirmationCode: String? = this.confirmationCode,
+    bookedWith: String? = this.bookedWith,
+    note: String? = this.note,
+): Segment = when (this) {
+    is Segment.Flight -> copy(
+        id = id, tripId = tripId,
+        startEpochMillis = startEpochMillis, endEpochMillis = endEpochMillis,
+        startZoneId = startZoneId, endZoneId = endZoneId, travelerIds = travelerIds,
+        confirmationCode = confirmationCode, bookedWith = bookedWith, note = note,
+    )
+
+    is Segment.Lodging -> copy(
+        id = id, tripId = tripId,
+        startEpochMillis = startEpochMillis, endEpochMillis = endEpochMillis,
+        startZoneId = startZoneId, endZoneId = endZoneId, travelerIds = travelerIds,
+        confirmationCode = confirmationCode, bookedWith = bookedWith, note = note,
+    )
+
+    is Segment.Ground -> copy(
+        id = id, tripId = tripId,
+        startEpochMillis = startEpochMillis, endEpochMillis = endEpochMillis,
+        startZoneId = startZoneId, endZoneId = endZoneId, travelerIds = travelerIds,
+        confirmationCode = confirmationCode, bookedWith = bookedWith, note = note,
+    )
+
+    is Segment.Experience -> copy(
+        id = id, tripId = tripId,
+        startEpochMillis = startEpochMillis, endEpochMillis = endEpochMillis,
+        startZoneId = startZoneId, endZoneId = endZoneId, travelerIds = travelerIds,
+        confirmationCode = confirmationCode, bookedWith = bookedWith, note = note,
+    )
+}
+
+/**
+ * The party on a booking, in the form it is stored: everyone on the trip is
+ * written as nobody in particular, so a traveler added later is on it too.
+ * Ids of people no longer on the trip are dropped.
+ */
+fun normaliseParty(travelerIds: Set<String>, party: Set<String>): Set<String> {
+    val known = travelerIds intersect party
+    return if (known.isEmpty() || known == party) emptySet() else known
+}

@@ -3,6 +3,7 @@ package com.waymark.ui.trip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +28,7 @@ import com.waymark.ui.components.StepQuestion
 import com.waymark.ui.components.TimeField
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.components.WaymarkTextField
+import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
 import java.io.Serializable
 import java.time.LocalDate
@@ -71,6 +73,7 @@ fun AddPlanFlow(
     party: List<Traveler>,
     defaultDate: LocalDate,
     contextFor: (LocalDate) -> PlanContext,
+    isValid: (PlanDraft) -> Boolean,
     onDismiss: () -> Unit,
     onSave: (PlanDraft) -> Unit,
 ) {
@@ -336,10 +339,18 @@ fun AddPlanFlow(
                     singleLine = false,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                val valid = isValid(draft)
+                if (!valid) {
+                    Text(
+                        text = "It ends before it starts. Go back a step and check the times.",
+                        style = Waymark.type.hint,
+                        color = Waymark.colors.danger,
+                    )
+                }
                 StepFooter(
                     onBack = { step = 2 },
                     forwardLabel = "Add",
-                    forwardEnabled = draft.named,
+                    forwardEnabled = draft.named && valid,
                     finishing = true,
                     onForward = { onSave(draft) },
                 )

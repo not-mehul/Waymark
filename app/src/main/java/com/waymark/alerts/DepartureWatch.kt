@@ -7,26 +7,16 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.waymark.WaymarkApplication
-import com.waymark.data.local.Mappers
-import com.waymark.domain.logic.ReminderPlanner
-import com.waymark.domain.model.DisruptionAlert
+import kotlinx.coroutines.CancellationException
 import java.util.concurrent.TimeUnit
 
 /**
- * The one thing a travel app can honestly tell you without a network: that
- * something you booked is about to happen.
+ * The safety net under [ReminderAlarm].
  *
- * Waymark has no feed to poll, so this worker does not go looking for delays —
- * it reads the clock against the itinerary already on the device and posts a
- * reminder as each booking comes into range. It used to do that for flights
- * only, which made "reminders" a promise the app kept for a quarter of what it
- * stored: a Eurostar, a hotel check-in and a booked table all passed unremarked.
- * Every kind of booking is watched now, each on its own lead time, and any of
- * them can be switched off.
- *
- * The deciding is in [ReminderPlanner], which is plain Kotlin and tested. What
- * is left here is the plumbing: read the window, ask what is due, and post the
- * ones that have not been posted before.
+ * Reminders are raised on time by an alarm set for the next one. This worker
+ * runs the same check every fifteen minutes anyway — WorkManager's floor — so
+ * an alarm lost to a reboot, a force-stop or a clock change is put back within
+ * a quarter of an hour, and survives anything WorkManager survives.
  */
 class DepartureWatchWorker(
     context: Context,
@@ -36,38 +26,13 @@ class DepartureWatchWorker(
     override suspend fun doWork(): Result {
         val container = (applicationContext as? WaymarkApplication)?.container
             ?: return Result.success()
-
-        val preferences = container.reminderStore.current()
-        val lookAhead = ReminderPlanner.lookAheadMillis(preferences)
-        if (lookAhead <= 0L) return Result.success()
-
-        return runCatching {
-            val now = System.currentTimeMillis()
-            val segments = container.database.segmentDao()
-                .startingInWindow(fromMillis = now, toMillis = now + lookAhead)
-                .map(Mappers::toSegment)
-
-            ReminderPlanner.due(segments, preferences, now).forEach { reminder ->
-                val alert = DisruptionAlert(
-                    segmentId = reminder.segmentId,
-                    label = reminder.label,
-                    headline = reminder.headline,
-                    detail = reminder.detail,
-                    severity = DisruptionAlert.Severity.NOTICE,
-                    raisedAtMillis = now,
-                )
-                // Only mark alert as raised if notification posts successfully.
-                // This prevents silent failures when permission is denied or Doze delays the worker.
-                container.alertRepository
-                    .raiseOnce(reminder.signature, alert, now)
-                    ?.takeIf { Notifications.post(applicationContext, it) }
-            }
+        return try {
+            ReminderCheck.run(applicationContext, container)
             Result.success()
-        }.getOrElse { throwable ->
-            // Retry on exception, but don't retry on cancellation (which is normal shutdown)
-            if (throwable is kotlinx.coroutines.CancellationException) {
-                throw throwable
-            }
+        } catch (cancelled: CancellationException) {
+            // Stopped by WorkManager: not a failure to retry.
+            throw cancelled
+        } catch (error: Exception) {
             Result.retry()
         }
     }
@@ -77,11 +42,6 @@ object DepartureWatch {
 
     private const val WORK_NAME = "waymark.departure-watch"
 
-    /**
-     * Every fifteen minutes, which is WorkManager's floor for periodic work and
-     * the reason the shortest lead time offered is also fifteen minutes: a
-     * reminder cannot be more punctual than the check that raises it.
-     */
     fun schedule(context: Context) {
         // No constraints at all: this reads local storage and the clock, so
         // there is nothing to wait for — not a network, not a charger.
@@ -89,12 +49,10 @@ object DepartureWatch {
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             WORK_NAME,
-            // REPLACE rather than KEEP: the period changed from thirty minutes
-            // to fifteen, and an install that already has the old request
-            // enqueued would otherwise keep it forever.
+            // UPDATE rather than KEEP, so a change to the request in a new
+            // version replaces the one an existing install already enqueued.
             ExistingPeriodicWorkPolicy.UPDATE,
             request,
         )
     }
-
 }

@@ -27,12 +27,21 @@ enum class LinkNature {
 sealed interface TimelineEntry {
     val sortKey: Long
 
+    /**
+     * Unique within one timeline and stable across rebuilds — what a list keys
+     * its rows on. A date can head the column twice: fly home across the date
+     * line and the evening you left comes round again.
+     */
+    val key: String
+
     data class DayBreak(
         val date: LocalDate,
         val headline: String,
         val zoneLabel: String,
         override val sortKey: Long,
-    ) : TimelineEntry
+    ) : TimelineEntry {
+        override val key: String get() = "day:$date@$sortKey"
+    }
 
     data class Event(
         val segment: Segment,
@@ -43,6 +52,7 @@ sealed interface TimelineEntry {
         override val sortKey: Long,
     ) : TimelineEntry {
         val id: String get() = "${segment.id}:${role.name}"
+        override val key: String get() = id
     }
 
     data class Link(
@@ -55,9 +65,12 @@ sealed interface TimelineEntry {
         override val sortKey: Long,
     ) : TimelineEntry {
         val id: String get() = "link:${fromSegment.id}:${toSegment.id}"
+        override val key: String get() = id
     }
 
-    data class Now(val label: String, override val sortKey: Long) : TimelineEntry
+    data class Now(val label: String, override val sortKey: Long) : TimelineEntry {
+        override val key: String get() = "now"
+    }
 }
 
 /**

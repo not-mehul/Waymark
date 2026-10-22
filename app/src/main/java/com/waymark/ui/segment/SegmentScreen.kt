@@ -17,9 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waymark.data.catalog.Countries
-import com.waymark.domain.logic.ConnectionRisk
 import com.waymark.domain.logic.Geo
 import com.waymark.domain.logic.TimeText
+import com.waymark.domain.logic.TimelineBuilder
+import com.waymark.domain.logic.TimelineEntry
 import com.waymark.domain.logic.TransitEstimator
 import com.waymark.domain.model.Segment
 import com.waymark.ui.components.FieldLabel
@@ -239,7 +240,13 @@ fun SegmentScreen(
             }
         }
 
-        ConnectionPanel(segment, state.dossier?.segments.orEmpty())
+        val dossier = state.dossier
+        val link = remember(dossier, segment.id) {
+            dossier?.let { trip ->
+                TimelineBuilder.links(trip.segments, trip).firstOrNull { it.toSegment.id == segment.id }
+            }
+        }
+        ConnectionPanel(link)
 
         Countries.of(segment.destination)?.let { country ->
             Footnote(
@@ -295,7 +302,9 @@ private fun SpecificsPanel(
             segment.aircraft?.let { add("Aircraft" to it) }
             segment.cabin?.let { add("Cabin" to it) }
             segment.departureTerminal?.let { add("Departure terminal" to it) }
+            segment.departureGate?.let { add("Departure gate" to it) }
             segment.arrivalTerminal?.let { add("Arrival terminal" to it) }
+            segment.arrivalGate?.let { add("Arrival gate" to it) }
             segment.seats.forEach { (travelerId, seat) ->
                 val who = travelers.firstOrNull { it.id == travelerId }?.displayName ?: "Seat"
                 add("$who's seat" to seat)
@@ -318,7 +327,7 @@ private fun SpecificsPanel(
         is Segment.Experience -> buildList {
             add("Category" to segment.category)
             segment.origin.address?.let { add("Address" to it) }
-            segment.curatedBy?.let { add("Notes" to it) }
+            segment.curatedBy?.let { add("Tips" to it) }
         }
     }
     if (rows.isEmpty()) return
@@ -337,24 +346,33 @@ private fun SpecificsPanel(
     }
 }
 
-/** What happens either side of this booking, and whether it actually works. */
+/**
+ * How the traveler gets to this booking from whatever they were doing before,
+ * and whether that works.
+ *
+ * "Before" is each traveler's own previous booking, not merely the previous
+ * row of the trip: when the party is split, the booking just above this one
+ * may be somebody else's. Where the party agrees on what comes before, that
+ * is the connection; where they do not, there is no single connection to
+ * judge and nothing is shown — the same rule the timeline draws by.
+ */
 @Composable
-private fun ConnectionPanel(segment: Segment, all: List<Segment>) {
+private fun ConnectionPanel(link: TimelineEntry.Link?) {
+    if (link == null) return
     val colors = Waymark.colors
-    val ordered = all.sortedBy { it.startEpochMillis }
-    val index = ordered.indexOfFirst { it.id == segment.id }
-    if (index <= 0) return
-    val previous = ordered[index - 1]
-    if (previous is Segment.Lodging || segment is Segment.Lodging) return
-
-    val gapMinutes = ((segment.startEpochMillis - previous.endEpochMillis) / 60_000L).toInt()
-    val verdict = if (previous is Segment.Flight && segment is Segment.Flight) {
-        ConnectionRisk.assess(inbound = previous, onward = segment)
-    } else {
-        ConnectionRisk.assessGap(previous.destination, segment.origin, gapMinutes)
-    }
+    val previous = link.fromSegment
+    val segment = link.toSegment
 
     SectionHeader("Getting here")
+    val verdict = link.verdict
+    if (verdict == null) {
+        NoticeBanner(
+            icon = WaymarkIcons.Coffee,
+            headline = "${TimeText.duration(link.gapMinutes)} free before this",
+            detail = "After ${previous.title}, nothing booked and nowhere else to be.",
+        )
+        return
+    }
     NoticeBanner(
         icon = WaymarkIcons.Clock,
         headline = "${verdict.level.label} · ${TimeText.duration(verdict.availableMinutes)} " +
@@ -363,9 +381,7 @@ private fun ConnectionPanel(segment: Segment, all: List<Segment>) {
         critical = verdict.slackMinutes < 0,
     )
 
-    if (previous.destination.hasCoordinates && segment.origin.hasCoordinates &&
-        previous.destination.name != segment.origin.name
-    ) {
+    if (link.estimate != null) {
         Spacer(Modifier.height(WaymarkSpacing.snug))
         Panel(faint = true, modifier = Modifier.fillMaxWidth()) {
             SectionLabel("Ways across")

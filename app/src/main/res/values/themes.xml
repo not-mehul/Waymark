@@ -2,13 +2,15 @@
 <resources>
     <!--
         The platform theme exists only for the window between process start and
-        the first Compose frame. Its colours mirror the Dusk tokens so the
-        launch does not flash a stock grey.
+        the first Compose frame. Its colours mirror the Dawn tokens here and the
+        Dusk tokens in values-night, so neither theme opens on the other's
+        colour. On Android 12 and later the app hands its own Dusk/Dawn choice
+        to the system, which picks between the two.
     -->
-    <style name="Theme.Waymark" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@color/window_dusk</item>
+    <style name="Theme.Waymark" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_dawn</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

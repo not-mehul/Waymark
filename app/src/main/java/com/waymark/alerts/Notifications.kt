@@ -14,7 +14,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import com.waymark.MainActivity
 import com.waymark.R
-import com.waymark.domain.model.DisruptionAlert
+import com.waymark.domain.model.RaisedReminder
 
 /**
  * The app's whole notification surface: one channel, one kind of message.
@@ -59,27 +59,32 @@ object Notifications {
         listOf("waymark.disruption", "waymark.updates").forEach(manager::deleteNotificationChannel)
     }
 
-    fun post(context: Context, alert: DisruptionAlert): Boolean {
-        if (!granted(context)) {
-            return false
-        }
-
+    /**
+     * Show one reminder. False when Android would not show it — notifications
+     * are blocked — so the caller can leave it unposted and try again later.
+     * Each reminder has its own notification, keyed on its signature, so a
+     * flight's check-in reminder and its departure reminder do not replace
+     * each other.
+     */
+    fun post(context: Context, reminder: RaisedReminder, tripId: String): Boolean {
+        if (!granted(context)) return false
+        val notification = NotificationCompat.Builder(context, CHANNEL_DEPARTURES)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(reminder.headline)
+            .setContentText(reminder.detail)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(reminder.detail))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setWhen(reminder.startEpochMillis)
+            .setShowWhen(true)
+            .setContentIntent(openBooking(context, tripId, reminder.segmentId))
+            .setAutoCancel(true)
+            .build()
         return try {
-            val notification = NotificationCompat.Builder(context, CHANNEL_DEPARTURES)
-                .setSmallIcon(R.drawable.ic_notification)
-                .setContentTitle(alert.headline)
-                .setContentText(alert.detail)
-                .setStyle(NotificationCompat.BigTextStyle().bigText(alert.detail))
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setCategory(NotificationCompat.CATEGORY_REMINDER)
-                .setContentIntent(openApp(context))
-                .setAutoCancel(true)
-                .build()
-
-            NotificationManagerCompat.from(context)
-                .notify(alert.segmentId.hashCode(), notification)
+            NotificationManagerCompat.from(context).notify(reminder.signature.hashCode(), notification)
             true
-        } catch (e: Exception) {
+        } catch (denied: SecurityException) {
+            // Revoked between the check and the post.
             false
         }
     }
@@ -97,13 +102,16 @@ object Notifications {
     fun needsRequest(context: Context): Boolean =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !granted(context)
 
-    /** Tapping the reminder opens the app rather than dismissing into nothing. */
-    private fun openApp(context: Context): PendingIntent {
+    /** Tapping a reminder opens the booking it is about, inside its trip. */
+    private fun openBooking(context: Context, tripId: String, segmentId: String): PendingIntent {
         val intent = Intent(context, MainActivity::class.java)
+            .setAction(MainActivity.ACTION_OPEN_BOOKING)
+            .putExtra(MainActivity.EXTRA_TRIP_ID, tripId)
+            .putExtra(MainActivity.EXTRA_SEGMENT_ID, segmentId)
             .setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         return PendingIntent.getActivity(
             context,
-            0,
+            segmentId.hashCode(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )

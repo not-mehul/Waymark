@@ -18,7 +18,7 @@ internal object Codecs {
     fun encodePlace(place: Place?): String = place?.let {
         listOf(
             it.name, it.code.orEmpty(), it.city, it.country,
-            it.latitude.toString(), it.longitude.toString(),
+            it.latitude?.toString().orEmpty(), it.longitude?.toString().orEmpty(),
             it.timeZoneId, it.address.orEmpty(),
         ).joinToString(UNIT.toString())
     }.orEmpty()
@@ -27,13 +27,18 @@ internal object Codecs {
         if (encoded.isNullOrBlank()) return null
         val parts = encoded.split(UNIT)
         if (parts.size < 7) return null
+        // Rows written before coordinates could be absent stored "unknown" as
+        // 0.0, 0.0 — a point in the Gulf of Guinea no booking has ever been.
+        val coordinates = parts[4].toDoubleOrNull()?.let { latitude ->
+            parts[5].toDoubleOrNull()?.let { longitude -> latitude to longitude }
+        }?.takeUnless { it.first == 0.0 && it.second == 0.0 }
         return Place(
             name = parts[0],
             code = parts[1].ifBlank { null },
             city = parts[2],
             country = parts[3],
-            latitude = parts[4].toDoubleOrNull() ?: 0.0,
-            longitude = parts[5].toDoubleOrNull() ?: 0.0,
+            latitude = coordinates?.first,
+            longitude = coordinates?.second,
             timeZoneId = parts[6].ifBlank { "UTC" },
             address = parts.getOrNull(7)?.ifBlank { null },
         )
