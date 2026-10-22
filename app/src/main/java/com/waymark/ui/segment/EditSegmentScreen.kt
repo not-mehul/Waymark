@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -59,24 +60,24 @@ fun EditSegmentScreen(
     val startZone = Segment.zoneOrUtc(original.startZoneId)
     val endZone = Segment.zoneOrUtc(original.endZoneId)
 
-    var startDate by remember(original) { mutableStateOf(original.start.toLocalDate()) }
-    var startTime by remember(original) { mutableStateOf(original.start.toLocalTime()) }
-    var endDate by remember(original) { mutableStateOf(original.end.toLocalDate()) }
-    var endTime by remember(original) { mutableStateOf(original.end.toLocalTime()) }
-    var note by remember(original) { mutableStateOf(original.note.orEmpty()) }
-    var code by remember(original) { mutableStateOf(original.confirmationCode.orEmpty()) }
-    var bookedWith by remember(original) { mutableStateOf(original.bookedWith.orEmpty()) }
+    var startDate by rememberSaveable { mutableStateOf(original.start.toLocalDate()) }
+    var startTime by rememberSaveable { mutableStateOf(original.start.toLocalTime()) }
+    var endDate by rememberSaveable { mutableStateOf(original.end.toLocalDate()) }
+    var endTime by rememberSaveable { mutableStateOf(original.end.toLocalTime()) }
+    var note by rememberSaveable { mutableStateOf(original.note.orEmpty()) }
+    var code by rememberSaveable { mutableStateOf(original.confirmationCode.orEmpty()) }
+    var bookedWith by rememberSaveable { mutableStateOf(original.bookedWith.orEmpty()) }
 
     val flight = original as? Segment.Flight
-    var departureTerminal by remember(original) {
+    var departureTerminal by rememberSaveable {
         mutableStateOf(flight?.departureTerminal.orEmpty())
     }
-    var arrivalTerminal by remember(original) { mutableStateOf(flight?.arrivalTerminal.orEmpty()) }
-    var aircraft by remember(original) { mutableStateOf(flight?.aircraft.orEmpty()) }
-    var cabin by remember(original) { mutableStateOf(flight?.cabin.orEmpty()) }
-    var seats by remember(original) { mutableStateOf(flight?.seats.orEmpty()) }
-    var tickets by remember(original) { mutableStateOf(flight?.ticketNumbers.orEmpty()) }
-    var travelers by remember(original) {
+    var arrivalTerminal by rememberSaveable { mutableStateOf(flight?.arrivalTerminal.orEmpty()) }
+    var aircraft by rememberSaveable { mutableStateOf(flight?.aircraft.orEmpty()) }
+    var cabin by rememberSaveable { mutableStateOf(flight?.cabin.orEmpty()) }
+    var seats by rememberSaveable { mutableStateOf(flight?.seats.orEmpty()) }
+    var tickets by rememberSaveable { mutableStateOf(flight?.ticketNumbers.orEmpty()) }
+    var travelers by rememberSaveable {
         mutableStateOf(
             // An empty set has always meant "everyone"; make that explicit
             // while editing so the chips show what is actually true.
