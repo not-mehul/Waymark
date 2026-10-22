@@ -119,7 +119,12 @@ sealed class Segment {
     ) : Segment() {
         override val destination: Place get() = origin
         override val title: String get() = propertyName
-        val nights: Long get() = maxOf(1L, Duration.ofMillis(endEpochMillis - startEpochMillis).toDays())
+        val nights: Long
+            get() {
+                val checkIn = Instant.ofEpochMilli(startEpochMillis).atZone(zoneOrUtc(endZoneId)).toLocalDate()
+                val checkOut = Instant.ofEpochMilli(endEpochMillis).atZone(zoneOrUtc(endZoneId)).toLocalDate()
+                return maxOf(1L, java.time.temporal.ChronoUnit.DAYS.between(checkIn, checkOut))
+            }
     }
 
     data class Ground(

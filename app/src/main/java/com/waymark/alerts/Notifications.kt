@@ -59,22 +59,29 @@ object Notifications {
         listOf("waymark.disruption", "waymark.updates").forEach(manager::deleteNotificationChannel)
     }
 
-    fun post(context: Context, alert: DisruptionAlert) {
-        if (!granted(context)) return
+    fun post(context: Context, alert: DisruptionAlert): Boolean {
+        if (!granted(context)) {
+            return false
+        }
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_DEPARTURES)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(alert.headline)
-            .setContentText(alert.detail)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(alert.detail))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            .setContentIntent(openApp(context))
-            .setAutoCancel(true)
-            .build()
+        return try {
+            val notification = NotificationCompat.Builder(context, CHANNEL_DEPARTURES)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle(alert.headline)
+                .setContentText(alert.detail)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(alert.detail))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_REMINDER)
+                .setContentIntent(openApp(context))
+                .setAutoCancel(true)
+                .build()
 
-        NotificationManagerCompat.from(context)
-            .notify(alert.segmentId.hashCode(), notification)
+            NotificationManagerCompat.from(context)
+                .notify(alert.segmentId.hashCode(), notification)
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 
     /**

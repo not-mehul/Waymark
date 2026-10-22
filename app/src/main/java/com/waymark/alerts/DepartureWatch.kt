@@ -56,12 +56,20 @@ class DepartureWatchWorker(
                     severity = DisruptionAlert.Severity.NOTICE,
                     raisedAtMillis = now,
                 )
+                // Only mark alert as raised if notification posts successfully.
+                // This prevents silent failures when permission is denied or Doze delays the worker.
                 container.alertRepository
                     .raiseOnce(reminder.signature, alert, now)
-                    ?.let { Notifications.post(applicationContext, it) }
+                    ?.takeIf { Notifications.post(applicationContext, it) }
             }
             Result.success()
-        }.getOrElse { Result.retry() }
+        }.getOrElse { throwable ->
+            // Retry on exception, but don't retry on cancellation (which is normal shutdown)
+            if (throwable is kotlinx.coroutines.CancellationException) {
+                throw throwable
+            }
+            Result.retry()
+        }
     }
 }
 
@@ -89,7 +97,4 @@ object DepartureWatch {
         )
     }
 
-    fun cancel(context: Context) {
-        WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
-    }
 }

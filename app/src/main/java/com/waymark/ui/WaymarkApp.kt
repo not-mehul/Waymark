@@ -67,7 +67,7 @@ fun WaymarkApp(
         ) { entry ->
             val tripId = entry.requireTripId()
             TripScreen(
-                viewModel = viewModel(factory = tripFactory(container, tripId)),
+                viewModel = viewModel(factory = tripFactory(container, tripId), key = tripId),
                 onBack = { navController.popBackStack() },
                 onAddFlight = { navController.navigate(Routes.addFlight(tripId)) },
                 onOpenSegment = { navController.navigate(Routes.segment(tripId, it)) },
@@ -107,7 +107,7 @@ fun WaymarkApp(
             val segmentId = entry.arguments?.getString("segmentId").orEmpty()
             SegmentScreen(
                 segmentId = segmentId,
-                viewModel = viewModel(factory = tripFactory(container, tripId)),
+                viewModel = viewModel(factory = tripFactory(container, tripId), key = tripId),
                 onBack = { navController.popBackStack() },
             )
         }
@@ -116,8 +116,9 @@ fun WaymarkApp(
             route = Routes.ANALYTICS,
             arguments = listOf(navArgument("tripId") { type = NavType.StringType }),
         ) { entry ->
+            val tripId = entry.requireTripId()
             AnalyticsScreen(
-                viewModel = viewModel(factory = tripFactory(container, entry.requireTripId())),
+                viewModel = viewModel(factory = tripFactory(container, tripId), key = tripId),
                 onBack = { navController.popBackStack() },
             )
         }
@@ -128,7 +129,7 @@ fun WaymarkApp(
         ) { entry ->
             val tripId = entry.requireTripId()
             MapScreen(
-                viewModel = viewModel(factory = tripFactory(container, tripId)),
+                viewModel = viewModel(factory = tripFactory(container, tripId), key = tripId),
                 onBack = { navController.popBackStack() },
                 onOpenSegment = { navController.navigate(Routes.segment(tripId, it)) },
             )
@@ -138,8 +139,9 @@ fun WaymarkApp(
             route = Routes.INSIGHTS,
             arguments = listOf(navArgument("tripId") { type = NavType.StringType }),
         ) { entry ->
+            val tripId = entry.requireTripId()
             InsightsScreen(
-                viewModel = viewModel(factory = tripFactory(container, entry.requireTripId())),
+                viewModel = viewModel(factory = tripFactory(container, tripId), key = tripId),
                 onBack = { navController.popBackStack() },
             )
         }
