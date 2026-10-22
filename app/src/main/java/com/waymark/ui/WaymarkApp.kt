@@ -1,11 +1,13 @@
 package com.waymark.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -67,7 +69,7 @@ fun WaymarkApp(
         ) { entry ->
             val tripId = entry.requireTripId()
             TripScreen(
-                viewModel = viewModel(factory = tripFactory(container, tripId), key = tripId),
+                viewModel = tripViewModel(navController, entry, container, tripId),
                 onBack = { navController.popBackStack() },
                 onAddFlight = { navController.navigate(Routes.addFlight(tripId)) },
                 onOpenSegment = { navController.navigate(Routes.segment(tripId, it)) },
@@ -107,7 +109,7 @@ fun WaymarkApp(
             val segmentId = entry.arguments?.getString("segmentId").orEmpty()
             SegmentScreen(
                 segmentId = segmentId,
-                viewModel = viewModel(factory = tripFactory(container, tripId), key = tripId),
+                viewModel = tripViewModel(navController, entry, container, tripId),
                 onBack = { navController.popBackStack() },
             )
         }
@@ -118,7 +120,7 @@ fun WaymarkApp(
         ) { entry ->
             val tripId = entry.requireTripId()
             AnalyticsScreen(
-                viewModel = viewModel(factory = tripFactory(container, tripId), key = tripId),
+                viewModel = tripViewModel(navController, entry, container, tripId),
                 onBack = { navController.popBackStack() },
             )
         }
@@ -129,7 +131,7 @@ fun WaymarkApp(
         ) { entry ->
             val tripId = entry.requireTripId()
             MapScreen(
-                viewModel = viewModel(factory = tripFactory(container, tripId), key = tripId),
+                viewModel = tripViewModel(navController, entry, container, tripId),
                 onBack = { navController.popBackStack() },
                 onOpenSegment = { navController.navigate(Routes.segment(tripId, it)) },
             )
@@ -141,7 +143,7 @@ fun WaymarkApp(
         ) { entry ->
             val tripId = entry.requireTripId()
             InsightsScreen(
-                viewModel = viewModel(factory = tripFactory(container, tripId), key = tripId),
+                viewModel = tripViewModel(navController, entry, container, tripId),
                 onBack = { navController.popBackStack() },
             )
         }
@@ -152,9 +154,31 @@ private fun androidx.navigation.NavBackStackEntry.requireTripId(): String =
     arguments?.getString("tripId").orEmpty()
 
 /**
- * The trip view model is keyed by route, so the three tabs and the segment
- * screen each get one bound to the same trip id.
+ * One view model per open trip, shared by every screen inside it.
+ *
+ * Each navigation destination has its own view-model store, so asking for a
+ * `TripViewModel` from the booking screen used to build a second one — a second
+ * set of database subscriptions and a second timeline computed for the same
+ * trip. Every trip screen borrows the trip screen's own entry as the owner
+ * instead; the one exception is a destination reached without the trip screen
+ * beneath it, which gets its own.
  */
+@Composable
+private fun tripViewModel(
+    navController: NavHostController,
+    entry: NavBackStackEntry,
+    container: AppContainer,
+    tripId: String,
+): TripViewModel {
+    val owner = remember(entry) {
+        runCatching { navController.getBackStackEntry(Routes.TRIP) }
+            .getOrNull()
+            ?.takeIf { it.arguments?.getString("tripId") == tripId }
+            ?: entry
+    }
+    return viewModel(viewModelStoreOwner = owner, factory = tripFactory(container, tripId))
+}
+
 private fun tripFactory(container: AppContainer, tripId: String): ViewModelProvider.Factory =
     factory {
         TripViewModel(

@@ -4,6 +4,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 
 enum class SegmentKind { FLIGHT, LODGING, GROUND, EXPERIENCE }
 
@@ -119,12 +120,13 @@ sealed class Segment {
     ) : Segment() {
         override val destination: Place get() = origin
         override val title: String get() = propertyName
+        /**
+         * Calendar nights in the hotel's own zone, not whole 24-hour periods: a
+         * 15:00 check-in and an 11:00 check-out four days later is four nights.
+         * A day room still counts as one.
+         */
         val nights: Long
-            get() {
-                val checkIn = Instant.ofEpochMilli(startEpochMillis).atZone(zoneOrUtc(endZoneId)).toLocalDate()
-                val checkOut = Instant.ofEpochMilli(endEpochMillis).atZone(zoneOrUtc(endZoneId)).toLocalDate()
-                return maxOf(1L, java.time.temporal.ChronoUnit.DAYS.between(checkIn, checkOut))
-            }
+            get() = maxOf(1L, ChronoUnit.DAYS.between(start.toLocalDate(), end.toLocalDate()))
     }
 
     data class Ground(

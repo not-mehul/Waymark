@@ -2,23 +2,26 @@ package com.waymark.ui.add
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.waymark.data.catalog.Airlines
 import com.waymark.data.catalog.Airports
 import com.waymark.data.catalog.Airports.Airport
-import com.waymark.data.catalog.FlightCatalog
 import com.waymark.data.repo.TripRepository
 import com.waymark.domain.logic.FlightDesignator
+import com.waymark.domain.logic.LegTimes
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.Traveler
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZonedDateTime
 
 /**
  * Everything on this screen was typed by the person flying. Nothing is fetched,
@@ -33,52 +36,64 @@ data class AddFlightUiState(
     val destination: String = "",
     val departTime: LocalTime? = null,
     val arriveTime: LocalTime? = null,
-    val arrivalDayOffset: Int = 0,
+    /** Null while the arrival day is inferred from the clock times. */
+    val arrivalDayOffset: Int? = null,
 
     // Everything below is optional detail, off the ticket.
     val departureTerminal: String = "",
     val arrivalTerminal: String = "",
     val aircraft: String = "",
     val cabin: String = "",
+    val operatedBy: String = "",
 
     val party: List<Traveler> = emptyList(),
     val selectedTravelers: Set<String> = emptySet(),
     val confirmationCode: String = "",
     val eTickets: Map<String, String> = emptyMap(),
     val seats: Map<String, String> = emptyMap(),
-    val saved: Boolean = false,
+    val originSuggestions: List<Airport> = emptyList(),
+    val destinationSuggestions: List<Airport> = emptyList(),
+    val saving: Boolean = false,
 ) {
     val parsedDesignator: FlightDesignator? get() = FlightDesignator.parse(designator)
     val originAirport: Airport? get() = Airports.find(origin)
     val destinationAirport: Airport? get() = Airports.find(destination)
 
-    /** Only the four facts a flight cannot exist without are required. */
-    val canSave: Boolean
+    /** The flight as the times describe it, or null while they cannot. */
+    val leg: LegTimes.Leg?
         get() {
-            if (parsedDesignator == null || originAirport == null || destinationAirport == null ||
-                originAirport?.code == destinationAirport?.code || departTime == null || arriveTime == null
-            ) return false
-
-            // Validate that arrival is actually after departure
-            val origin = originAirport ?: return false
-            val destination = destinationAirport ?: return false
-            val departure = ZonedDateTime.of(date, departTime, Segment.zoneOrUtc(origin.timeZoneId))
-            val arrival = ZonedDateTime.of(date.plusDays(arrivalDayOffset.toLong()), arriveTime, Segment.zoneOrUtc(destination.timeZoneId))
-            return arrival.toInstant().isAfter(departure.toInstant())
+            val from = originAirport ?: return null
+            val to = destinationAirport ?: return null
+            return LegTimes.flight(
+                date = date,
+                departs = departTime ?: return null,
+                departureZone = Segment.zoneOrUtc(from.timeZoneId),
+                arrives = arriveTime ?: return null,
+                arrivalZone = Segment.zoneOrUtc(to.timeZoneId),
+                dayOffset = arrivalDayOffset,
+            )
         }
 
-    /** Station suggestions for whichever end is being typed into. */
-    fun suggestionsFor(field: Field): List<Airport> {
-        val query = if (field == Field.ORIGIN) origin else destination
-        if (query.length < 2) return emptyList()
-        val exact = Airports.find(query)
-        // Once the code resolves exactly there is nothing left to suggest.
-        if (exact != null && query.trim().length == 3) return emptyList()
-        return Airports.search(query, limit = 4)
-    }
+    /** Why the times do not make a flight, once there are enough of them to judge. */
+    val timeProblem: String?
+        get() = when {
+            originAirport == null || destinationAirport == null -> null
+            departTime == null || arriveTime == null -> null
+            leg != null -> null
+            arrivalDayOffset != null -> "That arrival day lands before it leaves, or after a day in the air."
+            else -> "These times do not make a flight between these airports. Check the zones."
+        }
+
+    /** Only the four facts a flight cannot exist without are required. */
+    val canSave: Boolean
+        get() = !saving &&
+            parsedDesignator != null &&
+            originAirport != null &&
+            destinationAirport != null &&
+            originAirport?.code != destinationAirport?.code &&
+            leg != null
 
     enum class Field { ORIGIN, DESTINATION }
-
 }
 
 class AddFlightViewModel(
@@ -90,11 +105,24 @@ class AddFlightViewModel(
 
     val state: StateFlow<AddFlightUiState> = mutable.asStateFlow()
 
+    private var originSearch: Job? = null
+    private var destinationSearch: Job? = null
+
     init {
         viewModelScope.launch {
-            val party = trips.observeParty(tripId).map { it.travelers }.first()
+            val dossier = trips.observeDossier(tripId).first() ?: return@launch
+            val party = dossier.party.travelers
+            // The trip's first day, or today once the trip is under way: a
+            // flight being added is almost never one that has already gone.
+            val today = LocalDate.now()
+            val trip = dossier.trip
+            val date = when {
+                today.isBefore(trip.startDate()) -> trip.startDate()
+                today.isAfter(trip.endDate()) -> trip.startDate()
+                else -> today
+            }
             mutable.update {
-                it.copy(party = party, selectedTravelers = party.map { p -> p.id }.toSet())
+                it.copy(party = party, selectedTravelers = party.map { p -> p.id }.toSet(), date = date)
             }
         }
     }
@@ -103,15 +131,48 @@ class AddFlightViewModel(
 
     fun setDate(date: LocalDate) = mutable.update { it.copy(date = date) }
 
-    fun setOrigin(text: String) = mutable.update { it.copy(origin = text.uppercase()) }
+    fun setOrigin(text: String) {
+        mutable.update { it.copy(origin = text.uppercase()) }
+        originSearch?.cancel()
+        originSearch = search(text) { found -> copy(originSuggestions = found) }
+    }
 
-    fun setDestination(text: String) = mutable.update { it.copy(destination = text.uppercase()) }
+    fun setDestination(text: String) {
+        mutable.update { it.copy(destination = text.uppercase()) }
+        destinationSearch?.cancel()
+        destinationSearch = search(text) { found -> copy(destinationSuggestions = found) }
+    }
+
+    /**
+     * Station suggestions, a beat after typing stops and off the main thread:
+     * the directory is nine thousand rows, and a keystroke should not wait on
+     * a scan of all of them.
+     */
+    private fun search(
+        query: String,
+        apply: AddFlightUiState.(List<Airport>) -> AddFlightUiState,
+    ): Job = viewModelScope.launch {
+        val trimmed = query.trim()
+        val found = if (trimmed.length < 2 ||
+            (trimmed.length == 3 && Airports.find(trimmed) != null)
+        ) {
+            // Once the code resolves exactly there is nothing left to suggest.
+            emptyList()
+        } else {
+            delay(SEARCH_DEBOUNCE_MILLIS)
+            withContext(Dispatchers.Default) { Airports.search(trimmed, limit = 4) }
+        }
+        mutable.update { it.apply(found) }
+    }
 
     fun setDepartTime(time: LocalTime) = mutable.update { it.copy(departTime = time) }
 
     fun setArriveTime(time: LocalTime) = mutable.update { it.copy(arriveTime = time) }
 
-    fun setArrivalDayOffset(days: Int) = mutable.update { it.copy(arrivalDayOffset = days) }
+    /** Tapping the inferred day again hands the choice back to the inference. */
+    fun setArrivalDayOffset(days: Int?) = mutable.update {
+        it.copy(arrivalDayOffset = if (it.arrivalDayOffset == days) null else days)
+    }
 
     fun setDepartureTerminal(text: String) = mutable.update { it.copy(departureTerminal = text) }
 
@@ -120,6 +181,8 @@ class AddFlightViewModel(
     fun setAircraft(text: String) = mutable.update { it.copy(aircraft = text) }
 
     fun setCabin(text: String) = mutable.update { it.copy(cabin = text) }
+
+    fun setOperatedBy(text: String) = mutable.update { it.copy(operatedBy = text) }
 
     fun toggleTraveler(travelerId: String) {
         mutable.update { current ->
@@ -139,11 +202,33 @@ class AddFlightViewModel(
         it.copy(seats = it.seats + (travelerId to value.uppercase()))
     }
 
+    /** Pre-fill from something parsed elsewhere — a pasted email, a boarding pass. */
+    fun prefill(draft: FlightDraft) {
+        mutable.update { current ->
+            current.copy(
+                designator = draft.designator ?: current.designator,
+                date = draft.date ?: current.date,
+                origin = draft.origin ?: current.origin,
+                destination = draft.destination ?: current.destination,
+                departTime = draft.departs ?: current.departTime,
+                arriveTime = draft.arrives ?: current.arriveTime,
+                confirmationCode = draft.confirmationCode ?: current.confirmationCode,
+                cabin = draft.cabin ?: current.cabin,
+                seats = draft.seat?.let { seat ->
+                    current.selectedTravelers.singleOrNull()?.let { mapOf(it to seat) }
+                } ?: current.seats,
+            )
+        }
+    }
+
+    /** Saved once: a second tap while the first write is in flight does nothing. */
     fun save(onSaved: () -> Unit) {
-        val segment = segmentOf(mutable.value) ?: return
+        val current = mutable.value
+        if (current.saving) return
+        val segment = segmentOf(current) ?: return
+        mutable.update { it.copy(saving = true) }
         viewModelScope.launch {
             trips.saveSegment(segment)
-            mutable.update { it.copy(saved = true) }
             onSaved()
         }
     }
@@ -152,34 +237,24 @@ class AddFlightViewModel(
         val designator = ui.parsedDesignator ?: return null
         val origin = ui.originAirport?.toPlace() ?: return null
         val destination = ui.destinationAirport?.toPlace() ?: return null
-        val departTime = ui.departTime ?: return null
-        val arriveTime = ui.arriveTime ?: return null
-
-        // `zoneOrUtc`, not `ZoneId.of`: the station directory is generated
-        // data, and one row with a zone this device's tzdb has never heard of
-        // would otherwise throw out of a composable and take the screen with
-        // it. A flight in the wrong zone is a bug; a crash is worse.
-        val departure = ZonedDateTime.of(ui.date, departTime, Segment.zoneOrUtc(origin.timeZoneId))
-        var arrival =
-            ZonedDateTime.of(ui.date.plusDays(ui.arrivalDayOffset.toLong()), arriveTime, Segment.zoneOrUtc(destination.timeZoneId))
-        // Ensure arrival is after departure. If not, keep adding days until it is.
-        // This handles transpacific and other long-haul flights that cross multiple days.
-        while (!arrival.toInstant().isAfter(departure.toInstant())) {
-            arrival = arrival.plusDays(1)
-        }
+        val leg = ui.leg ?: return null
+        val travelers = ui.party.map { it.id }.toSet()
 
         return Segment.Flight(
             id = TripRepository.newId("seg"),
             tripId = tripId,
             carrierCode = designator.carrier,
-            flightNumber = designator.number.toString(),
+            // The suffix is part of the number: LH1234A is not LH1234.
+            flightNumber = "${designator.number}${designator.suffix.orEmpty()}",
             origin = origin,
             destination = destination,
-            startEpochMillis = departure.toInstant().toEpochMilli(),
-            endEpochMillis = arrival.toInstant().toEpochMilli(),
+            startEpochMillis = leg.departure.toInstant().toEpochMilli(),
+            endEpochMillis = leg.arrival.toInstant().toEpochMilli(),
             startZoneId = origin.timeZoneId,
             endZoneId = destination.timeZoneId,
-            travelerIds = ui.selectedTravelers,
+            // Everyone ticked is stored as everyone, so a traveler added to the
+            // trip later is on this flight too unless somebody says otherwise.
+            travelerIds = if (ui.selectedTravelers == travelers) emptySet() else ui.selectedTravelers,
             departureTerminal = ui.departureTerminal.trim().ifBlank { null },
             arrivalTerminal = ui.arrivalTerminal.trim().ifBlank { null },
             aircraft = ui.aircraft.trim().ifBlank { null },
@@ -187,8 +262,27 @@ class AddFlightViewModel(
             seats = ui.seats.filterValues { it.isNotBlank() },
             ticketNumbers = ui.eTickets.filterValues { it.isNotBlank() },
             confirmationCode = ui.confirmationCode.trim().ifBlank { null },
-            bookedWith = FlightCatalog.carrierName(designator.carrier),
-            operatedBy = FlightCatalog.carrierName(designator.carrier),
+            bookedWith = Airlines.name(designator.carrier),
+            // Only when the traveler says so: the marketing carrier is not
+            // evidence of who flies the aircraft.
+            operatedBy = ui.operatedBy.trim().ifBlank { null },
         )
     }
+
+    private companion object {
+        const val SEARCH_DEBOUNCE_MILLIS = 150L
+    }
 }
+
+/** A flight half-known from somewhere else, waiting to be checked and saved. */
+data class FlightDraft(
+    val designator: String? = null,
+    val date: LocalDate? = null,
+    val origin: String? = null,
+    val destination: String? = null,
+    val departs: LocalTime? = null,
+    val arrives: LocalTime? = null,
+    val confirmationCode: String? = null,
+    val cabin: String? = null,
+    val seat: String? = null,
+)

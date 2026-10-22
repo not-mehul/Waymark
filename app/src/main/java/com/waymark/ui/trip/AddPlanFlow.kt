@@ -6,8 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -29,6 +28,7 @@ import com.waymark.ui.components.WaymarkTextField
 import com.waymark.ui.theme.WaymarkSpacing
 import java.time.LocalDate
 import java.time.LocalTime
+import java.io.Serializable
 
 /** Everything a plan needs, gathered a step at a time. */
 data class PlanDraft(
@@ -45,7 +45,7 @@ data class PlanDraft(
     val confirmationCode: String = "",
     val note: String = "",
     val travelerIds: Set<String> = emptySet(),
-) {
+) : Serializable {
     val isStay: Boolean get() = kind == SegmentKind.LODGING
     val isGround: Boolean get() = kind == SegmentKind.GROUND
     val named: Boolean get() = title.isNotBlank()
@@ -108,11 +108,7 @@ fun AddPlanFlow(
                                 } else {
                                     LocalTime.of(9, 0)
                                 },
-                                endTime = if (option == SegmentKind.LODGING) {
-                                    LocalTime.of(11, 0)
-                                } else {
-                                    LocalTime.of(11, 0)
-                                },
+                                endTime = LocalTime.of(11, 0),
                                 endDate = if (option == SegmentKind.LODGING) {
                                     draft.startDate.plusDays(1)
                                 } else {

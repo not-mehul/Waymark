@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waymark.data.catalog.Airports
 import com.waymark.domain.logic.TimeText
-import com.waymark.domain.model.Segment
+import com.waymark.domain.logic.LegTimes
 import com.waymark.ui.components.DateField
 import com.waymark.ui.components.EmptyLine
 import com.waymark.ui.components.FieldLabel
@@ -33,8 +33,6 @@ import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.components.WaymarkTextField
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
-import java.time.Duration
-import java.time.ZonedDateTime
 
 /**
  * A flight, typed in.
@@ -83,7 +81,7 @@ fun AddFlightScreen(
             onValueChange = viewModel::setOrigin,
             label = "From",
             placeholder = "SFO",
-            suggestions = state.suggestionsFor(AddFlightUiState.Field.ORIGIN),
+            suggestions = state.originSuggestions,
             onPick = viewModel::setOrigin,
         )
         StationField(
@@ -91,7 +89,7 @@ fun AddFlightScreen(
             onValueChange = viewModel::setDestination,
             label = "To",
             placeholder = "LHR",
-            suggestions = state.suggestionsFor(AddFlightUiState.Field.DESTINATION),
+            suggestions = state.destinationSuggestions,
             onPick = viewModel::setDestination,
         )
 
@@ -110,13 +108,40 @@ fun AddFlightScreen(
             )
         }
 
-        state.blockSummary()?.let { summary ->
+        state.leg?.let { leg ->
             Text(
-                text = summary,
+                text = blockSummary(leg),
                 style = Waymark.type.data,
                 color = Waymark.colors.accentAmber,
                 modifier = Modifier.padding(top = WaymarkSpacing.tight),
             )
+        }
+        state.timeProblem?.let { problem ->
+            Text(
+                text = problem,
+                style = Waymark.type.hint,
+                color = Waymark.colors.danger,
+            )
+        }
+
+        // The arrival day is worked out from the two clocks, and can be said
+        // outright when the schedule says otherwise.
+        if (state.departTime != null && state.arriveTime != null) {
+            val shown = state.arrivalDayOffset ?: state.leg?.dayOffset
+            FieldLabel("Lands")
+            Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.tight)) {
+                LegTimes.DAY_OFFSETS.forEach { offset ->
+                    OptionChip(
+                        text = when {
+                            offset == 0 -> "Same day"
+                            offset > 0 -> "+$offset"
+                            else -> "−${-offset}"
+                        },
+                        selected = shown == offset,
+                        onClick = { viewModel.setArrivalDayOffset(offset) },
+                    )
+                }
+            }
         }
 
         // Everything past this point is optional, and stays folded away until
@@ -168,6 +193,14 @@ fun AddFlightScreen(
                     modifier = Modifier.weight(1f),
                 )
             }
+
+            WaymarkTextField(
+                value = state.operatedBy,
+                onValueChange = viewModel::setOperatedBy,
+                label = "Operated by",
+                placeholder = "Only if another airline flies it",
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             WaymarkTextField(
                 value = state.confirmationCode,
@@ -282,25 +315,11 @@ private fun StationField(
 }
 
 /**
- * Block time, computed from what has been entered so far — the one number the
- * app can derive rather than ask for, and the quickest way to catch a time set
- * against the wrong airport.
+ * Block time — the one number the app can derive rather than ask for, and the
+ * quickest way to catch a time set against the wrong airport.
  */
-private fun AddFlightUiState.blockSummary(): String? {
-    if (!canSave) return null
-    val from = originAirport ?: return null
-    val to = destinationAirport ?: return null
-    val leaves =
-        ZonedDateTime.of(date, departTime ?: return null, Segment.zoneOrUtc(from.timeZoneId))
-    var lands =
-        ZonedDateTime.of(date, arriveTime ?: return null, Segment.zoneOrUtc(to.timeZoneId))
-    if (!lands.toInstant().isAfter(leaves.toInstant())) lands = lands.plusDays(1)
-
-    val minutes = Duration.between(leaves, lands).toMinutes().toInt()
-    val dayShift = TimeText.dayOffsetSuffix(leaves, lands)
-    return buildString {
-        append(TimeText.duration(minutes))
-        append(" in the air")
-        dayShift?.let { append(", lands $it") }
-    }
+private fun blockSummary(leg: LegTimes.Leg): String = buildString {
+    append(TimeText.duration(leg.minutes.toInt()))
+    append(" in the air")
+    TimeText.dayOffsetSuffix(leg.departure, leg.arrival)?.let { append(", lands $it") }
 }

@@ -1,5 +1,6 @@
 package com.waymark.data.catalog
 
+import com.waymark.domain.logic.LegTimes
 import com.waymark.domain.model.GroundMode
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
@@ -96,19 +97,36 @@ object SampleItinerary {
         )
         val party = setOf(mara.id, julian.id)
 
-        val outbound = requireNotNull(FlightCatalog.lookup("BA286", departure)) {
-            "The bundled catalog must contain BA286"
-        }.toSegment(
+        // BA286 as published: 16:20 from San Francisco, 10:55 the next morning
+        // into Heathrow, built through the same arithmetic the Add flight
+        // screen uses so the example cannot disagree with what a person types.
+        val outboundLeg = requireNotNull(
+            LegTimes.flight(departure, LocalTime.of(16, 20), pacific, LocalTime.of(10, 55), london)
+        )
+        val outbound = Segment.Flight(
             id = "seg-outbound",
             tripId = tripId,
+            carrierCode = "BA",
+            flightNumber = "286",
+            origin = Airports.place("SFO"),
+            destination = Airports.place("LHR"),
+            startEpochMillis = outboundLeg.departure.toInstant().toEpochMilli(),
+            endEpochMillis = outboundLeg.arrival.toInstant().toEpochMilli(),
+            startZoneId = pacific.id,
+            endZoneId = london.id,
             travelerIds = party,
             confirmationCode = "K7QH2P",
-            seats = mapOf(mara.id to "21A", julian.id to "21C"),
+            bookedWith = Airlines.name("BA"),
             ticketNumbers = mapOf(
                 mara.id to "125-2364119807",
                 julian.id to "125-2364119808",
             ),
+            departureTerminal = "I",
+            departureGate = "A6",
+            arrivalTerminal = "5",
+            aircraft = "Airbus A350-1000",
             cabin = "Economy",
+            seats = mapOf(mara.id to "21A", julian.id to "21C"),
         )
 
         val londonCheckIn = ZonedDateTime.of(
@@ -391,37 +409,6 @@ object SampleItinerary {
             ideas = ideas,
         )
     }
-
-    private fun FlightCatalog.FlightPlan.toSegment(
-        id: String,
-        tripId: String,
-        travelerIds: Set<String>,
-        confirmationCode: String?,
-        seats: Map<String, String>,
-        ticketNumbers: Map<String, String>,
-        cabin: String,
-    ): Segment.Flight = Segment.Flight(
-        id = id,
-        tripId = tripId,
-        carrierCode = designator.takeWhile { !it.isDigit() },
-        flightNumber = designator.dropWhile { !it.isDigit() },
-        origin = origin,
-        destination = destination,
-        startEpochMillis = departure.toInstant().toEpochMilli(),
-        endEpochMillis = arrival.toInstant().toEpochMilli(),
-        startZoneId = origin.timeZoneId,
-        endZoneId = destination.timeZoneId,
-        travelerIds = travelerIds,
-        confirmationCode = confirmationCode,
-        bookedWith = carrierName,
-        ticketNumbers = ticketNumbers,
-        departureTerminal = departureTerminal,
-        arrivalTerminal = arrivalTerminal,
-        aircraft = aircraft,
-        cabin = cabin,
-        seats = seats,
-        operatedBy = carrierName,
-    )
 
     /**
      * One line on the ideas board. These used to be pulled out of a bundled
