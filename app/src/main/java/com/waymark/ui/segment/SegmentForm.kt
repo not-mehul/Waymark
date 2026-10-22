@@ -177,6 +177,7 @@ data class SegmentForm(
     }
 
     companion object {
+        private const val serialVersionUID = 1L
 
         /** The form for [segment], with "everyone" spelled out so the chips show it. */
         fun of(segment: Segment, party: List<Traveler>): SegmentForm {

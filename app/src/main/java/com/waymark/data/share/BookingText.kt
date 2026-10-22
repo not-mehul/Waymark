@@ -2,6 +2,9 @@ package com.waymark.data.share
 
 import com.waymark.data.catalog.Airlines
 import com.waymark.data.catalog.Airports
+import com.waymark.domain.logic.FlightDesignator
+import com.waymark.domain.logic.LegTimes
+import com.waymark.domain.model.Segment
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.Month
@@ -37,8 +40,42 @@ object BookingText {
 
     data class Reading(val flights: List<FoundFlight>, val reference: String?)
 
+    /**
+     * A complete flight as a booking on [tripId], or null when anything is
+     * missing or does not add up: an airport Waymark does not know, or times
+     * that describe no possible flight. The arrival day is worked out from
+     * the two clocks, as on the Add flight screen.
+     */
+    fun toSegment(found: FoundFlight, tripId: String, id: String, reference: String?): Segment.Flight? {
+        val designator = FlightDesignator.parse(found.designator) ?: return null
+        val origin = Airports.find(found.origin)?.toPlace() ?: return null
+        val destination = Airports.find(found.destination)?.toPlace() ?: return null
+        val leg = LegTimes.flight(
+            date = found.date ?: return null,
+            departs = found.departs ?: return null,
+            departureZone = origin.zone,
+            arrives = found.arrives ?: return null,
+            arrivalZone = destination.zone,
+        ) ?: return null
+        return Segment.Flight(
+            id = id,
+            tripId = tripId,
+            carrierCode = designator.carrier,
+            flightNumber = "${designator.number}${designator.suffix.orEmpty()}",
+            origin = origin,
+            destination = destination,
+            startEpochMillis = leg.departure.toInstant().toEpochMilli(),
+            endEpochMillis = leg.arrival.toInstant().toEpochMilli(),
+            startZoneId = origin.timeZoneId,
+            endZoneId = destination.timeZoneId,
+            confirmationCode = reference,
+            bookedWith = Airlines.name(designator.carrier),
+        )
+    }
+
     private val DESIGNATOR = Regex("\\b([A-Z][A-Z0-9]|[0-9][A-Z])\\s?0*(\\d{1,4})([A-Z]?)\\b")
     private val CODE = Regex("\\b[A-Z]{3}\\b")
+
     /** 16:20, 4.20 pm, 16h20 — and not the 14.05 of a date written 14.05.2026. */
     private val TIME = Regex("(?<![\\d.:])([01]?\\d|2[0-3])[:.h]([0-5]\\d)(?![\\d:]|\\.\\d)\\s*([AaPp]\\.?[Mm]\\.?)?")
     private val REFERENCE = Regex(

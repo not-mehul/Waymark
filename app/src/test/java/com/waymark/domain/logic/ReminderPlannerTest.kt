@@ -3,10 +3,10 @@ package com.waymark.domain.logic
 import com.waymark.data.catalog.SampleItinerary
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.SegmentKind
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
 
 class ReminderPlannerTest {
 
@@ -34,8 +34,8 @@ class ReminderPlannerTest {
     /** The gap this fills: everything except flights used to pass unremarked. */
     @Test
     fun `every category can raise a reminder, not only flights`() {
-        val everythingOn = ReminderCategory.entries.fold(ReminderPreferences.DEFAULT) { acc, it ->
-            acc.with(it, Lead(2 * 60))
+        val everythingOn = ReminderCategory.entries.fold(ReminderPreferences.DEFAULT) { acc, category ->
+            acc.with(category, Lead(2 * 60))
         }
         val raised = SegmentKind.entries.map { kind ->
             val segment = firstOf(kind)
@@ -123,8 +123,8 @@ class ReminderPlannerTest {
         // Online check-in, a day before the first departure, comes first.
         assertEquals(flight.startEpochMillis - 24 * hour, next)
 
-        val silent = ReminderCategory.entries.fold(ReminderPreferences.DEFAULT) { acc, it ->
-            acc.with(it, Lead.OFF)
+        val silent = ReminderCategory.entries.fold(ReminderPreferences.DEFAULT) { acc, category ->
+            acc.with(category, Lead.OFF)
         }
         assertEquals(null, ReminderPlanner.nextDueAt(segments, silent, now))
         assertTrue(!silent.anyOn)
@@ -195,13 +195,13 @@ class ReminderPlannerTest {
 
     @Test
     fun `the summary reads as a sentence rather than a dump`() {
-        val onlyFlights = ReminderCategory.entries.fold(ReminderPreferences.DEFAULT) { acc, it ->
-            if (it == ReminderCategory.FLIGHTS) acc else acc.with(it, Lead.OFF)
+        val onlyFlights = ReminderCategory.entries.fold(ReminderPreferences.DEFAULT) { acc, category ->
+            if (category == ReminderCategory.FLIGHTS) acc else acc.with(category, Lead.OFF)
         }
         assertEquals("Flights 3h", onlyFlights.summary())
 
-        val silent = ReminderCategory.entries.fold(ReminderPreferences.DEFAULT) { acc, it ->
-            acc.with(it, Lead.OFF)
+        val silent = ReminderCategory.entries.fold(ReminderPreferences.DEFAULT) { acc, category ->
+            acc.with(category, Lead.OFF)
         }
         assertEquals("Off for everything", silent.summary())
     }

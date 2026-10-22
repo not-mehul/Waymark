@@ -97,7 +97,7 @@ object MarkdownExport {
         val who = travelerNames(segment.travelerIds, payload)
         val detail = when (segment) {
             is Segment.Flight -> buildList {
-                add("**${md(segment.designator)}** ${md(segment.origin.shortLabel)} → ${md(segment.destination.shortLabel)}")
+                add("**${md(segment.designator)}** ${route(segment)}")
                 add(
                     "lands ${TimeText.clock(segment.end)}" +
                         (TimeText.dayOffsetSuffix(segment.start, segment.end)?.let { " ($it)" } ?: "")
@@ -115,7 +115,7 @@ object MarkdownExport {
             }.joinToString(", ")
 
             is Segment.Ground -> buildList {
-                add("**${modeLabel(segment.mode)}** ${md(segment.origin.shortLabel)} → ${md(segment.destination.shortLabel)}")
+                add("**${modeLabel(segment.mode)}** ${route(segment)}")
                 add(TimeText.durationBetween(segment.startEpochMillis, segment.endEpochMillis))
                 segment.provider?.let { add(md(it)) }
             }.joinToString(", ")
@@ -225,6 +225,10 @@ object MarkdownExport {
     }
 
     private fun modeLabel(mode: GroundMode): String = mode.label
+
+    /** `SFO → LHR`, escaped. */
+    private fun route(segment: Segment): String =
+        "${md(segment.origin.shortLabel)} → ${md(segment.destination.shortLabel)}"
 
     /**
      * User text, made inert. A hotel called "*The* Rooms", a note with an

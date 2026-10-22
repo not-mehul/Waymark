@@ -52,13 +52,13 @@ object Cities {
     }
 
     @Volatile
-    private var cities: List<City> = emptyList()
+    private var directory: List<City> = emptyList()
 
-    val loaded: Boolean get() = cities.isNotEmpty()
+    val loaded: Boolean get() = directory.isNotEmpty()
 
     /** Install the parsed gazetteer. Rows arrive largest first. */
     fun install(parsed: List<City>) {
-        cities = parsed
+        directory = parsed
     }
 
     /**
@@ -68,8 +68,8 @@ object Cities {
     fun named(name: String): List<City> {
         val needle = normalise(name)
         if (needle.isEmpty()) return emptyList()
-        val own = cities.filter { it.key == needle }
-        val known = cities.filter { it.key != needle && it.knownAs(needle) }
+        val own = directory.filter { it.key == needle }
+        val known = directory.filter { it.key != needle && it.knownAs(needle) }
         return own + known
     }
 

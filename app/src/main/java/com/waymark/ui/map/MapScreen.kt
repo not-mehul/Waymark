@@ -135,7 +135,11 @@ fun MapScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             GhostIconButton(icon = WaymarkIcons.ArrowLeft, contentDescription = "Back", onClick = onBack)
-            GhostIconButton(icon = WaymarkIcons.List, contentDescription = "Show as a list", onClick = { asList = true })
+            GhostIconButton(
+                icon = WaymarkIcons.List,
+                contentDescription = "Show as a list",
+                onClick = { asList = true },
+            )
         }
 
         SegmentedToggle(

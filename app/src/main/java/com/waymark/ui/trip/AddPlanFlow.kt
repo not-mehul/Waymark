@@ -56,6 +56,10 @@ data class PlanDraft(
     val isStay: Boolean get() = kind == SegmentKind.LODGING
     val isGround: Boolean get() = kind == SegmentKind.GROUND
     val named: Boolean get() = title.isNotBlank()
+
+    private companion object {
+        private const val serialVersionUID = 1L
+    }
 }
 
 /**

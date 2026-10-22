@@ -1,12 +1,12 @@
 package com.waymark.ui.trip
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -215,7 +215,6 @@ fun PartyTab(
             }
         }
 
-
         Spacer(Modifier.height(WaymarkSpacing.section))
     }
 
@@ -258,8 +257,12 @@ fun PartyTab(
                 message = if (onlyTheirs == 0) {
                     "Their name comes off every booking they share with the others."
                 } else {
-                    "$onlyTheirs booking" + (if (onlyTheirs == 1) " only they are on goes" else "s only they are on go") +
-                        " with them, and their name comes off the rest."
+                    val bookings = if (onlyTheirs == 1) {
+                        "1 booking only they are on goes"
+                    } else {
+                        "$onlyTheirs bookings only they are on go"
+                    }
+                    "$bookings with them, and their name comes off the rest."
                 },
                 detail = "Their profile stays if they are on another trip.",
                 confirmLabel = "Remove",

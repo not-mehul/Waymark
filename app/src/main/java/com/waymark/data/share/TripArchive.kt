@@ -11,13 +11,13 @@ import com.waymark.domain.model.SeatPreference
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.Traveler
 import com.waymark.domain.model.Trip
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import java.io.ByteArrayOutputStream
 import java.time.LocalDate
 import java.util.Base64
 import java.util.zip.Deflater
 import java.util.zip.Inflater
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 /**
  * Trips as a file: a backup of everything, or one trip sent to the rest of the

@@ -32,12 +32,12 @@ import com.waymark.domain.model.Idea
 import com.waymark.domain.model.Segment
 import com.waymark.ui.components.Panel
 import com.waymark.ui.components.PartyFilterBar
-import com.waymark.ui.components.rememberSettleOnce
-import com.waymark.ui.components.settleIn
 import com.waymark.ui.components.PartyMark
 import com.waymark.ui.components.SecondaryButton
 import com.waymark.ui.components.WaymarkIcon
 import com.waymark.ui.components.WaymarkIcons
+import com.waymark.ui.components.rememberSettleOnce
+import com.waymark.ui.components.settleIn
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkShapes
 import com.waymark.ui.theme.WaymarkSpacing

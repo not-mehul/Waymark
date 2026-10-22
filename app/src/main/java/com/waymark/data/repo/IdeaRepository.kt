@@ -10,11 +10,11 @@ import com.waymark.domain.model.IdeaStatus
 import com.waymark.domain.model.Place
 import com.waymark.domain.model.copyCommon
 import com.waymark.domain.model.normaliseParty
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 /**
  * The list of things a trip wants to do, and the bridge from that list onto
@@ -72,7 +72,6 @@ class IdeaRepository(
         save(idea)
         return idea
     }
-
 
     /**
      * Done, not yet, or set aside. An idea that is on the timeline stays tied

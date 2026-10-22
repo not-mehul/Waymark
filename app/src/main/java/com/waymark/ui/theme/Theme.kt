@@ -1,5 +1,6 @@
 package com.waymark.ui.theme
 
+import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -18,7 +19,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-import android.app.Activity
 import com.waymark.data.local.ThemeStore
 
 enum class ThemeMode { SYSTEM, DUSK, DAWN }
@@ -119,13 +119,16 @@ fun WaymarkTheme(
 /** Token access. `Waymark.colors.textDim`, never a literal. */
 object Waymark {
     val colors: WaymarkColors
-        @Composable @ReadOnlyComposable get() = LocalWaymarkColors.current
+        @Composable @ReadOnlyComposable
+        get() = LocalWaymarkColors.current
 
     val type: WaymarkTypography
-        @Composable @ReadOnlyComposable get() = LocalWaymarkTypography.current
+        @Composable @ReadOnlyComposable
+        get() = LocalWaymarkTypography.current
 
     val shapes: WaymarkShapes get() = WaymarkShapes
 
     val theme: ThemeController
-        @Composable @ReadOnlyComposable get() = LocalThemeController.current
+        @Composable @ReadOnlyComposable
+        get() = LocalThemeController.current
 }

@@ -3,12 +3,12 @@ package com.waymark.domain.logic
 import com.waymark.data.catalog.Airports
 import com.waymark.domain.model.GroundMode
 import com.waymark.domain.model.Place
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
 
 class TransitAndTimeTest {
 

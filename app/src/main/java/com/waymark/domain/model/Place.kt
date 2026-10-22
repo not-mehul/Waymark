@@ -33,4 +33,9 @@ data class Place(
         get() = if (latitude != null && longitude != null) LatLon(latitude, longitude) else null
 
     val hasCoordinates: Boolean get() = position != null
+
+    private companion object {
+        /** Saved in screen state across process death; bump if the fields change shape. */
+        private const val serialVersionUID = 1L
+    }
 }

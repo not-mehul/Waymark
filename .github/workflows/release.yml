@@ -33,23 +33,43 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Unit tests
-        run: ./gradlew --no-daemon testReleaseUnitTest
+        run: ./gradlew --no-daemon testDebugUnitTest
 
       # Written outside the workspace so a stray `git add -A` in a later step
-      # can never stage it. Absent secrets leave the file unwritten, and the
-      # build falls through to producing an unsigned APK.
+      # can never stage it. The build signs only when all four secrets are
+      # present, so "signed" says so only then: a keystore without its
+      # passwords used to be reported as a signed build that was not one.
       - name: Restore the signing key
         id: keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -z "$KEYSTORE_BASE64" ]; then
+          missing=""
+          [ -n "$KEYSTORE_BASE64" ] || missing="$missing KEYSTORE_BASE64"
+          [ -n "$KEYSTORE_PASSWORD" ] || missing="$missing KEYSTORE_PASSWORD"
+          [ -n "$KEY_ALIAS" ] || missing="$missing KEY_ALIAS"
+          [ -n "$KEY_PASSWORD" ] || missing="$missing KEY_PASSWORD"
+          if [ -n "$missing" ]; then
             echo "signed=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::No KEYSTORE_BASE64 secret — the APK will be unsigned and cannot be installed. See RELEASING.md."
+            echo "::warning::Missing secrets:$missing — the APK will be unsigned and cannot be installed. See RELEASING.md."
           else
             echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/waymark.jks"
             echo "signed=true" >> "$GITHUB_OUTPUT"
           fi
+
+      # v1.4.2 → 1.4.2, which the build turns into the version name and code.
+      - name: Read the version from the tag
+        id: version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::warning::'$GITHUB_REF_NAME' is not a vX.Y.Z tag; building as 0.0.0."
+            version="0.0.0"
+          fi
+          echo "name=$version" >> "$GITHUB_OUTPUT"
 
       - name: Build the release APK
         env:
@@ -57,13 +77,12 @@ jobs:
           WAYMARK_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           WAYMARK_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           WAYMARK_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew --no-daemon assembleRelease
+        run: ./gradlew --no-daemon -PwaymarkVersion=${{ steps.version.outputs.name }} assembleRelease
 
       - name: Name the APK after the tag
         id: apk
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          [ -n "$version" ] || version="$GITHUB_SHA"
+          version="${{ steps.version.outputs.name }}"
           suffix=""
           [ "${{ steps.keystore.outputs.signed }}" = "true" ] || suffix="-unsigned"
           source=$(find app/build/outputs/apk/release -name '*.apk' | head -n 1)

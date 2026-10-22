@@ -120,6 +120,7 @@ sealed class Segment {
     ) : Segment() {
         override val destination: Place get() = origin
         override val title: String get() = propertyName
+
         /**
          * Calendar nights in the hotel's own zone, not whole 24-hour periods: a
          * 15:00 check-in and an 11:00 check-out four days later is four nights.

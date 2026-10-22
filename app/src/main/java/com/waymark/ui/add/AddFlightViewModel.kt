@@ -10,6 +10,8 @@ import com.waymark.domain.logic.FlightDesignator
 import com.waymark.domain.logic.LegTimes
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.Traveler
+import java.time.LocalDate
+import java.time.LocalTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -20,8 +22,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.LocalDate
-import java.time.LocalTime
 
 /**
  * Everything on this screen was typed by the person flying. Nothing is fetched,
@@ -99,6 +99,8 @@ data class AddFlightUiState(
 class AddFlightViewModel(
     private val tripId: String,
     private val trips: TripRepository,
+    /** A flight read from an email or a boarding pass, to start from. */
+    initial: FlightDraft? = null,
 ) : ViewModel() {
 
     private val mutable = MutableStateFlow(AddFlightUiState())
@@ -124,6 +126,9 @@ class AddFlightViewModel(
             mutable.update {
                 it.copy(party = party, selectedTravelers = party.map { p -> p.id }.toSet(), date = date)
             }
+            // After the trip's defaults, so a date read from the email wins
+            // over the trip's first day.
+            initial?.let(::prefill)
         }
     }
 

@@ -2,11 +2,11 @@ package com.waymark.data.catalog
 
 import com.waymark.domain.logic.Geo
 import com.waymark.domain.logic.LatLon
+import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import kotlin.math.abs
 
 class CoastlineTest {
 

@@ -1,11 +1,11 @@
 package com.waymark.data.share
 
 import com.waymark.data.catalog.SampleItinerary
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
 
 class TripArchiveTest {
 

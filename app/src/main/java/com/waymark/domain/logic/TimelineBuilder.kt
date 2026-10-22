@@ -305,8 +305,4 @@ object TimelineBuilder {
         a.hasCoordinates && b.hasCoordinates -> Geo.distanceKm(a, b) < 0.4
         else -> a.name.equals(b.name, ignoreCase = true)
     }
-
-    /** The next thing that needs doing, for the trip card and the alert copy. */
-    fun nextEvent(dossier: TripDossier, now: Instant = Instant.now()): Segment? =
-        dossier.segments.chronological().firstOrNull { it.endEpochMillis >= now.toEpochMilli() }
 }

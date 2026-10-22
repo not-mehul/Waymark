@@ -12,10 +12,10 @@ import com.waymark.domain.model.TripDossier
 import com.waymark.domain.model.TripParty
 import com.waymark.domain.model.copyCommon
 import com.waymark.domain.model.normaliseParty
+import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
-import java.util.UUID
 
 /**
  * The one place that assembles a trip out of its four tables. Screens read a

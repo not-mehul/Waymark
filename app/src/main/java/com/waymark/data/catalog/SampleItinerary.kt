@@ -8,7 +8,6 @@ import com.waymark.domain.model.IdeaStatus
 import com.waymark.domain.model.Place
 import com.waymark.domain.model.SeatPreference
 import com.waymark.domain.model.Segment
-import com.waymark.domain.model.SegmentKind
 import com.waymark.domain.model.Traveler
 import com.waymark.domain.model.Trip
 import java.time.LocalDate

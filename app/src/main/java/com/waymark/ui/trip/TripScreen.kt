@@ -35,6 +35,7 @@ import com.waymark.ui.components.UndoBar
 import com.waymark.ui.components.WaymarkBackdrop
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.export.TripExport
+import com.waymark.ui.share.TripCodeModal
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
 
@@ -58,7 +59,6 @@ fun TripScreen(
     onOpenInsights: () -> Unit,
     onOpenAnalytics: () -> Unit,
     onOpenMap: () -> Unit,
-    onShareCode: () -> Unit,
     /** The booking screen's content, for the second pane on a wide screen. */
     segmentPane: @Composable (segmentId: String, onClose: () -> Unit) -> Unit,
 ) {
@@ -73,6 +73,7 @@ fun TripScreen(
     var editingTrip by rememberSaveable { mutableStateOf(false) }
     var editingReminders by rememberSaveable { mutableStateOf(false) }
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
+    var sharingCode by rememberSaveable { mutableStateOf(false) }
 
     val wide = LocalConfiguration.current.screenWidthDp >= WIDE_SCREEN_DP
     val openSegment: (String) -> Unit = { id -> if (wide) selected = id else onOpenSegment(id) }
@@ -191,7 +192,7 @@ fun TripScreen(
             onExportMarkdown = { TripExport.shareMarkdown(context, state) },
             onExportCalendar = { TripExport.shareCalendar(context, state) },
             onShareFile = { TripExport.shareTripFile(context, state) },
-            onShareCode = onShareCode,
+            onShareCode = { sharingCode = true },
             onEdit = { editingTrip = true },
             onReminders = { editingReminders = true },
             onArchive = { archive ->
@@ -200,6 +201,14 @@ fun TripScreen(
             },
             onDelete = { confirmingDelete = true },
             reminderSummary = state.reminders.summary(),
+        )
+    }
+
+    if (sharingCode) {
+        TripCodeModal(
+            state = state,
+            onShareFile = { TripExport.shareTripFile(context, state) },
+            onDismiss = { sharingCode = false },
         )
     }
 

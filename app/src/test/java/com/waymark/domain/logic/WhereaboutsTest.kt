@@ -1,13 +1,13 @@
 package com.waymark.domain.logic
 
 import com.waymark.data.catalog.SampleItinerary
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Test
 
 class WhereaboutsTest {
 

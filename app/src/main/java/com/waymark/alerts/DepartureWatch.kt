@@ -1,14 +1,15 @@
 package com.waymark.alerts
 
 import android.content.Context
+import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.waymark.WaymarkApplication
-import kotlinx.coroutines.CancellationException
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CancellationException
 
 /**
  * The safety net under [ReminderAlarm].
@@ -33,6 +34,7 @@ class DepartureWatchWorker(
             // Stopped by WorkManager: not a failure to retry.
             throw cancelled
         } catch (error: Exception) {
+            Log.w("Waymark", "Reminder check failed; WorkManager will try again", error)
             Result.retry()
         }
     }

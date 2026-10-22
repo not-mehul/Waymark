@@ -1,10 +1,10 @@
 package com.waymark.data.catalog
 
+import java.io.File
+import java.time.ZoneId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
-import java.time.ZoneId
 
 /**
  * The generated asset itself, read straight off disk.

@@ -2,10 +2,10 @@ package com.waymark.domain.logic
 
 import com.waymark.data.catalog.Airports
 import com.waymark.domain.model.Segment
+import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.Instant
 
 class ConnectionRiskTest {
 
@@ -116,5 +116,4 @@ class ConnectionRiskTest {
         assertEquals(RiskLevel.AT_RISK, tight.level)
         assertEquals(RiskLevel.COMFORTABLE, relaxed.level)
     }
-
 }

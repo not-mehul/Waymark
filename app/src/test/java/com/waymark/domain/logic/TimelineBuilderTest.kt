@@ -4,11 +4,11 @@ import com.waymark.data.catalog.SampleItinerary
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.TripDossier
 import com.waymark.domain.model.TripParty
+import java.time.Instant
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.Instant
-import java.time.LocalDate
 
 class TimelineBuilderTest {
 
@@ -87,13 +87,6 @@ class TimelineBuilderTest {
     fun `an empty trip produces an empty timeline rather than a header`() {
         val empty = dossier.copy(segments = emptyList())
         assertTrue(TimelineBuilder.build(empty, now = duringTrip).isEmpty())
-    }
-
-    @Test
-    fun `the next event is the first one not yet finished`() {
-        val next = TimelineBuilder.nextEvent(dossier, duringTrip)
-        assertTrue(next != null)
-        assertTrue(next!!.endEpochMillis >= duringTrip.toEpochMilli())
     }
 
     /**

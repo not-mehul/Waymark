@@ -5,7 +5,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
@@ -56,19 +55,4 @@ fun Modifier.cornerBrackets(color: Color, armLength: Float = 26f): Modifier = dr
     line(Offset(0f, h), Offset(arm, h))
     line(Offset(w - arm, h), Offset(w, h))
     line(Offset(w, h - arm), Offset(w, h))
-}
-
-/** A one-pixel top highlight, the inset rule from the modal shadow stack. */
-fun Modifier.innerHighlight(color: Color): Modifier = drawWithContent {
-    drawContent()
-    drawLine(
-        brush = Brush.horizontalGradient(
-            0f to color.copy(alpha = 0f),
-            0.5f to color,
-            1f to color.copy(alpha = 0f),
-        ),
-        start = Offset(0f, 0.5f),
-        end = Offset(size.width, 0.5f),
-        strokeWidth = 1.dp.toPx(),
-    )
 }

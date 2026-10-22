@@ -204,11 +204,13 @@ fun WorldMap(
                     places = places,
                     view = view,
                     layouts = labels,
-                    station = colors.accentAmber,
-                    stay = colors.accentSage,
-                    stop = colors.textDim,
-                    label = colors.textMuted,
-                    halo = colors.mapWater,
+                    ink = MarkInk(
+                        station = colors.accentAmber,
+                        stay = colors.accentSage,
+                        stop = colors.textDim,
+                        label = colors.textMuted,
+                        halo = colors.mapWater,
+                    ),
                 )
             }
         }
@@ -451,7 +453,7 @@ private fun closeAlongLimb(path: Path, view: GlobeView, from: Offset, to: Offset
     while (sweep < -Math.PI) sweep += (2 * Math.PI).toFloat()
 
     val steps = max(2, (abs(sweep) / 0.08f).toInt())
-    (1..steps).forEach { step ->
+    for (step in 1..steps) {
         val point = view.onLimb(start + sweep * step / steps)
         path.lineTo(point.x, point.y)
     }
@@ -564,12 +566,9 @@ private fun DrawScope.drawMarks(
     places: List<ChartPlace>,
     view: MapView,
     layouts: Map<String, TextLayoutResult>,
-    station: Color,
-    stay: Color,
-    stop: Color,
-    label: Color,
-    halo: Color,
+    ink: MarkInk,
 ) {
+    val halo = ink.halo
     data class Drawn(val place: ChartPlace, val point: Offset, val radius: Float)
 
     val onScreen = places.mapNotNull { place ->
@@ -589,9 +588,9 @@ private fun DrawScope.drawMarks(
 
     onScreen.forEach { drawn ->
         val tint = when (drawn.place.kind) {
-            ChartPlace.Kind.STATION -> station
-            ChartPlace.Kind.STAY -> stay
-            ChartPlace.Kind.STOP -> stop
+            ChartPlace.Kind.STATION -> ink.station
+            ChartPlace.Kind.STAY -> ink.stay
+            ChartPlace.Kind.STOP -> ink.stop
         }
         // A ring, not a blob: the mark should not hide the place it marks.
         drawCircle(halo.copy(alpha = 0.85f), drawn.radius + 2f, drawn.point)
@@ -629,11 +628,14 @@ private fun DrawScope.drawMarks(
         )
         drawText(
             textLayoutResult = layout,
-            color = label,
+            color = ink.label,
             topLeft = Offset(placement.left, placement.top),
         )
     }
 }
+
+/** The colours a mark is drawn in, by kind, and the halo that keeps it legible over land. */
+private class MarkInk(val station: Color, val stay: Color, val stop: Color, val label: Color, val halo: Color)
 
 /** Centre and zoom that put every known point comfortably inside the canvas. */
 private fun fitViewport(points: List<MapPoint>, size: Size): Pair<MapPoint, Float> {

@@ -167,8 +167,11 @@ object IdeaBoard {
             .groupBy { it.plannedDate!! }
             .map { (date, group) -> DayGroup(date, group.sortedWith(displayOrder)) }
             .sortedBy { it.date }
-        return DayPlan(days = days, undated = visible.filter { it.plannedDate == null }
-            .sortedWith(displayOrder))
+        return DayPlan(
+            days = days,
+            undated = visible.filter { it.plannedDate == null }
+                .sortedWith(displayOrder)
+        )
     }
 
     /**

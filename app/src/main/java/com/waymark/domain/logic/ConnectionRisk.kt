@@ -58,7 +58,8 @@ object ConnectionRisk {
             val required = CHANGE_AIRPORT_BASE + transfer.totalMinutes +
                 if (entersNewCountry) IMMIGRATION_SURCHARGE else 0
             return required to
-                "Airport change via ${transfer.mode.label.lowercase()} (${TimeText.duration(transfer.totalMinutes)}) plus check-in"
+                "Airport change via ${transfer.mode.label.lowercase()} " +
+                "(${TimeText.duration(transfer.totalMinutes)}) plus check-in"
         }
 
         val sameTerminal = inbound.arrivalTerminal != null &&

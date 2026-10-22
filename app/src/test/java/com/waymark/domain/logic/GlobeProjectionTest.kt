@@ -1,10 +1,10 @@
 package com.waymark.domain.logic
 
+import kotlin.math.abs
+import kotlin.math.sqrt
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import kotlin.math.abs
-import kotlin.math.sqrt
 
 class GlobeProjectionTest {
 

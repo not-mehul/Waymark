@@ -26,7 +26,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.waymark.domain.logic.TimeText
 import com.waymark.domain.model.Idea
-import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
 import com.waymark.ui.components.FieldLabel
 import com.waymark.ui.components.GhostIconButton

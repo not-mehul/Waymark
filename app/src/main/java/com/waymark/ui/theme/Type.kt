@@ -33,13 +33,6 @@ class WaymarkTypography(
         fontWeight = FontWeight.Normal,
     )
 
-    val screenTitle = TextStyle(
-        fontFamily = displayFamily,
-        fontSize = 32.sp,
-        lineHeight = 36.sp,
-        letterSpacing = (-0.5).sp,
-    )
-
     /** 1.875rem, italic — the section voice. */
     val sectionHeading = TextStyle(
         fontFamily = displayFamily,

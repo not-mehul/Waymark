@@ -116,16 +116,6 @@ interface SegmentDao {
     @Query("SELECT * FROM segments WHERE id = :segmentId")
     suspend fun find(segmentId: String): SegmentEntity?
 
-    /** Everything that starts inside a window — the reminder check's read. */
-    @Query(
-        """
-        SELECT * FROM segments
-        WHERE startEpochMillis BETWEEN :fromMillis AND :toMillis
-        ORDER BY startEpochMillis
-        """
-    )
-    suspend fun startingInWindow(fromMillis: Long, toMillis: Long): List<SegmentEntity>
-
     /** Everything still to start, for working out when the next reminder falls due. */
     @Query("SELECT * FROM segments WHERE startEpochMillis > :fromMillis ORDER BY startEpochMillis")
     suspend fun startingAfter(fromMillis: Long): List<SegmentEntity>

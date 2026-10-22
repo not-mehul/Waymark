@@ -1,6 +1,7 @@
 package com.waymark.alerts
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -66,6 +67,8 @@ object Notifications {
      * flight's check-in reminder and its departure reminder do not replace
      * each other.
      */
+    // Checked by granted() first, and a revocation in between is caught below.
+    @SuppressLint("MissingPermission")
     fun post(context: Context, reminder: RaisedReminder, tripId: String): Boolean {
         if (!granted(context)) return false
         val notification = NotificationCompat.Builder(context, CHANNEL_DEPARTURES)

@@ -54,6 +54,7 @@ data class TripAnalyticsReport(
     val carbonKg: Double,
 ) {
     val hasDistance: Boolean get() = totalDistanceKm > 0
+
     /** Share of the trip's waking hours with something on them. */
     val bookedShare: Double
         get() = (hoursMoving + hoursBooked).let { busy ->

@@ -1,12 +1,12 @@
 package com.waymark.domain.model
 
 import com.waymark.data.catalog.SampleItinerary
-import org.junit.Assert.assertEquals
-import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import org.junit.Assert.assertEquals
+import org.junit.Test
 
 /**
  * Nights are calendar nights in the hotel's own zone. A 15:00 check-in and an

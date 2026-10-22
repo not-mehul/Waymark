@@ -1,8 +1,13 @@
 package com.waymark.ui.add
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -10,29 +15,38 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waymark.data.catalog.Airports
-import com.waymark.domain.logic.TimeText
+import com.waymark.data.share.Bcbp
+import com.waymark.data.share.BookingText
 import com.waymark.domain.logic.LegTimes
+import com.waymark.domain.logic.TimeText
 import com.waymark.ui.components.DateField
 import com.waymark.ui.components.EmptyLine
 import com.waymark.ui.components.FieldLabel
 import com.waymark.ui.components.LocalReminderPermission
+import com.waymark.ui.components.NoticeBanner
 import com.waymark.ui.components.OptionChip
 import com.waymark.ui.components.PartyMark
 import com.waymark.ui.components.PrimaryButton
 import com.waymark.ui.components.ScreenScaffold
 import com.waymark.ui.components.SectionHeader
 import com.waymark.ui.components.TimeField
+import com.waymark.ui.components.WaymarkIcon
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.components.WaymarkTextField
+import com.waymark.ui.share.Barcodes
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
+import kotlinx.coroutines.launch
 
 /**
  * A flight, typed in.
@@ -42,6 +56,7 @@ import com.waymark.ui.theme.WaymarkSpacing
  * coordinates and a time zone — which is enough to put the leg on the map and
  * to work out that a 22:20 departure lands the following afternoon.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AddFlightScreen(
     viewModel: AddFlightViewModel,
@@ -54,8 +69,89 @@ fun AddFlightScreen(
     // mean something, so it is the moment the app asks to be allowed to send
     // one. Nothing is asked for on the way in.
     val reminders = LocalReminderPermission.current
+    val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+    val scope = rememberCoroutineScope()
+    var notice by rememberSaveable { mutableStateOf<String?>(null) }
+
+    // A boarding pass's barcode carries the flight, the airports, the date and
+    // the seat; everything but the clock times. Read from a screenshot or a
+    // photo — no camera permission, nothing sent anywhere.
+    val boardingPass = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri ?: return@rememberLauncherForActivityResult
+        scope.launch {
+            val legs = Barcodes.read(context, uri)?.let { Bcbp.parse(it) }.orEmpty()
+            val leg = legs.firstOrNull()
+            notice = if (leg == null) {
+                "No boarding pass code could be read in that picture."
+            } else {
+                viewModel.prefill(
+                    FlightDraft(
+                        designator = leg.designator,
+                        date = leg.date,
+                        origin = leg.origin,
+                        destination = leg.destination,
+                        confirmationCode = leg.reference,
+                        cabin = leg.cabin,
+                        seat = leg.seat,
+                    )
+                )
+                "Read from the pass. Add the departure and arrival times; a pass does not carry them." +
+                    if (legs.size > 1) " It has ${legs.size} flights — this is the first." else ""
+            }
+        }
+    }
 
     ScreenScaffold(title = "Add flight", onBack = onDone, spacing = WaymarkSpacing.small) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.tight),
+            verticalArrangement = Arrangement.spacedBy(WaymarkSpacing.tight),
+        ) {
+            OptionChip(
+                text = "From a boarding pass",
+                selected = false,
+                onClick = {
+                    boardingPass.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                },
+                leading = { WaymarkIcon(WaymarkIcons.Scan, tint = Waymark.colors.textDim, size = 15.dp) },
+            )
+            OptionChip(
+                text = "Paste an email",
+                selected = false,
+                onClick = {
+                    val text = clipboard.getText()?.text.orEmpty()
+                    val reading = BookingText.read(text)
+                    val found = reading.flights.firstOrNull()
+                    notice = if (found == null) {
+                        "Nothing on the clipboard reads as a flight. " +
+                            "Copy the part of the email with the flight number in it."
+                    } else {
+                        viewModel.prefill(
+                            FlightDraft(
+                                designator = found.designator,
+                                date = found.date,
+                                origin = found.origin,
+                                destination = found.destination,
+                                departs = found.departs,
+                                arrives = found.arrives,
+                                confirmationCode = reading.reference,
+                            )
+                        )
+                        "Filled in from the clipboard — check it before saving." +
+                            if (reading.flights.size > 1) {
+                                " It mentions ${reading.flights.size} flights; this is the first."
+                            } else {
+                                ""
+                            }
+                    }
+                },
+                leading = { WaymarkIcon(WaymarkIcons.Clipboard, tint = Waymark.colors.textDim, size = 15.dp) },
+            )
+        }
+        notice?.let { message ->
+            NoticeBanner(icon = WaymarkIcons.Info, headline = message, onDismiss = { notice = null })
+        }
+
         Row(
             horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug),
             verticalAlignment = Alignment.Bottom,

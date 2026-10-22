@@ -1,0 +1,76 @@
+# Detekt on top of its defaults, tuned for a Compose app.
+#
+# Off or loosened only where the default fights how Compose and this codebase
+# are written: composables are PascalCase and take many parameters by design,
+# layout code is full of dp literals, and the bundled catalogues are tables.
+
+complexity:
+  LongMethod:
+    threshold: 100
+    ignoreAnnotated: ['Composable']
+    excludes: ['**/data/catalog/**', '**/test/**']
+  LongParameterList:
+    functionThreshold: 8
+    constructorThreshold: 12
+    ignoreDefaultParameters: true
+    ignoreDataClasses: true
+    ignoreAnnotated: ['Composable']
+    excludes: ['**/data/catalog/**']
+  CyclomaticComplexMethod:
+    threshold: 20
+    ignoreAnnotated: ['Composable']
+    ignoreSimpleWhenEntries: true
+  TooManyFunctions:
+    thresholdInFiles: 30
+    thresholdInClasses: 30
+    thresholdInObjects: 30
+    thresholdInInterfaces: 20
+    ignorePrivate: true
+  ComplexCondition:
+    threshold: 5
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+  MatchingDeclarationName:
+    active: false
+  TopLevelPropertyNaming:
+    constantPattern: '[A-Z][_A-Z0-9]*'
+
+style:
+  ThrowsCount:
+    max: 4
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    maxLineLength: 120
+    excludes: ['**/data/catalog/**', '**/test/**']
+  # Parsers here are written as a chain of guards, each returning early on
+  # input that cannot be what is wanted; counting them says nothing.
+  ReturnCount:
+    active: false
+  UnusedPrivateMember:
+    active: true
+  ForbiddenComment:
+    active: false
+  LoopWithTooManyJumpStatements:
+    maxJumpCount: 3
+
+performance:
+  # One copy of a six-element array, once, at database open.
+  SpreadOperator:
+    active: false
+
+exceptions:
+  TooGenericExceptionCaught:
+    # runCatching-style recovery around I/O and decoding is deliberate.
+    exceptionNames: ['Throwable', 'Error']
+  SwallowedException:
+    ignoredExceptionTypes:
+      - CancellationException
+      - IllegalArgumentException
+      - NotFoundException
+      - NumberFormatException
+      - ParseException
+      - RuntimeException
+      - SecurityException

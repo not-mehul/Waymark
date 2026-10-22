@@ -1,11 +1,11 @@
 package com.waymark.data.share
 
+import java.time.LocalDate
+import java.time.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
-import java.time.LocalTime
 
 class ParsingTest {
 
@@ -44,6 +44,27 @@ class ParsingTest {
         assertEquals(LocalDate.of(2026, 5, 21), back.date)
         assertEquals("CDG", back.origin)
         assertEquals(LocalTime.of(15, 40), back.arrives)
+    }
+
+    @Test
+    fun `a complete flight becomes a booking in the airports' own zones`() {
+        val found = BookingText.read("BA 286 SFO to LHR on 14 May 2026, departs 16:20, arrives 10:55", today)
+            .flights.single()
+        val flight = BookingText.toSegment(found, tripId = "trip-1", id = "seg-1", reference = "K7QH2P")!!
+        assertEquals("BA", flight.carrierCode)
+        assertEquals("286", flight.flightNumber)
+        assertEquals("America/Los_Angeles", flight.startZoneId)
+        assertEquals("Europe/London", flight.endZoneId)
+        // Overnight: lands the next morning, ten and a half hours later.
+        assertEquals(LocalDate.of(2026, 5, 15), flight.end.toLocalDate())
+        assertEquals(10 * 60 + 35L, flight.duration.toMinutes())
+        assertEquals("K7QH2P", flight.confirmationCode)
+    }
+
+    @Test
+    fun `an incomplete flight does not become a booking`() {
+        val found = BookingText.read("BA 286 SFO to LHR on 14 May 2026", today).flights.single()
+        assertNull(BookingText.toSegment(found, "trip-1", "seg-1", null))
     }
 
     @Test

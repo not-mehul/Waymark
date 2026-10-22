@@ -64,9 +64,12 @@ class PlacesTest {
 
     @Test
     fun `english names and spelling variants find the city`() {
-        assertEquals("BE", Places.resolve("Bruges", null, "UTC").place.country.let { name ->
-            Countries.forName(name)?.code
-        })
+        assertEquals(
+            "BE",
+            Places.resolve("Bruges", null, "UTC").place.country.let { name ->
+                Countries.forName(name)?.code
+            }
+        )
         assertEquals("Europe/Moscow", Places.resolve("st. petersburg", null, "UTC").place.timeZoneId)
         assertEquals("Europe/Zurich", Places.resolve("ZURICH", null, "UTC").place.timeZoneId)
     }

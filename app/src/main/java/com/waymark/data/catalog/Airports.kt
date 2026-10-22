@@ -89,7 +89,7 @@ object Airports {
         Airport("BOM", "Chhatrapati Shivaji Maharaj", "Mumbai", "India", 19.0896, 72.8656, "Asia/Kolkata", listOf("1", "2")),
         Airport("BKK", "Suvarnabhumi", "Bangkok", "Thailand", 13.6900, 100.7501, "Asia/Bangkok", listOf("Main")),
         Airport("SIN", "Changi", "Singapore", "Singapore", 1.3644, 103.9915, "Asia/Singapore", listOf("1", "2", "3", "4")),
-        Airport("HKG", "Hong Kong International", "Hong Kong", "Hong Kong SAR", 22.3080, 113.9185, "Asia/Hong_Kong", listOf("1")),
+        Airport("HKG", "Hong Kong International", "Hong Kong", "Hong Kong", 22.3080, 113.9185, "Asia/Hong_Kong", listOf("1")),
         Airport("TPE", "Taoyuan International", "Taipei", "Taiwan", 25.0777, 121.2328, "Asia/Taipei", listOf("1", "2")),
         Airport("ICN", "Incheon International", "Seoul", "South Korea", 37.4602, 126.4407, "Asia/Seoul", listOf("1", "2")),
         Airport("NRT", "Narita International", "Tokyo", "Japan", 35.7720, 140.3929, "Asia/Tokyo", listOf("1", "2", "3")),
@@ -171,6 +171,4 @@ object Airports {
         airport.name.lowercase().contains(needle) -> 6
         else -> Int.MAX_VALUE
     }
-
-    fun terminalsFor(code: String): List<String> = find(code)?.terminals ?: emptyList()
 }

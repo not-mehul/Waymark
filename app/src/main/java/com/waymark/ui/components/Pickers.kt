@@ -30,8 +30,8 @@ import com.waymark.ui.theme.WaymarkSpacing
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZoneId
 import java.time.YearMonth
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle as JavaTextStyle
 import java.util.Locale
@@ -147,14 +147,14 @@ fun DatePickerModal(
         val cells = lead + month.lengthOfMonth()
         val rows = (cells + 6) / 7
 
-        (0 until rows).forEach { row ->
+        for (row in 0 until rows) {
             Row(modifier = Modifier.fillMaxWidth()) {
-                (0 until 7).forEach { column ->
+                for (column in 0 until 7) {
                     val index = row * 7 + column
                     val dayOfMonth = index - lead + 1
                     if (dayOfMonth < 1 || dayOfMonth > month.lengthOfMonth()) {
                         Spacer(Modifier.weight(1f).aspectRatio(1f))
-                        return@forEach
+                        continue
                     }
                     val date = month.atDay(dayOfMonth)
                     DayCell(
