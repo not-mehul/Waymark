@@ -1,5 +1,6 @@
 package com.waymark.domain.model
 
+import java.io.Serializable
 import java.time.ZoneId
 
 /**
@@ -18,7 +19,7 @@ data class Place(
     val longitude: Double = 0.0,
     val timeZoneId: String = "UTC",
     val address: String? = null,
-) {
+) : Serializable {
     val zone: ZoneId
         get() = runCatching { ZoneId.of(timeZoneId) }.getOrDefault(ZoneId.of("UTC"))
 

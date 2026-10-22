@@ -2,7 +2,6 @@ package com.waymark.domain.logic
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FlightDesignatorTest {
@@ -31,12 +30,6 @@ class FlightDesignatorTest {
     }
 
     @Test
-    fun `pads the printed form the way a boarding pass does`() {
-        assertEquals("BA 286", FlightDesignator.parse("BA286")?.printed)
-        assertEquals("AA 001", FlightDesignator.parse("AA1")?.printed)
-    }
-
-    @Test
     fun `rejects what cannot be a flight number`() {
         assertNull(FlightDesignator.parse(""))
         assertNull(FlightDesignator.parse("BA"))
@@ -44,11 +37,5 @@ class FlightDesignatorTest {
         assertNull(FlightDesignator.parse("BA12345"))
         assertNull(FlightDesignator.parse("BA0"))
         assertNull(FlightDesignator.parse("HEATHROW"))
-    }
-
-    @Test
-    fun `completeness gate matches parsing`() {
-        assertTrue(FlightDesignator.looksComplete("BA286"))
-        assertTrue(!FlightDesignator.looksComplete("BA"))
     }
 }

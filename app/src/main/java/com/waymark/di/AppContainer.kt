@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import com.waymark.data.catalog.AirportDirectory
 import com.waymark.data.catalog.Airports
+import com.waymark.data.catalog.Cities
+import com.waymark.data.catalog.CityDirectory
 import com.waymark.data.local.ReminderStore
 import com.waymark.data.local.WaymarkDatabase
 import com.waymark.data.repo.AlertRepository
@@ -50,6 +52,22 @@ class AppContainer(context: Context) {
             }
         }.onFailure { error ->
             Log.w("Waymark", "Station directory unavailable; core list only", error)
+        }
+    }
+
+    /**
+     * The city gazetteer, read after the stations: it is three times the size
+     * and only needed when a plan or an idea is placed, never to open a trip.
+     * Without it a typed place keeps the zone the trip is in at the time.
+     */
+    suspend fun loadCityDirectory() = withContext(Dispatchers.IO) {
+        if (Cities.loaded) return@withContext
+        runCatching {
+            appContext.assets.open(CityDirectory.ASSET_NAME).bufferedReader().use { reader ->
+                Cities.install(CityDirectory.parse(reader.lineSequence()))
+            }
+        }.onFailure { error ->
+            Log.w("Waymark", "City gazetteer unavailable; typed places keep the trip's zone", error)
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.waymark.domain.logic
 
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -21,7 +22,18 @@ object TimeText {
     private val monthDay = DateTimeFormatter.ofPattern("d MMM", Locale.US)
     private val zoneAbbrev = DateTimeFormatter.ofPattern("zzz", Locale.US)
 
-    fun clock(time: ZonedDateTime, use24Hour: Boolean = true): String =
+    /**
+     * The device's own choice of 12- or 24-hour clock. Set by the activity at
+     * start-up and whenever it returns to the foreground, so a traveler who
+     * reads "4:20 PM" everywhere else on the phone reads it here too.
+     */
+    @Volatile
+    var use24Hour: Boolean = true
+
+    fun clock(time: ZonedDateTime, use24Hour: Boolean = this.use24Hour): String =
+        time.format(if (use24Hour) clock24 else clock12)
+
+    fun clock(time: LocalTime, use24Hour: Boolean = this.use24Hour): String =
         time.format(if (use24Hour) clock24 else clock12)
 
     fun day(date: LocalDate): String = date.format(dayLong)
@@ -130,6 +142,17 @@ object TimeText {
         today.plusDays(1) -> "Tomorrow"
         today.minusDays(1) -> "Yesterday"
         else -> day(date)
+    }
+
+    /** "UTC+1", "UTC−3:30", "UTC" — a zone's offset now, for naming a clock. */
+    fun utcOffset(zoneId: String, at: java.time.Instant = java.time.Instant.now()): String {
+        val seconds = runCatching { ZoneId.of(zoneId).rules.getOffset(at).totalSeconds }.getOrDefault(0)
+        if (seconds == 0) return "UTC"
+        val sign = if (seconds > 0) "+" else "−"
+        val minutes = abs(seconds) / 60
+        val hours = minutes / 60
+        val rest = minutes % 60
+        return "UTC$sign$hours" + if (rest == 0) "" else ":" + rest.toString().padStart(2, '0')
     }
 
     /** "+7h" — the shift a traveler's body is being asked to absorb. */

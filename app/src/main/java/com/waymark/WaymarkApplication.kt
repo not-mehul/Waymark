@@ -25,6 +25,7 @@ class WaymarkApplication : Application() {
             // The directory first: a traveler who opens the app to add a flight
             // should find the field already able to resolve their airport.
             container.loadAirportDirectory()
+            container.loadCityDirectory()
             // Nothing is written on first run: the worked example is offered
             // on the empty shelf rather than installed on somebody's behalf.
             // This only sweeps reminders whose booking has already gone.

@@ -2,7 +2,7 @@ package com.waymark.ui.trip
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.waymark.data.catalog.Airports
+import com.waymark.data.catalog.Places
 import com.waymark.data.local.ReminderStore
 import com.waymark.data.repo.AlertRepository
 import com.waymark.data.repo.IdeaRepository
@@ -12,7 +12,9 @@ import com.waymark.domain.logic.CityGroup
 import com.waymark.domain.logic.IdeaBoard
 import com.waymark.domain.logic.IdeaSection
 import com.waymark.domain.logic.IdeaTally
+import com.waymark.domain.logic.LatLon
 import com.waymark.domain.logic.Lead
+import com.waymark.domain.logic.LegTimes
 import com.waymark.domain.logic.PartySplitAnalyzer
 import com.waymark.domain.logic.ReminderCategory
 import com.waymark.domain.logic.ReminderPreferences
@@ -21,11 +23,11 @@ import com.waymark.domain.logic.TimelineBuilder
 import com.waymark.domain.logic.TimelineEntry
 import com.waymark.domain.logic.TripAnalytics
 import com.waymark.domain.logic.TripAnalyticsReport
+import com.waymark.domain.logic.Whereabouts
 import com.waymark.domain.model.DisruptionAlert
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
-import com.waymark.domain.model.Place
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.TripDossier
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,6 +57,9 @@ enum class TripTab(val label: String) {
     IDEAS("Ideas"),
     PARTY("Party"),
 }
+
+/** Where the trip is on a day: what typed places are resolved against. */
+data class PlanContext(val near: LatLon?, val zoneId: String)
 
 data class TripUiState(
     val dossier: TripDossier? = null,
@@ -194,20 +199,47 @@ class TripViewModel(
     }
 
     /**
+     * Where the trip is on a given day, for resolving a place typed into a plan
+     * or an idea on that day: the position to rank same-named cities against,
+     * and the clock to fall back on when the text matches nothing.
+     */
+    fun planContext(date: LocalDate): PlanContext {
+        val dossier = state.value.dossier
+        val home = dossier?.trip?.homeZoneId ?: ZoneId.systemDefault().id
+        val noon = date.atTime(12, 0).atZone(Segment.zoneOrUtc(home)).toInstant().toEpochMilli()
+        val segments = dossier?.segments.orEmpty()
+        return PlanContext(
+            near = Whereabouts.positionAt(segments, noon),
+            zoneId = Whereabouts.zoneIdAt(segments, noon, home),
+        )
+    }
+
+    /**
      * Turn a completed [PlanDraft] into a segment.
      *
-     * A station code resolves to a real airport; for free-text places, look up
-     * the timezone from the city if possible, falling back to the trip's home zone.
+     * Each end is the reading the traveler picked, or the best one: a station
+     * code, a city, or the text as typed in the zone the trip is in that day.
+     * Never the trip's home zone by default — a 15:00 check-in in Paris on a
+     * trip created in San Francisco is 15:00 in Paris.
      */
-    fun addPlan(draft: PlanDraft) {
-        if (!draft.named) return
-        val cityZoneId = if (draft.where.length >= 3) {
-            Airports.search(draft.where, limit = 1).firstOrNull()?.timeZoneId
-        } else null
-        val zoneId = cityZoneId ?: state.value.dossier?.trip?.homeZoneId ?: ZoneId.systemDefault().id
-        val origin = resolvePlace(draft.where, draft.title, zoneId)
+    fun addPlan(draft: PlanDraft): Boolean {
+        val segment = segmentOf(draft) ?: return false
+        viewModelScope.launch { trips.saveSegment(segment) }
+        return true
+    }
+
+    private fun segmentOf(draft: PlanDraft): Segment? {
+        if (!draft.named) return null
+        val context = planContext(draft.startDate)
+        val origin = draft.wherePlace
+            ?: Places.resolve(draft.where.ifBlank { draft.title }, context.near, context.zoneId).place
         val destination = if (draft.isGround) {
-            resolvePlace(draft.destination, draft.destination, zoneId)
+            draft.destinationPlace ?: Places.resolve(
+                draft.destination,
+                near = origin.takeIf { it.hasCoordinates }?.let { LatLon(it.latitude, it.longitude) }
+                    ?: context.near,
+                fallbackZoneId = context.zoneId,
+            ).place
         } else {
             origin
         }
@@ -215,15 +247,18 @@ class TripViewModel(
         val startZone = Segment.zoneOrUtc(origin.timeZoneId)
         val endZone = Segment.zoneOrUtc(destination.timeZoneId)
         val start = ZonedDateTime.of(draft.startDate, draft.startTime, startZone)
-        var end = ZonedDateTime.of(
-            if (draft.isStay) draft.endDate else draft.startDate,
-            draft.endTime,
-            endZone,
+        val end = LegTimes.endAfter(
+            start = start,
+            end = java.time.LocalDateTime.of(
+                if (draft.isStay) draft.endDate else draft.startDate,
+                draft.endTime,
+            ),
+            endZone = endZone,
         )
-        if (!end.toInstant().isAfter(start.toInstant())) end = end.plusDays(1)
+        if (!LegTimes.isOrdered(start, end)) return null
 
         val id = TripRepository.newId("seg")
-        val segment: Segment = when (draft.kind) {
+        return when (draft.kind) {
             com.waymark.domain.model.SegmentKind.LODGING -> Segment.Lodging(
                 id = id,
                 tripId = tripId,
@@ -272,20 +307,6 @@ class TripViewModel(
                 note = draft.note.ifBlank { null },
             )
         }
-
-        viewModelScope.launch { trips.saveSegment(segment) }
-    }
-
-    private fun resolvePlace(query: String, fallbackName: String, zoneId: String): Place {
-        Airports.find(query)?.let { return it.toPlace() }
-        Airports.search(query, limit = 1).firstOrNull()
-            ?.takeIf { query.length >= 3 }
-            ?.let { return it.toPlace() }
-        return Place(
-            name = query.ifBlank { fallbackName }.trim().ifBlank { "Unnamed place" },
-            city = "",
-            timeZoneId = zoneId,
-        )
     }
 
     /**
@@ -382,33 +403,34 @@ class TripViewModel(
     }
 
     /**
-     * Put an idea on the timeline. The idea's place timezone is used if it has one.
-     * If not, look up the timezone from the city using the airport catalog.
-     * Fall back to the trip's home zone only if the city is unrecognized.
+     * Put an idea on the timeline, on the clock of the place it happens.
+     *
+     * In order: the idea's own place; a booking in the same city, whose zone is
+     * already known exactly; the city looked up by name; and failing all of
+     * those, wherever the trip is on that day.
      */
     fun scheduleIdea(
         idea: Idea,
-        date: java.time.LocalDate,
+        date: LocalDate,
         startTime: java.time.LocalTime,
         minutesOverride: Int? = null,
     ) {
+        val context = planContext(date)
+        val bookedHere = state.value.dossier?.segments.orEmpty()
+            .flatMap { listOf(it.origin, it.destination) }
+            .firstOrNull { idea.city.isNotBlank() && it.city.equals(idea.city, ignoreCase = true) }
+        val zoneId = idea.place?.timeZoneId
+            ?: bookedHere?.timeZoneId
+            ?: Places.resolve(idea.city, context.near, context.zoneId)
+                .takeIf { idea.city.isNotBlank() && it.match != Places.Match.TYPED }
+                ?.place?.timeZoneId
+            ?: context.zoneId
         viewModelScope.launch {
-            // Prefer place timezone, then city lookup, then home zone, then system default
-            val timeZoneId = idea.place?.timeZoneId
-                ?: run {
-                    if (idea.city.isNotBlank()) {
-                        Airports.search(idea.city, limit = 1).firstOrNull()?.timeZoneId
-                    } else null
-                }
-                ?: state.value.dossier?.trip?.homeZoneId
-                ?: java.time.ZoneId.systemDefault().id
-
-            val zone = Segment.zoneOrUtc(timeZoneId)
             ideas.schedule(
                 idea = idea,
                 date = date,
                 startTime = startTime,
-                zone = zone,
+                zone = Segment.zoneOrUtc(zoneId),
                 travelerIds = idea.interestedTravelerIds,
                 minutesOverride = minutesOverride,
             )

@@ -8,6 +8,7 @@ import com.waymark.domain.model.Segment
 import com.waymark.domain.model.TripDossier
 import com.waymark.domain.model.chronological
 import java.time.LocalDate
+import java.util.Locale
 
 /**
  * The whole trip as one markdown document.
@@ -201,7 +202,7 @@ object MarkdownExport {
         appendLine("|---|---|")
         appendLine("| Distance | ${Geo.formatDistance(report.totalDistanceKm)} |")
         appendLine("| Flown | ${Geo.formatDistance(report.flownKm)} |")
-        appendLine("| Hours moving | ${"%.1f".format(report.hoursMoving)} |")
+        appendLine("| Hours moving | ${"%.1f".format(Locale.ROOT, report.hoursMoving)} |")
         appendLine("| Time zones crossed | ${report.timeZonesCrossed} |")
         appendLine("| Countries | ${report.countriesVisited.joinToString(", ")} |")
         appendLine("| Estimated carbon | ${report.carbonKg.toInt()} kg CO₂e |")

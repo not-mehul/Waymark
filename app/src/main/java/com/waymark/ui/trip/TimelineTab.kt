@@ -446,4 +446,5 @@ private fun subtitle(segment: Segment, role: EventRole): String = when (segment)
     }
 }
 
-private val GUTTER = 52.dp
+/** Wide enough for "10:55" — or "10:55 PM" on a phone set to the 12-hour clock. */
+private val GUTTER get() = if (TimeText.use24Hour) 52.dp else 68.dp

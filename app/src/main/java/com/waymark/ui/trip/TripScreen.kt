@@ -177,11 +177,9 @@ fun TripScreen(
         AddPlanFlow(
             party = state.dossier?.party?.travelers.orEmpty(),
             defaultDate = state.dossier?.trip?.startDate() ?: java.time.LocalDate.now(),
+            contextFor = viewModel::planContext,
             onDismiss = { addingPlan = false },
-            onSave = {
-                viewModel.addPlan(it)
-                addingPlan = false
-            },
+            onSave = { if (viewModel.addPlan(it)) addingPlan = false },
         )
     }
 

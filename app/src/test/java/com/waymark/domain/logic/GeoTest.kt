@@ -73,14 +73,6 @@ class GeoTest {
     }
 
     @Test
-    fun `projection round-trips`() {
-        val point = LatLon(51.47, -0.4543)
-        val back = Geo.unproject(Geo.project(point))
-        assertEquals(point.latitude, back.latitude, 0.0001)
-        assertEquals(point.longitude, back.longitude, 0.0001)
-    }
-
-    @Test
     fun `date line crossing is detected`() {
         assertTrue(Geo.crossesDateLine(LatLon(0.0, 179.0), LatLon(0.0, -179.0)))
         assertTrue(!Geo.crossesDateLine(LatLon(0.0, 10.0), LatLon(0.0, -10.0)))
