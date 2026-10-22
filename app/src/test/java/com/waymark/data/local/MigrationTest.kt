@@ -282,12 +282,14 @@ private object OldSchema {
         listOf(TRIPS, TRAVELERS) + MEMBERS + SEGMENTS_WITH_VAULT + ALERTS + VAULT + DOCUMENTS + PACKING +
             tripRows + flightWithVault(reservation = true) + alertRow + ideas(plannedDay = true)
 
-    fun v3(documents: Boolean): List<String> =
-        listOf(TRIPS, TRAVELERS) + MEMBERS + SEGMENTS_V3 + ALERTS +
-            (if (documents) listOf(DOCUMENTS) else emptyList()) +
-            tripRows + alertRow + ideas(plannedDay = true) +
-            "INSERT INTO segments (id, tripId, kind, startEpochMillis, endEpochMillis, startZoneId, endZoneId, " +
+    private val flightV3 =
+        "INSERT INTO segments (id, tripId, kind, startEpochMillis, endEpochMillis, startZoneId, endZoneId, " +
             "confirmationCode, bookedWith, originPlace, destinationPlace, carrierCode, flightNumber) VALUES " +
             "('$SEGMENT', '$TRIP', 'FLIGHT', $START, $END, 'America/Los_Angeles', 'Europe/London', 'K7QH2P', " +
             "'British Airways', '$origin', '$place', 'BA', '286')"
+
+    fun v3(documents: Boolean): List<String> =
+        listOf(TRIPS, TRAVELERS) + MEMBERS + SEGMENTS_V3 + ALERTS +
+            (if (documents) listOf(DOCUMENTS) else emptyList()) +
+            tripRows + flightV3 + alertRow + ideas(plannedDay = true)
 }

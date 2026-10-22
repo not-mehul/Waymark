@@ -1,6 +1,7 @@
 package com.waymark.data.catalog
 
 import com.waymark.domain.model.Place
+import java.util.Locale
 
 /**
  * Station reference data, bundled so resolving a code works with the radio off.
@@ -30,6 +31,12 @@ object Airports {
         val timeZoneId: String,
         val terminals: List<String> = emptyList(),
     ) {
+        // Lower-cased once, here, rather than for nine thousand rows on every
+        // keystroke of a search.
+        internal val codeKey: String = code.lowercase(Locale.ROOT)
+        internal val cityKey: String = city.lowercase(Locale.ROOT)
+        internal val nameKey: String = name.lowercase(Locale.ROOT)
+
         fun toPlace(): Place = Place(
             name = name,
             code = code,
@@ -143,7 +150,7 @@ object Airports {
      * happens to contain the letters.
      */
     fun search(query: String, limit: Int = 8): List<Airport> {
-        val needle = query.trim().lowercase()
+        val needle = query.trim().lowercase(Locale.ROOT)
         if (needle.isEmpty()) return emptyList()
         return everything()
             .map { airport -> airport to score(airport, needle) }
@@ -162,13 +169,13 @@ object Airports {
     }
 
     private fun score(airport: Airport, needle: String): Int = when {
-        airport.code.lowercase() == needle -> 0
-        airport.code.lowercase().startsWith(needle) -> 1
-        airport.city.lowercase() == needle -> 2
-        airport.city.lowercase().startsWith(needle) -> 3
-        airport.name.lowercase().startsWith(needle) -> 4
-        airport.city.lowercase().contains(needle) -> 5
-        airport.name.lowercase().contains(needle) -> 6
+        airport.codeKey == needle -> 0
+        airport.codeKey.startsWith(needle) -> 1
+        airport.cityKey == needle -> 2
+        airport.cityKey.startsWith(needle) -> 3
+        airport.nameKey.startsWith(needle) -> 4
+        airport.cityKey.contains(needle) -> 5
+        airport.nameKey.contains(needle) -> 6
         else -> Int.MAX_VALUE
     }
 }

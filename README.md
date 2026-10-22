@@ -4,8 +4,9 @@ An Android travel-logistics app: every flight, stay, transfer and booking for a
 trip — for one traveler or a party that splits up — on one timeline, one vector
 chart. It works with the radio off.
 
-Kotlin, Jetpack Compose, Room, WorkManager. Single module, no third-party
-runtime dependencies beyond AndroidX.
+Kotlin, Jetpack Compose, Room, WorkManager. Single module; beyond AndroidX the
+only runtime libraries are kotlinx.serialization, for trip files, and ZXing's
+core, for reading and drawing barcodes.
 
 ---
 
@@ -20,6 +21,13 @@ that a 16:20 out of San Francisco lands the following morning, and to show the
 block time back as you set it, which is the quickest way to catch a time
 entered against the wrong airport.
 
+**Or don't type it.** Share a confirmation email to Waymark, or paste one into
+Add flight, and it reads the flight numbers, airports, dates and times out of
+it — on the phone, with nothing sent anywhere — and shows them to be checked
+before anything is saved. Pick a screenshot or a photo of a boarding pass and
+the barcode fills in the flight, the airports, the date, the cabin and the
+seat; a pass does not carry clock times, so those are left to you.
+
 **Add things one question at a time.** A plan or an idea is entered through a
 short flow rather than a form: what kind of thing, then what it is, then when,
 then the reference numbers somebody has to go and find in an email. Any earlier
@@ -29,15 +37,26 @@ saves nothing at all.
 **And then leave it alone.** There is no live tracking and no "what the board
 says" to keep current, because nobody is going to update an app at a gate. A
 booking is a record of something already arranged, so it opens **read only**;
-Edit turns the screen into a form with Save and Cancel, and nothing is written
-until Save.
+Edit turns the screen into a form with Save and Cancel — every field, from the
+flight number and the airports to a hotel's room and a train's pick-up point —
+and nothing is written until Save.
 
 **Be told before it starts.** The one thing the app volunteers is that
 something you entered is about to happen, which it knows from the itinerary and
 the clock. **Every category has its own lead time** and any of them can be
 switched off: flights three hours out, trains and transfers an hour, a booked
-table an hour, a hotel check-in not at all — until you say otherwise. One
-notification channel, asked for once, when you save your first flight.
+table an hour, a hotel check-in not at all — until you say otherwise. Two more
+are about flights: **online check-in**, a day ahead, and **time to leave for
+the airport**, worked out from where the trip is before the flight and how
+long the journey to the airport takes. A single alarm is set for the next
+reminder anywhere in the app, so they arrive on time rather than whenever
+Android next lets a background job run; a reminder that fell due while
+notifications were blocked is still shown once they are allowed. Tapping one
+opens the booking. One notification channel, asked for once, when you save
+your first flight.
+
+**See what is next without opening anything.** A home-screen widget shows the
+next booking across every trip, counting down, and opens it.
 
 **Nothing on first launch.** The shelf opens empty, with the worked example
 offered rather than installed. Somebody planning a real trip does not begin by
@@ -52,8 +71,10 @@ device that holds nothing else encrypted and has no network to leak anything
 to — and a code you cannot read without authenticating is a code you cannot
 read at a check-in desk with a bag in one hand.
 
-**Travel as a group.** Travelers are profiles attached to a trip and assigned
-per segment. When two people are on different bookings — one on the morning
+**Travel as a group.** Travelers are profiles — seat and meal preference,
+loyalty numbers, a phone number — that belong to the person, not the trip: the
+same person on two trips is one profile, edited once, from either trip or from
+People on the shelf. They are assigned per segment. When two people are on different bookings — one on the morning
 train, one on the evening one — the app names the window in which the party is
 split, and flags anyone with nothing booked.
 
@@ -68,7 +89,8 @@ world culled rather than flattened. Both draw real coastlines — Natural Earth'
 1:110m land polygons, simplified to about 1,400 points and shipped inside the
 binary — over water, under a graticule, with the trip's great-circle legs on
 top. Pinch to zoom either one, drag to pan the chart or turn the globe, tap a
-mark to open it. Labels are placed by a collision solver rather than pinned
+mark to open it. The list button reads the same trip out leg by leg, with the
+distance each covers, for a screen reader or anyone who would rather read. Labels are placed by a collision solver rather than pinned
 beside their marks, so a cluster of hotels in one city does not print on top of
 itself; a label with nowhere to go is dropped and its mark stays.
 
@@ -87,11 +109,34 @@ losing it.
 the hours go, nights per city, and a carbon estimate that shows its factors
 rather than asserting a figure, above the same globe you can turn with a finger.
 
-**Take it with you.** One tap exports the whole trip as markdown — days as
-headings, every booking as a line, the idea list as checkboxes, the booking
-references as an index — and hands it to the system share sheet. References
-travel with it, because a confirmation code is the reason to send somebody an
-itinerary in the first place.
+**Take it with you.** A trip leaves the app four ways, all through the system
+share sheet. As **markdown** — days as headings, every booking as a line, the
+idea list as checkboxes, the booking references as an index. As a **calendar
+file** whose events, in UTC, land at the right moment in any calendar app. As a
+**trip file** that Waymark on another phone opens back into the whole trip,
+party, bookings and ideas. Or as a **QR code** for the phone across the table,
+carrying as much of the trip as fits and saying what it left out. References
+travel with all of them, because a confirmation code is the reason to send
+somebody an itinerary in the first place.
+
+**Keep a copy.** *Back up every trip* writes one file with everything in it,
+wherever you keep things; opening it on a new phone brings everything across.
+A phone-to-phone transfer during setup carries the app's data too. Nothing goes
+to a cloud backup.
+
+**Put a trip away.** A trip that is over can be archived: off the shelf, quiet —
+no reminders, not on the widget — and back with one tap.
+
+**Read it your way.** Clock times follow the phone's 12- or 24-hour setting and
+distances its region's miles or kilometres. On a tablet or an unfolded phone the
+booking you tap opens beside the timeline instead of over it.
+
+**Places you type mean what you meant.** "Paris" is a city, resolved against a
+bundled gazetteer of every city of 15,000 people or more, nearest to where the
+trip is that day — so a 15:00 check-in in Paris is 15:00 in Paris, not in the
+zone the trip was created in. A three-letter code is a station. Anything else
+stays exactly as typed, with no pin on the map rather than a confident pin in
+the wrong country, and the screen says back how each place was read.
 
 **Land informed.** What the money is, what the plug is, what number to call and
 which way to look before crossing — for **every country** a bundled station can
@@ -137,10 +182,9 @@ the original CSS.
 
 A surveyor's north needle: two long triangles meeting on a vertical axis, the
 right half amber and the left half cream, with the axis running the full height
-of the glyph. It is the same shape in three places — `WaymarkIcons.Waymark` as
-a single stroked outline, the adaptive launcher foreground as two filled halves
-sized to the 66dp safe zone, and a monochrome layer that cuts the needle out of
-its own field so a themed-icon tint does not flatten it into a lozenge.
+of the glyph. It is the adaptive launcher foreground, two filled halves sized to
+the 66dp safe zone, with a monochrome layer that cuts the needle out of its own
+field so a themed-icon tint does not flatten it into a lozenge.
 
 It replaced a ring-and-chevron mark that was, on inspection, broken: the ring
 was centred at the top of the canvas and the chevron sat below it, so the two
@@ -149,15 +193,15 @@ halves of the logo never met.
 ### Motion
 
 Every animation in the app comes from one file, `ui/components/Motion.kt`, and
-there are four of them: content settles in on a screen's first composition,
-list rows stagger down the column, a value animates to its target rather than
-jumping, and a tick draws itself along its own two strokes. Buttons
-give 3% under a finger. Nothing bounces, nothing spins, nothing animates that
-the reader is waiting for.
+there are three of them: content settles in on a screen's first composition,
+list rows stagger down the column once — not again each time a row scrolls
+back into view — and a value animates to its target rather than jumping.
+Buttons give 3% under a finger. Nothing bounces, nothing spins, nothing animates
+that the reader is waiting for.
 
-All of it is scaled by `Settings.Global.ANIMATOR_DURATION_SCALE`, so a device
-with animations turned off in accessibility settings — or in battery saver —
-gets the final state immediately, with no separate code path to forget about.
+Compose scales every one of them by the system's animator duration scale, so a
+device with animations turned off in accessibility settings — or in battery
+saver — gets the final state immediately.
 
 ### Dates and times
 
@@ -171,9 +215,11 @@ The time picker got there by subtraction. It began as two dragged wheels with
 stepper arrows, which turned 16:20 into a drag you had to watch. Then it gained
 a row of shortcut chips at three-hour intervals — 06:00, 09:00, 12:00 — which
 is a guess about when people travel dressed up as a convenience, and no help at
-all for the times nobody publishes on the hour. Minutes still step by five,
-because departures are published in fives; the running time is the modal's own
-title, so the body is nothing but choices.
+all for the times nobody publishes on the hour. Minutes are laid out in fives,
+because departures are mostly published in fives, with a row of +1 to +4 beneath
+for the ones that are not — 08:31, 19:04 — and an existing time is never
+rounded to fit. The running time is the modal's own title, so the body is
+nothing but choices.
 
 Fields that open a picker are shaped *exactly* like fields that accept typing —
 same corner, same border, same 11dp of vertical padding — so a date sitting
@@ -214,37 +260,52 @@ own value; legend text wears a text token, never the series colour.
 ```
 com.waymark
 ├── domain/
-│   ├── model/      Trip, Traveler, Segment (sealed), Idea, DisruptionAlert
+│   ├── model/      Trip, Traveler, Segment (sealed), Idea, RaisedReminder
 │   └── logic/      TimelineBuilder, ConnectionRisk, TransitEstimator,
 │                   PartySplitAnalyzer, IdeaBoard, TimeAtPlace, ReminderPlanner,
-│                   TripAnalytics, MarkdownExport, LabelPlacer,
-│                   Geo (incl. orthographic globe)
+│                   Whereabouts, LegTimes, TripAnalytics, MarkdownExport,
+│                   IcsExport, LabelPlacer, Geo (incl. orthographic globe)
 ├── data/
-│   ├── catalog/    Station core list + world directory, country facts,
-│   │               coastline, the worked example
-│   ├── local/      Room entities, DAOs, codecs, migrations, ReminderStore
+│   ├── catalog/    Stations (core list + world directory), cities, Places,
+│   │               airlines, country facts, coastline, the worked example
+│   ├── share/      TripArchive (trip files, backups, QR payloads),
+│   │               BookingText (emails), Bcbp (boarding passes)
+│   ├── local/      Room entities, DAOs, codecs, migrations, ReminderStore,
+│   │               ThemeStore
 │   └── repo/       TripRepository, IdeaRepository, AlertRepository, SampleSeeder
-├── alerts/         The reminder worker (WorkManager) + the one notification channel
-├── di/             AppContainer — the whole graph, readable top to bottom
+├── alerts/         ReminderCheck, the alarm for the next reminder, the
+│                   safety-net worker, and the one notification channel
+├── widget/         The next-up home-screen widget
+├── di/             AppContainer — the whole graph, readable top to bottom —
+│                   and the Inbox for what arrives from outside
 └── ui/
     ├── theme/      Tokens, type ramp, shapes, spacing
     ├── components/ Panel, buttons, chips, toggles, modal, icons, backdrop,
-    │               Pickers (date, time), ChoiceCards, TabRail, StepFlow
+    │               Pickers (date, time, zone), ChoiceCards, TabRail, StepFlow
     ├── charts/     BarSeries, DayLoadChart, Meter, RingFigure, SplitBar
     ├── map/        WorldMap — one component, flat and orthographic projections
-    ├── export/     Markdown export and the share intent
-    └── trips/ trip/ add/ segment/ insights/ analytics/
+    ├── export/     Markdown, calendar and trip-file sharing
+    ├── share/      Import, shared emails, trip codes, barcodes
+    └── trips/ trip/ add/ segment/ people/ insights/ analytics/
 ```
 
 **The domain layer is plain Kotlin.** No Android imports, no Compose, no Room —
-which is why the interesting logic is unit-testable on the JVM and why the
-tests below run in a third of a second.
+which is why the interesting logic is unit-testable on the JVM and why most of
+the tests below run in a fraction of a second.
+
+**Navigation is typed.** Every destination is a `@Serializable` class and its
+arguments are its fields. A trip's screens live in one nested graph that owns
+the trip's id and its one view model, so the timeline, the booking, the map and
+the numbers read the same dossier rather than each subscribing again; the
+derived state — timeline, splits, ideas board, numbers — is worked out off the
+main thread.
 
 **Persistence.** One Room database. Segments live in a single table with a
 `kind` discriminator; the alternative — a table per kind — buys nothing and
 costs four joins on the busiest read in the app. Composite values (places,
-traveler sets, seat and ticket maps) go through explicit codecs rather than a
-JSON dependency.
+traveler sets, seat and ticket maps) go through explicit codecs. Every schema
+the app has ever written migrates forward, never destructively, and each one
+is opened by the real migrations in the tests.
 
 **Nothing is encrypted, deliberately.** There was an AES-256-GCM vault under an
 Android Keystore key, with a `BiometricPrompt` in front of the moment a code
@@ -258,8 +319,7 @@ is the device's own lock screen, as it does for everything else on it.
 no provider interface, no network client, and no status subsystem; the manifest
 declares no `INTERNET` permission, so the app *cannot* call anything even by
 mistake. A booking holds the times it was given, and changing them means
-editing the booking — which now reaches every field the Add flight screen
-collects, rather than only the times.
+editing the booking — which reaches every field, not only the times.
 
 **A connection is something one traveler makes.** The timeline walks each
 traveler's own itinerary separately and merges the results. Where the party
@@ -271,9 +331,11 @@ departure and announce an impossible connection on a correct itinerary.
 
 **Deleting.** Removing a booking releases any idea that was promoted onto it,
 so the idea returns to the list rather than vanishing with the segment.
-Removing a whole trip cascades through the database and sweeps the alert table,
-which sits outside the graph on purpose. A sweep on start-up repairs anything a previous version
-orphaned. Trip deletion asks for the trip's name to be typed: it is the only
+Removing a traveler takes the bookings only they were on and their name off
+the rest, and removes their profile if they are on no other trip. Removing a
+whole trip cascades through the database and sweeps the alert table, which sits
+outside the graph on purpose. A sweep on start-up repairs anything a previous
+version orphaned. Trip deletion asks for the trip's name to be typed: it is the only
 irreversible thing the app can do, and the only friction of its kind.
 
 **The station directory.** `assets/airports.txt` holds 8,831 IATA stations —
@@ -329,12 +391,21 @@ sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 Then:
 
 ```bash
-./gradlew :app:testDebugUnitTest    # the 158 unit tests
+./gradlew :app:testDebugUnitTest    # the unit suite, Robolectric included
 ./gradlew :app:assembleDebug        # the APK
+./gradlew :app:lintDebug            # Android lint
 ```
 
 The unit tests need no emulator and no device. There is nothing else to
 configure: no API key, no account, no service.
+
+Style is checked by ktlint and detekt, run in CI as their command-line jars
+against `.editorconfig` and `config/detekt.yml`; the same two commands work
+locally with the jars from Maven Central (versions in `build.yml`).
+
+The build writes the Room schema to `app/schemas`. A change to the database
+shows up there and must be committed with a migration; CI fails a build whose
+schema differs from the committed one.
 
 ### Releasing
 
@@ -346,6 +417,8 @@ a tag push:
 git tag v1.0.0 && git push origin v1.0.0
 ```
 
+The version comes from the tag — `v1.4.2` builds version name `1.4.2` and code
+`10402` — so there is no number in the source to remember to bump.
 `.github/workflows/release.yml` runs the unit suite, builds the release APK,
 signs it with the keystore held in the repository's secrets, and opens a draft
 GitHub release with the APK attached. **[RELEASING.md](RELEASING.md)** covers
@@ -361,8 +434,39 @@ be mistaken for a shippable one.
 
 ## Tests
 
-158 JVM unit tests over the domain and catalog layers:
+Unit tests over every layer. Most are plain JVM tests of the domain, catalog
+and share code; the database, the repository, a view model and a Compose screen
+run under Robolectric against a real SQLite and a real composition.
 
+- `MigrationTest` — **every schema an earlier build could have left on a
+  phone** — three version 1 builds, version 2, early and late version 3 —
+  opened through the real migrations and checked by Room against today's
+  entities, with the trip, its traveler, booking, idea and reminder coming
+  through, and foreign keys still cascading afterwards
+- `TripRepositoryTest` — import replaces rather than duplicates, everyone
+  ticked is stored as everyone, a booking widens its trip, removing a traveler
+  takes their own bookings and keeps the shared ones, a profile on another trip
+  survives, an archived trip stays quiet
+- `MappersTest` — every kind of row round-trips, an unknown kind is skipped
+  rather than a crash, legacy `0,0` coordinates read as unknown
+- `ShareViewModelTest`, `EditSegmentScreenTest` — an email offers its flights,
+  a trip code is shown before it is written, and the edit screen says why it
+  will not save
+- `TripArchiveTest` — trip files and QR payloads round-trip, a code fits by
+  leaving out what it says it left out, a damaged or newer file is refused
+- `ParsingTest` — flights read out of a confirmation email (dates either side
+  of the flight number, 12-hour times, a European date not mistaken for a
+  time, "Room 215" not mistaken for a flight) and out of an IATA boarding-pass
+  barcode, one leg or several
+- `SegmentFormTest` — editing a booking: a new airport moves it into that
+  airport's zone, an end a little before the start runs past midnight, seats
+  are kept only for the people on the flight
+- `LegTimesTest`, `LodgingNightsTest` — an arrival's day inferred from two
+  clocks, and nights counted as calendar nights in the hotel's zone
+- `PlacesTest`, `WhereaboutsTest` — typed places resolved exactly, nearest
+  first, never by substring; where the trip is at a given moment
+- `IcsExportTest` — one event per booking, UTC times, escaping and folding
+- `AirlinesTest` — the carrier table's codes well formed and unique
 - `FlightDesignatorTest` — parsing `BA286`, `ba 286`, `BAW286`, `3U8888`, `U2 1234`
 - `GeoTest` — great-circle distances against published figures, arc symmetry,
   Mercator round-trip, antimeridian detection
@@ -378,10 +482,6 @@ be mistaken for a shippable one.
   booking is announced once rather than at every check — but changes when the
   booking moves, because the time did
 - `TransitAndTimeTest` — estimates, mode selection, duration and zone-shift text
-- `FlightCatalogTest` — the station table's consistency (real time zones, no
-  duplicate codes, coordinates in range) and the worked-example schedule,
-  including a westbound date-line crossing that lands the
-  previous day
 - `IdeaBoardTest` — section ordering, per-traveler filtering, and promotion to
   a timeline segment
 - `CountriesTest` — every row well formed and unique, and the one that decides
@@ -427,10 +527,17 @@ Places where the app says less than it could:
 - **Nothing here is live, and the app says so.** Every flight time, gate and
   terminal was typed in by a traveler. Waymark holds no network permission, so
   there is no version of it that quietly starts calling a service.
-- **Offline cuts both ways.** Nothing is backed up off the device. A trip lives
-  on one phone until it is exported as markdown, and a lost phone is a lost
-  trip. The About sheet says this too, rather than leaving it to be discovered
-  after the fact.
+- **Offline cuts both ways.** Nothing is backed up off the device on its own.
+  A trip lives on one phone until it is shared or backed up to a file, and a
+  lost phone with no backup is a lost trip. The About sheet says this too,
+  rather than leaving it to be discovered after the fact.
+- **The email reader skims; it does not understand.** It finds a flight number
+  from an airline it knows with an airport code beside it, and the nearest
+  date and times. An unusual layout can defeat it, which is why what it finds
+  is shown to be checked rather than saved unseen.
+- **English only, for now.** Clock times and distances follow the phone's
+  settings, but the words are English and live in the code rather than in
+  string resources; translating the app starts with moving them.
 - **The coastline is 1:110m and coarse.** Italy is a boot and Florida is a
   peninsula; it is not a navigational chart and no place is drawn to a
   resolution finer than about fifty kilometres. It is a basemap for reading a
@@ -459,7 +566,10 @@ Coastlines are derived from [Natural Earth](https://www.naturalearthdata.com)
 1:110m land polygons, which are in the public domain. The station directory is
 the IATA table supplied with the project, deduplicated and cleaned, with time
 zones resolved from coordinates at generation time, and ISO country codes
-expanded to names by the bundled country table. That table — currency, socket
+expanded to names by the bundled country table. The city gazetteer is
+[GeoNames](https://www.geonames.org) `cities15000` (CC BY 4.0), built into
+`assets/cities.txt` by `tools/build_cities.py`; the airline names are
+hand-compiled. That table — currency, socket
 type, mains voltage, emergency number and driving side for 240 countries and
 territories — is hand-compiled. Everything else in the app was entered by
 whoever is using it.
@@ -472,4 +582,5 @@ in the binary they installed.
 
 ## Licence
 
-[MIT](LICENSE). The bundled geographic data is public domain and credited above.
+[MIT](LICENSE). The bundled geographic data is credited above: Natural Earth is
+public domain, GeoNames is CC BY 4.0.

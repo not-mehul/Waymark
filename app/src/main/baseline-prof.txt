@@ -1,0 +1,8 @@
+# A coarse startup profile: all of Waymark's own code, compiled ahead of time
+# at install. The app is small enough that this costs a few hundred kilobytes
+# of compiled code, and it takes the interpreter out of the first frames of
+# the shelf, a trip's timeline and the map. Compose, Room and the other
+# libraries ship their own profiles, which the build merges with this one;
+# profileinstaller writes the result on devices that do not get it from Play.
+HSPLcom/waymark/**->**(**)**
+Lcom/waymark/**;
