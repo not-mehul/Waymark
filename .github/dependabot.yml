@@ -1,0 +1,22 @@
+# Weekly, grouped, so a dependency bump is one pull request to review rather
+# than a dozen. The build workflow runs on each, which is the review that
+# matters: if it is green, the bump compiles, passes and lints.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      androidx:
+        patterns: ["androidx.*"]
+      kotlin:
+        patterns: ["org.jetbrains.kotlin*", "com.google.devtools.ksp*"]
+      testing:
+        patterns: ["junit*", "org.robolectric*", "androidx.test*"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly

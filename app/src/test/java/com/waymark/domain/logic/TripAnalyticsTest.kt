@@ -4,10 +4,10 @@ import com.waymark.data.catalog.SampleItinerary
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.TripDossier
 import com.waymark.domain.model.TripParty
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
 
 class TripAnalyticsTest {
 
@@ -78,7 +78,10 @@ class TripAnalyticsTest {
     fun `countries and zones are counted without repeats`() {
         assertTrue(report.countriesVisited.containsAll(listOf("France", "United Kingdom")))
         assertEquals(report.countriesVisited, report.countriesVisited.distinct())
-        assertTrue(report.timeZonesCrossed >= 3)
+        // San Francisco to London, London to Paris, Paris back to San
+        // Francisco: three changes of clock for each traveler.
+        assertEquals(3, report.clockChanges)
+        assertEquals(8.0 + 1.0 + 9.0, report.hoursShifted, 0.001)
     }
 
     @Test

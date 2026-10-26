@@ -14,97 +14,76 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import android.provider.Settings
 
 /**
- * The whole motion vocabulary of the app, in one file.
+ * The motion vocabulary of the app.
  *
  * The rule from the style reference is that motion is responsiveness, not
  * decoration — nothing bounces, nothing spins for its own sake, and nothing
- * animates on load that the reader is waiting for. What is left is worth
- * having: a screen's content settling in rather than snapping, a tick that
- * draws itself when you pack something, a meter that fills to its value, a
- * number that counts rather than jumping. All of it is short, all of it is
- * eased out, and none of it blocks a tap.
+ * animates on load that the reader is waiting for. What is left: content
+ * settling in rather than snapping, a meter filling to its value, a modal
+ * arriving. All of it is short, eased out, and blocks no tap.
  *
  * ### Reduced motion
  *
- * Every animation here goes through [motionScale], which reads the platform's
- * animator duration setting. A traveler who has turned animations off in
- * Android's accessibility settings — or is in battery saver, which does the
- * same thing — gets the final state immediately, everywhere, with no separate
- * code path to forget about.
+ * Nothing here scales its own durations. Compose already runs every animation
+ * at the platform's animator duration scale — Android's "remove animations"
+ * accessibility setting, and battery saver, set it to zero — so a traveler who
+ * has turned animations off gets the final state immediately, everywhere,
+ * including in the controls that animate without going through this file. An
+ * earlier version also multiplied by the scale here, which at the developer
+ * setting of 0.5× halved everything twice.
  */
 object Motion {
 
     /** Everything decelerates into place; nothing accelerates out of it. */
     val easing: Easing = CubicBezierEasing(0.16f, 1f, 0.3f, 1f)
 
-    /** A control acknowledging a tap. */
-    const val QUICK = 140
-
     /** Content arriving, a meter filling, a value changing. */
     const val SETTLE = 260
-
-    /** The longest thing in the app: a tick drawing itself. */
-    const val DRAW = 420
 }
 
 /**
- * 1 normally, 0 when the platform has been told to stop animating.
- *
- * Read once per composition rather than watched: this setting changes about as
- * often as the device is set up, and observing it would cost a
- * `ContentObserver` on every animated composable in the app.
+ * Remembers which rows of a list have already settled in, so a row scrolled
+ * out of view and back does not arrive a second time. A lazy list forgets a
+ * row's own state when it scrolls away; this lives with the list instead.
  */
-@Composable
-fun motionScale(): Float {
-    val view = LocalView.current
-    return remember(view) {
-        if (view.isInEditMode) {
-            1f
-        } else {
-            runCatching {
-                Settings.Global.getFloat(
-                    view.context.contentResolver,
-                    Settings.Global.ANIMATOR_DURATION_SCALE,
-                    1f,
-                )
-            }.getOrDefault(1f)
-        }
-    }
+@Stable
+class SettleOnce {
+    private val settled = mutableSetOf<String>()
+
+    internal fun claim(key: String): Boolean = settled.add(key)
 }
 
-/** A duration, scaled by the platform setting. Zero means "arrive already there". */
 @Composable
-fun motionMillis(base: Int): Int = (base * motionScale()).toInt()
+fun rememberSettleOnce(): SettleOnce = remember { SettleOnce() }
 
 /**
- * Content that settles in: a short rise and fade, once, on first composition.
+ * Content that settles in: a short rise and fade, once.
  *
- * Used for a screen's body and for panels that appear in place. [order] staggers
- * a list so rows arrive in sequence rather than as one block — capped, because
- * the tenth row of a long list should not wait a second to exist.
+ * [order] staggers a list so rows arrive in sequence rather than as one block —
+ * capped, because the tenth row of a long list should not wait a second to
+ * exist. With [once] and a [key], a row that has settled before does not do it
+ * again when it scrolls back into view.
  */
 @Composable
 fun Modifier.settleIn(
     order: Int = 0,
     rise: Dp = 10.dp,
+    once: SettleOnce? = null,
+    key: String? = null,
 ): Modifier {
-    val scale = motionScale()
-    var visible by remember { mutableStateOf(scale <= 0f) }
-    val delay = (order.coerceAtMost(6) * 45 * scale).toInt()
-
-    LaunchedEffect(Unit) { visible = true }
+    val first = remember(key) { once == null || key == null || once.claim(key) }
+    var visible by remember(key) { mutableStateOf(!first) }
+    LaunchedEffect(key) { visible = true }
 
     val progress by animateFloatAsState(
         targetValue = if (visible) 1f else 0f,
         animationSpec = tween(
-            durationMillis = (Motion.SETTLE * scale).toInt(),
-            delayMillis = delay,
+            durationMillis = Motion.SETTLE,
+            delayMillis = order.coerceAtMost(6) * 45,
             easing = Motion.easing,
         ),
         label = "settle",
@@ -129,31 +108,13 @@ fun animatedValue(
     fromZero: Boolean = false,
     durationMillis: Int = Motion.SETTLE,
 ): State<Float> {
-    val scale = motionScale()
     var started by remember { mutableStateOf(!fromZero) }
     LaunchedEffect(Unit) { started = true }
 
     return animateFloatAsState(
         targetValue = if (started) target else 0f,
-        animationSpec = tween((durationMillis * scale).toInt(), easing = Motion.easing),
+        animationSpec = tween(durationMillis, easing = Motion.easing),
         label = "value",
-    )
-}
-
-/**
- * Progress from 0 to 1 while [on] is true, and straight back to 0 when it is
- * not — the shape a tick or a stroke draws itself along.
- */
-@Composable
-fun drawProgress(on: Boolean, durationMillis: Int = Motion.DRAW): State<Float> {
-    val scale = motionScale()
-    return animateFloatAsState(
-        targetValue = if (on) 1f else 0f,
-        animationSpec = tween(
-            durationMillis = if (on) (durationMillis * scale).toInt() else 0,
-            easing = Motion.easing,
-        ),
-        label = "draw",
     )
 }
 

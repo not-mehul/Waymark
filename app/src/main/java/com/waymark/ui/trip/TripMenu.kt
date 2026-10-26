@@ -34,31 +34,45 @@ import com.waymark.ui.theme.WaymarkSpacing
  */
 @Composable
 fun TripMenu(
+    archived: Boolean,
     onDismiss: () -> Unit,
     onOpenAnalytics: () -> Unit,
     onOpenInsights: () -> Unit,
     onOpenMap: () -> Unit,
-    onExport: () -> Unit,
+    onExportMarkdown: () -> Unit,
+    onExportCalendar: () -> Unit,
+    onShareFile: () -> Unit,
+    onShareCode: () -> Unit,
     onEdit: () -> Unit,
     onReminders: () -> Unit,
+    onArchive: (Boolean) -> Unit,
     onDelete: () -> Unit,
     reminderSummary: String,
 ) {
     WaymarkModal(title = "This trip", onDismiss = onDismiss) {
-        MenuRow(WaymarkIcons.Map, "The map", "Every leg, on a chart or a globe") {
+        MenuRow(WaymarkIcons.Map, "The map", "Every leg, on a chart or a globe, or as a list") {
             onDismiss(); onOpenMap()
         }
         MenuRow(WaymarkIcons.Chart, "The numbers", "Distance, days, legs, carbon") {
             onDismiss(); onOpenAnalytics()
         }
-        MenuRow(WaymarkIcons.Compass, "Destination notes", "Local knowledge, bundled") {
+        MenuRow(WaymarkIcons.Compass, "Destination notes", "Money, plugs, emergency numbers") {
             onDismiss(); onOpenInsights()
         }
 
         Hairline()
 
-        MenuRow(WaymarkIcons.Share, "Export as markdown", "The whole trip, as text") {
-            onDismiss(); onExport()
+        MenuRow(WaymarkIcons.Share, "Send the trip", "A file the party can open in Waymark") {
+            onDismiss(); onShareFile()
+        }
+        MenuRow(WaymarkIcons.QrCode, "Show as a code", "For a phone in the same room to scan") {
+            onDismiss(); onShareCode()
+        }
+        MenuRow(WaymarkIcons.Calendar, "Add to a calendar", "Every booking, as calendar events") {
+            onDismiss(); onExportCalendar()
+        }
+        MenuRow(WaymarkIcons.Pencil, "Export as markdown", "The whole trip, as text to keep or print") {
+            onDismiss(); onExportMarkdown()
         }
 
         Hairline()
@@ -97,6 +111,13 @@ fun TripMenu(
             detail = "Name, destinations, first and last day",
         ) {
             onDismiss(); onEdit()
+        }
+        MenuRow(
+            icon = WaymarkIcons.Archive,
+            title = if (archived) "Bring it back" else "Put it away",
+            detail = if (archived) "Back on the shelf with the others" else "Off the shelf, kept whole, quiet",
+        ) {
+            onDismiss(); onArchive(!archived)
         }
 
         // Last, and the only row that speaks in the danger token — a

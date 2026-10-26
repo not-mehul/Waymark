@@ -3,10 +3,15 @@ package com.waymark
 import android.app.Application
 import com.waymark.alerts.DepartureWatch
 import com.waymark.alerts.Notifications
+import com.waymark.alerts.ReminderCheck
 import com.waymark.di.AppContainer
+import com.waymark.widget.NextUpWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 
 class WaymarkApplication : Application() {
@@ -16,6 +21,7 @@ class WaymarkApplication : Application() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    @OptIn(FlowPreview::class)
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
@@ -27,8 +33,26 @@ class WaymarkApplication : Application() {
             container.loadAirportDirectory()
             // Nothing is written on first run: the worked example is offered
             // on the empty shelf rather than installed on somebody's behalf.
-            // This only sweeps reminders whose booking has already gone.
-            container.tripRepository.pruneOrphans()
+            // This only tidies what earlier builds left behind.
+            container.tripRepository.repair()
+            container.loadCityDirectory()
         }
+        scope.launch {
+            // Any change to a booking, a trip or a reminder setting moves the
+            // next reminder; look again, once the burst of writes has settled.
+            combine(
+                container.tripRepository.observeItineraryChanges(),
+                container.reminderStore.observe(),
+            ) { _, _ -> }
+                .debounce(SETTLE_MILLIS)
+                .collect {
+                    ReminderCheck.run(this@WaymarkApplication, container)
+                    NextUpWidget.refresh(this@WaymarkApplication)
+                }
+        }
+    }
+
+    private companion object {
+        const val SETTLE_MILLIS = 1_000L
     }
 }

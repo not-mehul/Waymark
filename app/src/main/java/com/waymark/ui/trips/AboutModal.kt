@@ -49,6 +49,8 @@ fun AboutModal(onDismiss: () -> Unit) {
         SectionLabel("Bundled data")
         Credit("Coastlines", "Natural Earth 1:110m — public domain")
         Credit("Stations", "IATA airport table — deduplicated, zones resolved from coordinates")
+        Credit("Cities", "GeoNames cities15000 — CC BY 4.0, geonames.org")
+        Credit("Airlines", "Hand-compiled IATA designators")
         Credit("Destination notes", "Hand-compiled")
 
         Hairline()

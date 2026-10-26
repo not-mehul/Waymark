@@ -1,5 +1,6 @@
 package com.waymark.ui.theme
 
+import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -14,12 +15,11 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-import android.app.Activity
+import com.waymark.data.local.ThemeStore
 
 enum class ThemeMode { SYSTEM, DUSK, DAWN }
 
@@ -51,10 +51,10 @@ val LocalThemeController: ProvidableCompositionLocal<ThemeController> =
  */
 @Composable
 fun WaymarkTheme(
-    initialMode: ThemeMode = ThemeMode.SYSTEM,
+    store: ThemeStore? = null,
     content: @Composable () -> Unit,
 ) {
-    var mode by rememberSaveable { mutableStateOf(initialMode) }
+    var mode by remember { mutableStateOf(store?.current() ?: ThemeMode.SYSTEM) }
     val systemDark = isSystemInDarkTheme()
     val isDusk = when (mode) {
         ThemeMode.SYSTEM -> systemDark
@@ -63,7 +63,10 @@ fun WaymarkTheme(
     }
     val colors = if (isDusk) DuskColors else DawnColors
     val typography = remember { WaymarkTypography() }
-    val controller = ThemeController(mode, isDusk) { mode = it }
+    val controller = ThemeController(mode, isDusk) {
+        mode = it
+        store?.set(it)
+    }
 
     // Native surfaces — status bar icons, scrollbars — follow the theme, the
     // Android equivalent of `color-scheme`. Applied as a side effect so that
@@ -116,13 +119,16 @@ fun WaymarkTheme(
 /** Token access. `Waymark.colors.textDim`, never a literal. */
 object Waymark {
     val colors: WaymarkColors
-        @Composable @ReadOnlyComposable get() = LocalWaymarkColors.current
+        @Composable @ReadOnlyComposable
+        get() = LocalWaymarkColors.current
 
     val type: WaymarkTypography
-        @Composable @ReadOnlyComposable get() = LocalWaymarkTypography.current
+        @Composable @ReadOnlyComposable
+        get() = LocalWaymarkTypography.current
 
     val shapes: WaymarkShapes get() = WaymarkShapes
 
     val theme: ThemeController
-        @Composable @ReadOnlyComposable get() = LocalThemeController.current
+        @Composable @ReadOnlyComposable
+        get() = LocalThemeController.current
 }

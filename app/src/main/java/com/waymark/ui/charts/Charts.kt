@@ -399,34 +399,3 @@ private fun LegendSwatch(label: String, color: Color) {
         Text(text = label, style = Waymark.type.fieldLabel, color = Waymark.colors.textDim)
     }
 }
-
-/** A tiny line for a trend beside a figure. No axes, no grid, no labels. */
-@Composable
-fun Sparkline(
-    values: List<Double>,
-    modifier: Modifier = Modifier,
-    height: Dp = 28.dp,
-) {
-    if (values.size < 2) return
-    val colors = Waymark.colors
-    val peak = max(values.max(), 1e-9)
-
-    Canvas(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height)
-    ) {
-        val step = size.width / (values.size - 1)
-        var previous: Offset? = null
-        values.forEachIndexed { index, value ->
-            val point = Offset(
-                x = index * step,
-                y = size.height - (size.height * (value / peak)).toFloat(),
-            )
-            previous?.let {
-                drawLine(colors.accentAmber, it, point, strokeWidth = 2.dp.toPx())
-            }
-            previous = point
-        }
-    }
-}

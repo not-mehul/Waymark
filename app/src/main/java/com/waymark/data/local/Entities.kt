@@ -13,7 +13,7 @@ data class TripEntity(
     val startEpochMillis: Long,
     val endEpochMillis: Long,
     val homeZoneId: String,
-    val coverPlace: String?,
+    /** Put away: off the shelf, kept whole, and back with one tap. */
     val archived: Boolean = false,
 )
 
@@ -25,7 +25,6 @@ data class TravelerEntity(
     val seatPreference: String,
     val mealPreference: String?,
     val loyaltyRefs: String?,
-    val documentRef: String?,
     val contactPhone: String?,
 )
 
@@ -147,22 +146,30 @@ data class IdeaEntity(
     val interestedTravelerIds: String?,
     val status: String,
     val scheduledSegmentId: String?,
-    val source: String,
     val addedAtMillis: Long,
 )
 
 /**
  * Reminders already raised, so a flight that is still four hours out does not
  * buzz the traveler's pocket on every check.
+ *
+ * Raised and posted are different facts. A reminder is raised the first time
+ * it falls due; it is posted once Android has actually shown it. One raised
+ * while notifications were blocked stays unposted, and is posted on the next
+ * check after they are allowed — if the booking has not started by then.
  */
-@Entity(tableName = "raised_alerts")
+@Entity(tableName = "raised_alerts", indices = [Index("segmentId")])
 data class RaisedAlertEntity(
     @PrimaryKey val signature: String,
     val segmentId: String,
-    val designator: String,
+    /** What the booking is called: `BA286`, `The Bloomsbury Rooms`. */
+    val label: String,
     val headline: String,
     val detail: String,
-    val severity: String,
+    /** When the booking starts, so the banner can count down rather than freeze. */
+    val startEpochMillis: Long,
     val raisedAtMillis: Long,
-    val acknowledged: Boolean = false,
+    val posted: Boolean,
+    /** Dismissed from the trip screen's banner by the traveler. */
+    val acknowledged: Boolean,
 )

@@ -3,15 +3,19 @@ package com.waymark.ui.trip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.waymark.domain.model.GroundMode
+import com.waymark.domain.model.Place
 import com.waymark.domain.model.SegmentKind
 import com.waymark.domain.model.Traveler
 import com.waymark.ui.components.ChoiceCard
@@ -25,7 +29,9 @@ import com.waymark.ui.components.StepQuestion
 import com.waymark.ui.components.TimeField
 import com.waymark.ui.components.WaymarkIcons
 import com.waymark.ui.components.WaymarkTextField
+import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
+import java.io.Serializable
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -44,10 +50,17 @@ data class PlanDraft(
     val confirmationCode: String = "",
     val note: String = "",
     val travelerIds: Set<String> = emptySet(),
-) {
+    /** The reading of [where] the traveler picked; null means the best one. */
+    val wherePlace: Place? = null,
+    val destinationPlace: Place? = null,
+) : Serializable {
     val isStay: Boolean get() = kind == SegmentKind.LODGING
     val isGround: Boolean get() = kind == SegmentKind.GROUND
     val named: Boolean get() = title.isNotBlank()
+
+    private companion object {
+        private const val serialVersionUID = 1L
+    }
 }
 
 /**
@@ -64,11 +77,13 @@ data class PlanDraft(
 fun AddPlanFlow(
     party: List<Traveler>,
     defaultDate: LocalDate,
+    contextFor: (LocalDate) -> PlanContext,
+    isValid: (PlanDraft) -> Boolean,
     onDismiss: () -> Unit,
     onSave: (PlanDraft) -> Unit,
 ) {
-    var step by remember { mutableStateOf(0) }
-    var draft by remember {
+    var step by rememberSaveable { mutableIntStateOf(0) }
+    var draft by rememberSaveable {
         mutableStateOf(
             PlanDraft(
                 startDate = defaultDate,
@@ -79,6 +94,7 @@ fun AddPlanFlow(
     }
 
     val steps = listOf("Kind", "What", "When", "Details")
+    val context = remember(draft.startDate) { contextFor(draft.startDate) }
 
     StepFlow(
         steps = steps,
@@ -107,11 +123,7 @@ fun AddPlanFlow(
                                 } else {
                                     LocalTime.of(9, 0)
                                 },
-                                endTime = if (option == SegmentKind.LODGING) {
-                                    LocalTime.of(11, 0)
-                                } else {
-                                    LocalTime.of(11, 0)
-                                },
+                                endTime = LocalTime.of(11, 0),
                                 endDate = if (option == SegmentKind.LODGING) {
                                     draft.startDate.plusDays(1)
                                 } else {
@@ -163,29 +175,47 @@ fun AddPlanFlow(
                             )
                         }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
-                        WaymarkTextField(
-                            value = draft.where,
-                            onValueChange = { draft = draft.copy(where = it) },
-                            label = "From",
-                            placeholder = "LHR",
-                            modifier = Modifier.weight(1f),
-                        )
-                        WaymarkTextField(
-                            value = draft.destination,
-                            onValueChange = { draft = draft.copy(destination = it) },
-                            label = "To",
-                            placeholder = "Gare du Nord",
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
+                    WaymarkTextField(
+                        value = draft.where,
+                        onValueChange = { draft = draft.copy(where = it, wherePlace = null) },
+                        label = "From",
+                        placeholder = "London, or LHR",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    PlaceReading(
+                        text = draft.where,
+                        context = context,
+                        chosen = draft.wherePlace,
+                        onChoose = { draft = draft.copy(wherePlace = it) },
+                    )
+                    WaymarkTextField(
+                        value = draft.destination,
+                        onValueChange = {
+                            draft = draft.copy(destination = it, destinationPlace = null)
+                        },
+                        label = "To",
+                        placeholder = "Paris",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    PlaceReading(
+                        text = draft.destination,
+                        context = context,
+                        chosen = draft.destinationPlace,
+                        onChoose = { draft = draft.copy(destinationPlace = it) },
+                    )
                 } else {
                     WaymarkTextField(
                         value = draft.where,
-                        onValueChange = { draft = draft.copy(where = it) },
+                        onValueChange = { draft = draft.copy(where = it, wherePlace = null) },
                         label = "Where",
                         placeholder = "Bloomsbury, London",
                         modifier = Modifier.fillMaxWidth(),
+                    )
+                    PlaceReading(
+                        text = draft.where.ifBlank { draft.title },
+                        context = context,
+                        chosen = draft.wherePlace,
+                        onChoose = { draft = draft.copy(wherePlace = it) },
                     )
                 }
 
@@ -314,10 +344,18 @@ fun AddPlanFlow(
                     singleLine = false,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                val valid = isValid(draft)
+                if (!valid) {
+                    Text(
+                        text = "It ends before it starts. Go back a step and check the times.",
+                        style = Waymark.type.hint,
+                        color = Waymark.colors.danger,
+                    )
+                }
                 StepFooter(
                     onBack = { step = 2 },
                     forwardLabel = "Add",
-                    forwardEnabled = draft.named,
+                    forwardEnabled = draft.named && valid,
                     finishing = true,
                     onForward = { onSave(draft) },
                 )

@@ -39,7 +39,6 @@ data class IdeaTally(
     val dismissed: Int,
 ) {
     val total: Int get() = saved + scheduled + done
-    val eaten: Int get() = done
 }
 
 /**
@@ -57,14 +56,8 @@ object IdeaBoard {
         travelerFilter: String? = null,
         includeDismissed: Boolean = false,
     ): List<IdeaSection> {
-        val visible = ideas
-            .filter { includeDismissed || it.status != IdeaStatus.DISMISSED }
+        val visible = shown(ideas, travelerFilter, includeDismissed)
             .filter { city == null || it.city.equals(city, ignoreCase = true) }
-            .filter { idea ->
-                travelerFilter == null ||
-                    idea.interestedTravelerIds.isEmpty() ||
-                    travelerFilter in idea.interestedTravelerIds
-            }
         return ORDER.mapNotNull { kind ->
             val group = visible.filter { it.kind == kind }.sortedWith(displayOrder)
             if (group.isEmpty()) null else IdeaSection(kind, group)
@@ -90,9 +83,6 @@ object IdeaBoard {
         done = ideas.count { it.status == IdeaStatus.DONE },
         dismissed = ideas.count { it.status == IdeaStatus.DISMISSED },
     )
-
-    private fun key(title: String, city: String): String =
-        "${title.trim().lowercase()}@${city.trim().lowercase()}"
 
     /**
      * Promote an idea onto the timeline.
@@ -129,7 +119,7 @@ object IdeaBoard {
             endZoneId = zone.id,
             travelerIds = travelerIds.ifEmpty { idea.interestedTravelerIds },
             note = idea.note,
-            curatedBy = idea.bestTime ?: idea.source,
+            curatedBy = idea.bestTime,
         )
     }
 
@@ -141,9 +131,10 @@ object IdeaBoard {
     fun byCity(
         ideas: List<Idea>,
         cityOrder: List<String> = emptyList(),
+        travelerFilter: String? = null,
         includeDismissed: Boolean = false,
     ): List<CityGroup> {
-        val visible = ideas.filter { includeDismissed || it.status != IdeaStatus.DISMISSED }
+        val visible = shown(ideas, travelerFilter, includeDismissed)
         val order = cityOrder.map { it.lowercase() }
         return visible
             .groupBy { it.city.ifBlank { "Anywhere" } }
@@ -167,27 +158,38 @@ object IdeaBoard {
      */
     fun byDay(
         ideas: List<Idea>,
+        travelerFilter: String? = null,
         includeDismissed: Boolean = false,
     ): DayPlan {
-        val visible = ideas.filter { includeDismissed || it.status != IdeaStatus.DISMISSED }
+        val visible = shown(ideas, travelerFilter, includeDismissed)
         val dated = visible.filter { it.plannedDate != null }
         val days = dated
             .groupBy { it.plannedDate!! }
             .map { (date, group) -> DayGroup(date, group.sortedWith(displayOrder)) }
             .sortedBy { it.date }
-        return DayPlan(days = days, undated = visible.filter { it.plannedDate == null }
-            .sortedWith(displayOrder))
+        return DayPlan(
+            days = days,
+            undated = visible.filter { it.plannedDate == null }
+                .sortedWith(displayOrder)
+        )
     }
 
     /**
-     * How full a pencilled day already is, by the ideas' own estimates. Used to
-     * warn before a fourth museum joins a day that already holds three.
+     * What one traveler cares about — ideas nobody has claimed belong to
+     * everyone — minus what has been set aside, unless asked for.
      */
-    fun plannedMinutes(ideas: List<Idea>, date: LocalDate): Int = ideas
-        .filter { it.plannedDate == date && it.status != IdeaStatus.DISMISSED }
-        .sumOf { it.typicalMinutes ?: DEFAULT_MINUTES }
+    private fun shown(
+        ideas: List<Idea>,
+        travelerFilter: String?,
+        includeDismissed: Boolean,
+    ): List<Idea> = ideas
+        .filter { includeDismissed || it.status != IdeaStatus.DISMISSED }
+        .filter { idea ->
+            travelerFilter == null ||
+                idea.interestedTravelerIds.isEmpty() ||
+                travelerFilter in idea.interestedTravelerIds
+        }
 
-    
     /**
      * Ideas that fit a gap in the day, by their own duration estimate plus the
      * walk there. Used to fill the free-time blocks the timeline already names.

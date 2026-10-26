@@ -1,18 +1,16 @@
 package com.waymark.domain.logic
 
 import com.waymark.domain.model.Place
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.asin
-import kotlin.math.atan
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
-import kotlin.math.sinh
 import kotlin.math.sqrt
-import kotlin.math.tan
 
 /** Latitude/longitude in degrees. */
 data class LatLon(val latitude: Double, val longitude: Double)
@@ -60,8 +58,16 @@ object Geo {
         return 2 * EARTH_RADIUS_KM * asin(min(1.0, sqrt(h)))
     }
 
-    fun distanceKm(a: Place, b: Place): Double =
-        distanceKm(LatLon(a.latitude, a.longitude), LatLon(b.latitude, b.longitude))
+    /**
+     * Zero when either end has no coordinates: an unknown distance is not an
+     * enormous one, and a hotel typed by name must not be priced as a trip to
+     * wherever latitude zero, longitude zero happens to be.
+     */
+    fun distanceKm(a: Place, b: Place): Double {
+        val from = a.position ?: return 0.0
+        val to = b.position ?: return 0.0
+        return distanceKm(from, to)
+    }
 
     /** Initial bearing from [a] to [b], degrees clockwise from north. */
     fun bearingDegrees(a: LatLon, b: LatLon): Double {
@@ -122,12 +128,6 @@ object Geo {
         return MapPoint(x, y)
     }
 
-    fun unproject(point: MapPoint): LatLon {
-        val lon = point.x * 360.0 - 180.0
-        val n = Math.PI * (1 - 2 * point.y)
-        return LatLon(toDegrees(atan(sinh(n))), lon)
-    }
-
     fun bounds(points: List<LatLon>): BoundingBox? {
         if (points.isEmpty()) return null
         var minLat = 90.0
@@ -146,16 +146,22 @@ object Geo {
     /** True when a route crosses the antimeridian and must be drawn in two pieces. */
     fun crossesDateLine(a: LatLon, b: LatLon): Boolean = abs(a.longitude - b.longitude) > 180.0
 
-    fun formatDistance(km: Double, metric: Boolean = true): String = if (metric) {
-        if (km < 10) String.format("%.1f km", km) else "${km.toInt()} km"
+    /**
+     * Kilometres, or miles where the road signs are in miles. Set once at
+     * start-up from the device's region.
+     */
+    @Volatile
+    var metric: Boolean = true
+
+    /** Countries whose road distances are posted in miles. */
+    val MILE_REGIONS = setOf("US", "GB", "LR", "MM")
+
+    fun formatDistance(km: Double, metric: Boolean = this.metric): String = if (metric) {
+        if (km < 10) String.format(Locale.ROOT, "%.1f km", km) else "${km.toInt()} km"
     } else {
         val miles = km * 0.621371
-        if (miles < 10) String.format("%.1f mi", miles) else "${miles.toInt()} mi"
+        if (miles < 10) String.format(Locale.ROOT, "%.1f mi", miles) else "${miles.toInt()} mi"
     }
-
-    /** Mercator y at a given latitude, unclamped — handy for graticule spacing. */
-    internal fun mercatorY(latitude: Double): Double =
-        ln(tan(Math.PI / 4 + toRadians(latitude.coerceIn(-85.0, 85.0)) / 2))
 
     // — Orthographic projection: the globe —————————————————————————————————
 

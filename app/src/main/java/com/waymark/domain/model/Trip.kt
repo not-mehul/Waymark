@@ -12,7 +12,6 @@ data class Trip(
     val startEpochMillis: Long,
     val endEpochMillis: Long,
     val homeZoneId: String = ZoneId.systemDefault().id,
-    val coverPlace: Place? = null,
     val archived: Boolean = false,
 ) {
     fun startDate(): LocalDate =

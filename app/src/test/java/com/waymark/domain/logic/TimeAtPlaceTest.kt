@@ -4,11 +4,11 @@ import com.waymark.data.catalog.SampleItinerary
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.TripDossier
 import com.waymark.domain.model.TripParty
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
 
 class TimeAtPlaceTest {
 

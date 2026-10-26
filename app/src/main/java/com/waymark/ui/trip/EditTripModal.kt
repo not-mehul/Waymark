@@ -9,6 +9,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.waymark.domain.logic.TimeText
+import com.waymark.domain.model.Segment
 import com.waymark.domain.model.Trip
 import com.waymark.ui.components.DateField
 import com.waymark.ui.components.MutedButton
@@ -37,7 +39,9 @@ import java.time.temporal.ChronoUnit
 @Composable
 fun EditTripModal(
     trip: Trip,
+    bookings: List<Segment>,
     onDismiss: () -> Unit,
+    onFitToBookings: () -> Unit,
     onSave: (name: String, destination: String, start: LocalDate, end: LocalDate) -> Unit,
 ) {
     var name by remember(trip.id) { mutableStateOf(trip.name) }
@@ -85,6 +89,22 @@ fun EditTripModal(
                 earliest = start,
                 modifier = Modifier.weight(1f),
             )
+        }
+
+        // A trip only ever widens on its own — saving a booking outside it
+        // stretches it — so a booking moved or removed leaves the old edge
+        // behind. This pulls both edges in to exactly what is booked.
+        if (bookings.isNotEmpty()) {
+            val first = bookings.minOf { it.start.toLocalDate() }
+            val last = bookings.maxOf { it.end.toLocalDate() }
+            if (first != trip.startDate() || last != trip.endDate()) {
+                MutedButton(
+                    text = "Fit to bookings: ${TimeText.dateRange(first, last)}",
+                    icon = WaymarkIcons.Calendar,
+                    onClick = onFitToBookings,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {

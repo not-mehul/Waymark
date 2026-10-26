@@ -23,9 +23,9 @@ import com.waymark.ui.theme.WaymarkSpacing
 /**
  * Deleting a trip is the only irreversible thing the app can do.
  *
- * There is no undo and no archive to fall back on — the rows are gone, the
- * sealed codes with them — so this asks for the trip's name to be typed rather
- * than offering a second button to tap by mistake. That is a deliberate piece
+ * There is no undo — the rows are gone — so this asks for the trip's name to
+ * be typed rather than offering a second button to tap by mistake, and offers
+ * the gentler thing first: putting the trip away. That is a deliberate piece
  * of friction, and the only one in the app.
  *
  * The confirmation is generous about how the name is typed: case and
@@ -37,6 +37,7 @@ fun DeleteTripModal(
     trip: Trip?,
     bookings: Int,
     onDismiss: () -> Unit,
+    onArchiveInstead: () -> Unit,
     onConfirm: () -> Unit,
 ) {
     if (trip == null) return
@@ -71,6 +72,17 @@ fun DeleteTripModal(
             placeholder = trip.name,
             modifier = Modifier.fillMaxWidth(),
         )
+
+        // Most trips people delete are trips that are over. Putting one away
+        // keeps it — off the shelf, quiet, back in one tap — at no cost.
+        if (!trip.archived) {
+            MutedButton(
+                text = "Put it away instead",
+                icon = WaymarkIcons.Archive,
+                onClick = onArchiveInstead,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
 
         Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
             MutedButton(text = "Keep it", onClick = onDismiss, modifier = Modifier.weight(1f))

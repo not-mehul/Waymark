@@ -1,12 +1,12 @@
 package com.waymark.data.local
 
-import com.waymark.domain.model.DisruptionAlert
 import com.waymark.domain.model.GroundMode
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
 import com.waymark.domain.model.Place
 import com.waymark.domain.model.PriceBand
+import com.waymark.domain.model.RaisedReminder
 import com.waymark.domain.model.SeatPreference
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.SegmentKind
@@ -23,7 +23,6 @@ object Mappers {
         startEpochMillis = entity.startEpochMillis,
         endEpochMillis = entity.endEpochMillis,
         homeZoneId = entity.homeZoneId,
-        coverPlace = Codecs.decodePlace(entity.coverPlace),
         archived = entity.archived,
     )
 
@@ -34,7 +33,6 @@ object Mappers {
         startEpochMillis = trip.startEpochMillis,
         endEpochMillis = trip.endEpochMillis,
         homeZoneId = trip.homeZoneId,
-        coverPlace = Codecs.encodePlace(trip.coverPlace).ifBlank { null },
         archived = trip.archived,
     )
 
@@ -46,7 +44,6 @@ object Mappers {
             .getOrDefault(SeatPreference.NONE),
         mealPreference = entity.mealPreference,
         loyaltyRefs = Codecs.decodeList(entity.loyaltyRefs),
-        documentRef = entity.documentRef,
         contactPhone = entity.contactPhone,
     )
 
@@ -57,15 +54,20 @@ object Mappers {
         seatPreference = traveler.seatPreference.name,
         mealPreference = traveler.mealPreference,
         loyaltyRefs = Codecs.encodeList(traveler.loyaltyRefs).ifBlank { null },
-        documentRef = traveler.documentRef,
         contactPhone = traveler.contactPhone,
     )
 
-    fun toSegment(entity: SegmentEntity): Segment {
+    /**
+     * Null for a row of a kind this build does not know — written by a newer
+     * version, say. Skipped rather than shown as something it is not: an
+     * unknown kind used to come back as an "experience" with no name.
+     */
+    fun toSegment(entity: SegmentEntity): Segment? {
+        val kind = SegmentKind.entries.firstOrNull { it.name == entity.kind } ?: return null
         val origin = Codecs.decodePlace(entity.originPlace) ?: Place(name = "Unknown")
         val destination = Codecs.decodePlace(entity.destinationPlace) ?: origin
         val travelerIds = Codecs.decodeIds(entity.travelerIds)
-        return when (runCatching { SegmentKind.valueOf(entity.kind) }.getOrDefault(SegmentKind.EXPERIENCE)) {
+        return when (kind) {
             SegmentKind.FLIGHT -> Segment.Flight(
                 id = entity.id,
                 tripId = entity.tripId,
@@ -215,7 +217,6 @@ object Mappers {
         interestedTravelerIds = Codecs.decodeIds(entity.interestedTravelerIds),
         status = runCatching { IdeaStatus.valueOf(entity.status) }.getOrDefault(IdeaStatus.SAVED),
         scheduledSegmentId = entity.scheduledSegmentId,
-        source = entity.source,
         addedAtMillis = entity.addedAtMillis,
     )
 
@@ -234,17 +235,30 @@ object Mappers {
         interestedTravelerIds = Codecs.encodeIds(idea.interestedTravelerIds).ifBlank { null },
         status = idea.status.name,
         scheduledSegmentId = idea.scheduledSegmentId,
-        source = idea.source,
         addedAtMillis = idea.addedAtMillis,
     )
 
-    fun toAlert(entity: RaisedAlertEntity): DisruptionAlert = DisruptionAlert(
+    fun toReminder(entity: RaisedAlertEntity): RaisedReminder = RaisedReminder(
+        signature = entity.signature,
         segmentId = entity.segmentId,
-        label = entity.designator,
+        label = entity.label,
         headline = entity.headline,
         detail = entity.detail,
-        severity = runCatching { DisruptionAlert.Severity.valueOf(entity.severity) }
-            .getOrDefault(DisruptionAlert.Severity.NOTICE),
+        startEpochMillis = entity.startEpochMillis,
         raisedAtMillis = entity.raisedAtMillis,
+        posted = entity.posted,
+        acknowledged = entity.acknowledged,
+    )
+
+    fun toEntity(reminder: RaisedReminder): RaisedAlertEntity = RaisedAlertEntity(
+        signature = reminder.signature,
+        segmentId = reminder.segmentId,
+        label = reminder.label,
+        headline = reminder.headline,
+        detail = reminder.detail,
+        startEpochMillis = reminder.startEpochMillis,
+        raisedAtMillis = reminder.raisedAtMillis,
+        posted = reminder.posted,
+        acknowledged = reminder.acknowledged,
     )
 }

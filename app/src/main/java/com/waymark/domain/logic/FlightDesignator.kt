@@ -13,9 +13,6 @@ data class FlightDesignator(
     /** Canonical form, always uppercase, never zero-padded. */
     val normalised: String get() = "$carrier$number${suffix ?: ""}"
 
-    /** How airlines print it on a boarding pass: carrier, space, padded number. */
-    val printed: String get() = "$carrier ${number.toString().padStart(3, '0')}${suffix ?: ""}"
-
     companion object {
         // Two-letter IATA codes ("BA"), mixed codes with a leading digit ("3U")
         // or a trailing digit ("U2"), and three-letter ICAO codes ("BAW").
@@ -32,8 +29,5 @@ data class FlightDesignator(
             if (number <= 0) return null
             return FlightDesignator(carrier, number, suffix.ifBlank { null })
         }
-
-        /** Is this text far enough along to be worth a lookup? */
-        fun looksComplete(input: String): Boolean = parse(input) != null
     }
 }

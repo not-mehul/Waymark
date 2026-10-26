@@ -1,6 +1,8 @@
 package com.waymark.data.repo
 
+import androidx.room.withTransaction
 import com.waymark.data.catalog.SampleItinerary
+import com.waymark.data.local.WaymarkDatabase
 import java.time.LocalDate
 
 /**
@@ -17,17 +19,23 @@ import java.time.LocalDate
  * happen: a timeline of last year's flights would demonstrate nothing.
  */
 class SampleSeeder(
+    private val database: WaymarkDatabase,
     private val trips: TripRepository,
     private val ideas: IdeaRepository,
 ) {
 
-    /** Writes the example and returns the id of the trip it created. */
+    /**
+     * Writes the example and returns the id of the trip it created — all of
+     * it or none of it, so an interrupted write cannot leave half a holiday.
+     */
     suspend fun seed(departure: LocalDate = LocalDate.now().plusDays(DAYS_UNTIL_DEPARTURE)): String {
         val bundle = SampleItinerary.build(departure)
-        trips.saveTrip(bundle.trip)
-        bundle.travelers.forEach { trips.addTraveler(bundle.trip.id, it) }
-        trips.saveSegments(bundle.segments)
-        ideas.saveAll(bundle.ideas)
+        database.withTransaction {
+            trips.saveTrip(bundle.trip)
+            bundle.travelers.forEach { trips.addTraveler(bundle.trip.id, it) }
+            trips.saveSegments(bundle.segments)
+            ideas.saveAll(bundle.ideas)
+        }
         return bundle.trip.id
     }
 

@@ -1,0 +1,37 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{kt,kts}]
+indent_size = 4
+max_line_length = 120
+ktlint_code_style = android_studio
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+# Composables are named like the things they draw.
+ktlint_function_naming_ignore_when_annotated_with = Composable
+
+[*.{yml,yaml,json,xml}]
+indent_size = 2
+
+[*.{kt,kts}]
+# The codebase lays out calls, signatures and data tables for reading, not
+# to a formatter's line-filling; these rules would rewrite that wholesale.
+ktlint_standard_argument-list-wrapping = disabled
+ktlint_standard_function-signature = disabled
+ktlint_standard_class-signature = disabled
+ktlint_standard_trailing-comma-on-call-site = disabled
+ktlint_standard_enum-wrapping = disabled
+ktlint_standard_statement-wrapping = disabled
+ktlint_standard_condition-wrapping = disabled
+ktlint_standard_multiline-if-else = disabled
+ktlint_standard_binary-expression-wrapping = disabled
+ktlint_standard_max-line-length = disabled
+ktlint_standard_property-wrapping = disabled
+ktlint_standard_function-literal = disabled
+ktlint_standard_filename = disabled
+ktlint_standard_trailing-comma-on-declaration-site = disabled

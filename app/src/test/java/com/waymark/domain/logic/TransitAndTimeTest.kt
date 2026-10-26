@@ -3,12 +3,12 @@ package com.waymark.domain.logic
 import com.waymark.data.catalog.Airports
 import com.waymark.domain.model.GroundMode
 import com.waymark.domain.model.Place
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
 
 class TransitAndTimeTest {
 
@@ -54,6 +54,8 @@ class TransitAndTimeTest {
         val unknown = Place(name = "Somewhere")
         val estimate = TransitEstimator.estimate(bloomsbury, unknown, GroundMode.TAXI)
         assertEquals(TransitEstimate.Confidence.LOW, estimate.confidence)
+        // Unknown is not "the far side of the world": no travel time is invented.
+        assertEquals(0, estimate.travelMinutes)
     }
 
     @Test

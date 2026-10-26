@@ -1,9 +1,9 @@
 package com.waymark.domain.logic
 
+import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import kotlin.math.abs
 
 class GeoTest {
 
@@ -70,14 +70,6 @@ class GeoTest {
         val northWest = Geo.project(LatLon(80.0, -180.0))
         assertEquals(0.0, northWest.x, 0.0001)
         assertTrue(northWest.y in 0.0..0.2)
-    }
-
-    @Test
-    fun `projection round-trips`() {
-        val point = LatLon(51.47, -0.4543)
-        val back = Geo.unproject(Geo.project(point))
-        assertEquals(point.latitude, back.latitude, 0.0001)
-        assertEquals(point.longitude, back.longitude, 0.0001)
     }
 
     @Test

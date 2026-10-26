@@ -16,7 +16,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         IdeaEntity::class,
         RaisedAlertEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 abstract class WaymarkDatabase : RoomDatabase() {
@@ -28,7 +28,7 @@ abstract class WaymarkDatabase : RoomDatabase() {
     abstract fun alertDao(): AlertDao
 
     companion object {
-        private const val NAME = "waymark.db"
+        const val NAME = "waymark.db"
 
         @Volatile
         private var instance: WaymarkDatabase? = null
@@ -40,18 +40,48 @@ abstract class WaymarkDatabase : RoomDatabase() {
         private fun build(context: Context): WaymarkDatabase =
             Room.databaseBuilder(context, WaymarkDatabase::class.java, NAME)
                 .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(*MIGRATIONS)
                 .build()
+
+        /**
+         * Every schema this app has ever written, in order. A traveler's
+         * itinerary must survive any update, so nothing here is ever
+         * `fallbackToDestructiveMigration`: a migration that cannot run is a
+         * crash to fix, not a database to quietly empty.
+         */
+        val MIGRATIONS: Array<Migration> by lazy {
+            arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+        }
 
         /**
          * Version 2 drops the flight-status table and folds the six idea kinds
          * into four. Both are destructive of data the app no longer models, so
-         * they are done in SQL rather than by rebuilding the database: a
-         * traveler's itinerary must survive an app update.
+         * they are done in SQL rather than by rebuilding the database.
+         *
+         * The very first builds wrote version 1 before the ideas board existed,
+         * so the table is created here when it is missing rather than assumed;
+         * and the first builds that had it wrote it before ideas could be
+         * planned for a day, so that column is added when it is missing too.
          */
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("DROP TABLE IF EXISTS flight_status")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `ideas` (`id` TEXT NOT NULL, " +
+                        "`tripId` TEXT NOT NULL, `title` TEXT NOT NULL, `kind` TEXT NOT NULL, " +
+                        "`city` TEXT NOT NULL, `place` TEXT, `note` TEXT, `priceBand` TEXT, " +
+                        "`typicalMinutes` INTEGER, `bestTime` TEXT, `plannedDateEpochDay` INTEGER, " +
+                        "`interestedTravelerIds` TEXT, `status` TEXT NOT NULL, " +
+                        "`scheduledSegmentId` TEXT, `source` TEXT NOT NULL, " +
+                        "`addedAtMillis` INTEGER NOT NULL, PRIMARY KEY(`id`), " +
+                        "FOREIGN KEY(`tripId`) REFERENCES `trips`(`id`) " +
+                        "ON UPDATE NO ACTION ON DELETE CASCADE )"
+                )
+                if (!db.hasColumn("ideas", "plannedDateEpochDay")) {
+                    db.execSQL("ALTER TABLE ideas ADD COLUMN plannedDateEpochDay INTEGER")
+                }
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_ideas_tripId` ON `ideas` (`tripId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_ideas_status` ON `ideas` (`status`)")
                 db.execSQL("UPDATE ideas SET kind = 'EAT' WHERE kind IN ('DISH', 'EATERY')")
                 db.execSQL("UPDATE ideas SET kind = 'SEE' WHERE kind = 'SIGHT'")
                 db.execSQL("UPDATE ideas SET kind = 'DO' WHERE kind IN ('ACTIVITY', 'WALK')")
@@ -98,12 +128,151 @@ abstract class WaymarkDatabase : RoomDatabase() {
                 db.execSQL("DROP TABLE IF EXISTS reservations")
                 db.execSQL("DROP TABLE IF EXISTS boarding_passes")
                 db.execSQL("DROP TABLE IF EXISTS packing_items")
-
-                // Passports, visas and insurance are not something this app
-                // tracks. The table goes with the vault that held their
-                // numbers rather than being carried forward empty.
                 db.execSQL("DROP TABLE IF EXISTS documents")
             }
         }
+
+        /**
+         * Version 4 tidies what version 3 left behind.
+         *
+         * - Builds of version 3 written before travel documents were removed
+         *   still carry a `documents` table, and Room refused to open them: the
+         *   schema had changed without the version moving. It is dropped here,
+         *   which repairs those installs as well.
+         * - Three columns nothing ever wrote to from the app are removed:
+         *   `trips.coverPlace`, `travelers.documentRef` and `ideas.source`.
+         * - `segments.reservationId`, which pointed into the vault, is removed.
+         *   Version 3 added the booking reference beside it but never took it
+         *   away, so every database migrated from version 2 failed Room's
+         *   check of the result and could not be opened at all.
+         * - Reminders learn when their booking starts, so the trip screen can
+         *   count down to it, and whether Android actually showed them, so one
+         *   raised while notifications were blocked is posted once they are not.
+         *
+         * SQLite on this app's oldest supported Android cannot drop a column,
+         * so each changed table is rebuilt: create, copy, drop, rename. Foreign
+         * keys are not enforced while a migration runs, so replacing `trips`
+         * and `travelers` does not cascade into the tables that point at them.
+         */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS documents")
+
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `trips_v4` (`id` TEXT NOT NULL, " +
+                        "`name` TEXT NOT NULL, `destinationSummary` TEXT NOT NULL, " +
+                        "`startEpochMillis` INTEGER NOT NULL, `endEpochMillis` INTEGER NOT NULL, " +
+                        "`homeZoneId` TEXT NOT NULL, `archived` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+                )
+                db.execSQL(
+                    "INSERT INTO trips_v4 (id, name, destinationSummary, startEpochMillis, " +
+                        "endEpochMillis, homeZoneId, archived) SELECT id, name, destinationSummary, " +
+                        "startEpochMillis, endEpochMillis, homeZoneId, archived FROM trips"
+                )
+                db.execSQL("DROP TABLE trips")
+                db.execSQL("ALTER TABLE trips_v4 RENAME TO trips")
+
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `travelers_v4` (`id` TEXT NOT NULL, " +
+                        "`fullName` TEXT NOT NULL, `nickname` TEXT, `seatPreference` TEXT NOT NULL, " +
+                        "`mealPreference` TEXT, `loyaltyRefs` TEXT, `contactPhone` TEXT, " +
+                        "PRIMARY KEY(`id`))"
+                )
+                db.execSQL(
+                    "INSERT INTO travelers_v4 (id, fullName, nickname, seatPreference, " +
+                        "mealPreference, loyaltyRefs, contactPhone) SELECT id, fullName, nickname, " +
+                        "seatPreference, mealPreference, loyaltyRefs, contactPhone FROM travelers"
+                )
+                db.execSQL("DROP TABLE travelers")
+                db.execSQL("ALTER TABLE travelers_v4 RENAME TO travelers")
+
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `ideas_v4` (`id` TEXT NOT NULL, " +
+                        "`tripId` TEXT NOT NULL, `title` TEXT NOT NULL, `kind` TEXT NOT NULL, " +
+                        "`city` TEXT NOT NULL, `place` TEXT, `note` TEXT, `priceBand` TEXT, " +
+                        "`typicalMinutes` INTEGER, `bestTime` TEXT, `plannedDateEpochDay` INTEGER, " +
+                        "`interestedTravelerIds` TEXT, `status` TEXT NOT NULL, " +
+                        "`scheduledSegmentId` TEXT, `addedAtMillis` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`id`), FOREIGN KEY(`tripId`) REFERENCES `trips`(`id`) " +
+                        "ON UPDATE NO ACTION ON DELETE CASCADE )"
+                )
+                db.execSQL(
+                    "INSERT INTO ideas_v4 (id, tripId, title, kind, city, place, note, priceBand, " +
+                        "typicalMinutes, bestTime, plannedDateEpochDay, interestedTravelerIds, " +
+                        "status, scheduledSegmentId, addedAtMillis) SELECT id, tripId, title, kind, " +
+                        "city, place, note, priceBand, typicalMinutes, bestTime, plannedDateEpochDay, " +
+                        "interestedTravelerIds, status, scheduledSegmentId, addedAtMillis FROM ideas"
+                )
+                db.execSQL("DROP TABLE ideas")
+                db.execSQL("ALTER TABLE ideas_v4 RENAME TO ideas")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_ideas_tripId` ON `ideas` (`tripId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_ideas_status` ON `ideas` (`status`)")
+
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `segments_v4` (`id` TEXT NOT NULL, `tripId` TEXT NOT NULL, " +
+                        "`kind` TEXT NOT NULL, `startEpochMillis` INTEGER NOT NULL, " +
+                        "`endEpochMillis` INTEGER NOT NULL, `startZoneId` TEXT NOT NULL, " +
+                        "`endZoneId` TEXT NOT NULL, `travelerIds` TEXT, `confirmationCode` TEXT, " +
+                        "`bookedWith` TEXT, `note` TEXT, `originPlace` TEXT NOT NULL, " +
+                        "`destinationPlace` TEXT, " + SEGMENT_DETAIL_COLUMNS.joinToString("") { "`$it` TEXT, " } +
+                        "PRIMARY KEY(`id`), FOREIGN KEY(`tripId`) REFERENCES `trips`(`id`) " +
+                        "ON UPDATE NO ACTION ON DELETE CASCADE )"
+                )
+                val segmentColumns = (SEGMENT_CORE_COLUMNS + SEGMENT_DETAIL_COLUMNS).joinToString(", ")
+                db.execSQL("INSERT INTO segments_v4 ($segmentColumns) SELECT $segmentColumns FROM segments")
+                db.execSQL("DROP TABLE segments")
+                db.execSQL("ALTER TABLE segments_v4 RENAME TO segments")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_segments_tripId` ON `segments` (`tripId`)")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_segments_startEpochMillis` ON `segments` (`startEpochMillis`)"
+                )
+
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `raised_alerts_v4` (`signature` TEXT NOT NULL, " +
+                        "`segmentId` TEXT NOT NULL, `label` TEXT NOT NULL, `headline` TEXT NOT NULL, " +
+                        "`detail` TEXT NOT NULL, `startEpochMillis` INTEGER NOT NULL, " +
+                        "`raisedAtMillis` INTEGER NOT NULL, `posted` INTEGER NOT NULL, " +
+                        "`acknowledged` INTEGER NOT NULL, PRIMARY KEY(`signature`))"
+                )
+                // Reminders raised before this version were posted when raised,
+                // as far as anyone can now tell; their start is the booking's.
+                db.execSQL(
+                    "INSERT INTO raised_alerts_v4 (signature, segmentId, label, headline, detail, " +
+                        "startEpochMillis, raisedAtMillis, posted, acknowledged) " +
+                        "SELECT signature, segmentId, designator, headline, detail, " +
+                        "COALESCE((SELECT startEpochMillis FROM segments " +
+                        "WHERE segments.id = raised_alerts.segmentId), raisedAtMillis), " +
+                        "raisedAtMillis, 1, acknowledged FROM raised_alerts"
+                )
+                db.execSQL("DROP TABLE raised_alerts")
+                db.execSQL("ALTER TABLE raised_alerts_v4 RENAME TO raised_alerts")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_raised_alerts_segmentId` " +
+                        "ON `raised_alerts` (`segmentId`)"
+                )
+            }
+        }
+
+        /** The columns every kind of segment fills in. */
+        private val SEGMENT_CORE_COLUMNS = listOf(
+            "id", "tripId", "kind", "startEpochMillis", "endEpochMillis", "startZoneId", "endZoneId",
+            "travelerIds", "confirmationCode", "bookedWith", "note", "originPlace", "destinationPlace",
+        )
+
+        /** The kind-specific columns of `segments`, every one nullable text. */
+        private val SEGMENT_DETAIL_COLUMNS = listOf(
+            "carrierCode", "flightNumber", "departureTerminal", "departureGate", "arrivalTerminal",
+            "arrivalGate", "aircraft", "cabin", "seats", "ticketNumbers", "operatedBy", "propertyName",
+            "roomDescription", "checkInNote", "groundMode", "provider", "pickupInstruction",
+            "experienceName", "category", "curatedBy",
+        )
+
+        private fun SupportSQLiteDatabase.hasColumn(table: String, column: String): Boolean =
+            query("PRAGMA table_info(`$table`)").use { cursor ->
+                val name = cursor.getColumnIndexOrThrow("name")
+                var found = false
+                while (!found && cursor.moveToNext()) found = cursor.getString(name) == column
+                found
+            }
     }
 }

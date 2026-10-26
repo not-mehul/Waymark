@@ -11,4 +11,11 @@
     <color name="launcher_background">#14110E</color>
     <color name="launcher_needle_lit">#D4A574</color>
     <color name="launcher_needle_shade">#F5ECD9</color>
+
+    <!-- The home-screen widget, drawn by the launcher rather than by Compose. -->
+    <color name="widget_surface">#F2EADC</color>
+    <color name="widget_rim">#33A8763E</color>
+    <color name="widget_text">#2A221B</color>
+    <color name="widget_dim">#6E6255</color>
+    <color name="widget_accent">#A8763E</color>
 </resources>

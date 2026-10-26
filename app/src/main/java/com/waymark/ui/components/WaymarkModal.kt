@@ -1,12 +1,10 @@
 package com.waymark.ui.components
 
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,8 +14,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,7 +28,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.material3.Text
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkShapes
 import com.waymark.ui.theme.WaymarkSpacing
@@ -46,11 +46,13 @@ fun WaymarkModal(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = Waymark.colors
-    val appear by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = tween(durationMillis = 260),
-        label = "modal-appear",
-    )
+    // Starts at 0 and settles to 1 once, on first composition. It used to
+    // animate *towards* 1 from 1, which is no animation at all.
+    val appearance = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        appearance.animateTo(1f, tween(durationMillis = Motion.SETTLE, easing = Motion.easing))
+    }
+    val appear = appearance.value
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -118,6 +120,36 @@ fun WaymarkModal(
                 }
                 content()
             }
+        }
+    }
+}
+
+/**
+ * A question with two answers, the destructive one on the right in the danger
+ * colour. Used where a slip of the thumb would cost something that cannot be
+ * typed back in a few seconds.
+ */
+@Composable
+fun ConfirmModal(
+    title: String,
+    message: String,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    detail: String? = null,
+    cancelLabel: String = "Keep",
+) {
+    WaymarkModal(title = title, eyebrow = "Confirm", onDismiss = onDismiss) {
+        Text(text = message, style = Waymark.type.body, color = Waymark.colors.textBody)
+        detail?.let { Text(text = it, style = Waymark.type.hint, color = Waymark.colors.textDim) }
+        Row(horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.snug)) {
+            MutedButton(text = cancelLabel, onClick = onDismiss, modifier = Modifier.weight(1f))
+            DangerButton(
+                text = confirmLabel,
+                icon = WaymarkIcons.Trash,
+                onClick = onConfirm,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }

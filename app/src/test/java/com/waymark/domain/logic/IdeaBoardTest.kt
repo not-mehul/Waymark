@@ -5,12 +5,12 @@ import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
 import com.waymark.domain.model.Place
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
 
 class IdeaBoardTest {
 
@@ -61,8 +61,10 @@ class IdeaBoardTest {
         assertTrue(forJulian.any { it.id == "idea-canal" })
         assertTrue(forJulian.none { it.id == "idea-rodin" })
         assertTrue(forJulian.any { it.interestedTravelerIds.isEmpty() })
-        assertTrue(IdeaBoard.sections(ideas, travelerFilter = mara.id).flatMap { it.ideas }
-            .any { it.id == "idea-rodin" })
+        assertTrue(
+            IdeaBoard.sections(ideas, travelerFilter = mara.id).flatMap { it.ideas }
+                .any { it.id == "idea-rodin" }
+        )
     }
 
     @Test
@@ -118,7 +120,6 @@ class IdeaBoardTest {
         )
         assertEquals(setOf("trav-julian"), segment.travelerIds)
     }
-
 
     @Test
     fun `fitsIn respects the time available including getting there`() {

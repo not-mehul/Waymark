@@ -6,6 +6,7 @@ import com.waymark.domain.model.IdeaStatus
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.TripDossier
 import com.waymark.domain.model.chronological
+import com.waymark.domain.model.involves
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlin.math.roundToInt
@@ -43,13 +44,17 @@ data class TripAnalyticsReport(
     val ideasDone: Int,
     val ideasOutstanding: Int,
     val ideasScheduled: Int,
-    val timeZonesCrossed: Int,
+    /** How many times a traveler's clock changes over the trip — the most travelled itinerary's count. */
+    val clockChanges: Int,
+    /** Total hours of clock change on that itinerary, either direction. */
+    val hoursShifted: Double,
     val countriesVisited: List<String>,
     val longestLegKm: Double,
     val longestLegLabel: String?,
     val carbonKg: Double,
 ) {
     val hasDistance: Boolean get() = totalDistanceKm > 0
+
     /** Share of the trip's waking hours with something on them. */
     val bookedShare: Double
         get() = (hoursMoving + hoursBooked).let { busy ->
@@ -127,6 +132,7 @@ object TripAnalytics {
 
         val loads = dayLoads(segments)
         val longest = flights.maxByOrNull { legKm(it) }
+        val shifts = itineraries(dossier).map { own -> clockShifts(own) }
 
         return TripAnalyticsReport(
             totalDistanceKm = flownKm + groundKm,
@@ -143,10 +149,8 @@ object TripAnalytics {
             ideasDone = ideas.count { it.status == IdeaStatus.DONE },
             ideasOutstanding = ideas.count { it.status == IdeaStatus.SAVED },
             ideasScheduled = ideas.count { it.status == IdeaStatus.SCHEDULED },
-            timeZonesCrossed = segments
-                .flatMap { listOf(it.startZoneId, it.endZoneId) }
-                .distinct()
-                .size,
+            clockChanges = shifts.maxOfOrNull { it.size } ?: 0,
+            hoursShifted = shifts.maxOfOrNull { own -> own.sumOf { kotlin.math.abs(it) } / 60.0 } ?: 0.0,
             countriesVisited = segments
                 .flatMap { listOf(it.origin.country, it.destination.country) }
                 .filter { it.isNotBlank() }
@@ -160,12 +164,38 @@ object TripAnalytics {
         )
     }
 
+    /**
+     * Minutes of clock change on each move where the clock changes — a flight
+     * from San Francisco to London is +480. Counted on the offsets in force at
+     * the moment of travel, so two zones that share an offset are no change,
+     * and a summer flight is measured against summer time.
+     */
+    fun clockShifts(segments: List<Segment>): List<Int> = segments
+        .filter { it is Segment.Flight || it is Segment.Ground }
+        .chronological()
+        .mapNotNull { leg ->
+            val at = java.time.Instant.ofEpochMilli(leg.startEpochMillis)
+            val before = leg.start.zone.rules.getOffset(at).totalSeconds
+            val after = leg.end.zone.rules.getOffset(at).totalSeconds
+            ((after - before) / 60).takeIf { it != 0 }
+        }
+
+    /** Each traveler's own bookings, or the whole trip when there is no party. */
+    private fun itineraries(dossier: TripDossier): List<List<Segment>> {
+        val travelers = dossier.party.travelers
+        if (travelers.isEmpty()) return listOf(dossier.segments)
+        return travelers.map { traveler -> dossier.segments.filter { it.involves(traveler.id) } }
+    }
+
+    /** A year: the longest trip the day-by-day chart will lay out. */
+    const val MAX_DAYS = 366
+
     /** Hours per day with something on them, over the trip's own calendar. */
     fun dayLoads(segments: List<Segment>): List<DayLoad> {
         if (segments.isEmpty()) return emptyList()
         val first = segments.minOf { it.start.toLocalDate() }
         val last = segments.maxOf { it.end.toLocalDate() }
-        val days = ChronoUnit.DAYS.between(first, last).toInt().coerceIn(0, 120)
+        val days = ChronoUnit.DAYS.between(first, last).toInt().coerceIn(0, MAX_DAYS - 1)
 
         return (0..days).map { offset ->
             val date = first.plusDays(offset.toLong())

@@ -4,8 +4,28 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
 }
+
+/**
+ * The version, from the release tag.
+ *
+ * `release.yml` passes `-PwaymarkVersion=1.4.2` from a `v1.4.2` tag, so the
+ * number inside the APK is the number on the release page and nobody has to
+ * remember to bump it in two places. The version code is derived from it —
+ * major × 10 000 + minor × 100 + patch — which keeps every later release
+ * installable over the one before. Without the property (a local or CI build)
+ * it is 0.0.0, with a code of 1.
+ */
+val waymarkVersion: String = (findProperty("waymarkVersion") as String?)
+    ?.removePrefix("v")
+    ?.takeIf { Regex("""\d+\.\d+\.\d+""").matches(it) }
+    ?: "0.0.0"
+
+val waymarkVersionCode: Int = waymarkVersion.split('.').map(String::toInt)
+    .let { (major, minor, patch) -> major * 10_000 + minor * 100 + patch }
+    .coerceAtLeast(1)
 
 /**
  * Where the release key comes from.
@@ -63,8 +83,8 @@ android {
         applicationId = "com.waymark"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = waymarkVersionCode
+        versionName = waymarkVersion
     }
 
     signingConfigs {
@@ -110,6 +130,24 @@ android {
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
+
+    testOptions {
+        // Robolectric reads the merged manifest and resources, and the Room
+        // tests need the real schema in the real SQLite.
+        unitTests.isIncludeAndroidResources = true
+    }
+
+    lint {
+        // Lint runs in CI on every push; a warning is a note, an error is a stop.
+        abortOnError = true
+        checkDependencies = false
+        // A plain-text report beside the HTML one, which CI prints in full.
+        textReport = true
+        // The app asks for no network permission and needs none: nothing to update from.
+        disable += "GradleDependency"
+        disable += "NewerVersionAvailable"
+        disable += "AndroidGradlePluginVersion"
+    }
 }
 
 ksp {
@@ -135,7 +173,6 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material3)
     debugImplementation(libs.androidx.compose.ui.tooling)
@@ -147,7 +184,19 @@ dependencies {
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.profileinstaller)
+
+    implementation(libs.kotlinx.serialization.json)
+    // Barcode decoding only — QR codes for sharing a trip, and the Aztec or
+    // PDF417 on a boarding pass. Pure Java, no camera or network code.
+    implementation(libs.zxing.core)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.junit)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

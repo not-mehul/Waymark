@@ -3,10 +3,10 @@ package com.waymark.domain.logic
 import com.waymark.data.catalog.SampleItinerary
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.SegmentKind
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
 
 class ReminderPlannerTest {
 
@@ -26,14 +26,16 @@ class ReminderPlannerTest {
         assertTrue(defaults[ReminderCategory.BOOKINGS].isOn)
         // A hotel check-in is not something anyone needs waking for.
         assertTrue(!defaults[ReminderCategory.STAYS].isOn)
+        assertTrue(defaults[ReminderCategory.CHECK_IN].isOn)
+        assertTrue(defaults[ReminderCategory.LEAVE].isOn)
         assertTrue(defaults.anyOn)
     }
 
     /** The gap this fills: everything except flights used to pass unremarked. */
     @Test
     fun `every category can raise a reminder, not only flights`() {
-        val everythingOn = ReminderCategory.entries.fold(ReminderPreferences.DEFAULT) { acc, it ->
-            acc.with(it, Lead(2 * 60))
+        val everythingOn = ReminderCategory.entries.fold(ReminderPreferences.DEFAULT) { acc, category ->
+            acc.with(category, Lead(2 * 60))
         }
         val raised = SegmentKind.entries.map { kind ->
             val segment = firstOf(kind)
@@ -50,7 +52,7 @@ class ReminderPlannerTest {
         val flight = firstOf(SegmentKind.FLIGHT)
         val off = ReminderPreferences.DEFAULT.with(ReminderCategory.FLIGHTS, Lead.OFF)
         val due = ReminderPlanner.due(segments, off, flight.startEpochMillis - hour)
-        assertTrue(due.none { it.segmentId == flight.id })
+        assertTrue(due.none { it.segmentId == flight.id && it.moment == ReminderMoment.START })
     }
 
     @Test
@@ -59,7 +61,8 @@ class ReminderPlannerTest {
         val twoHours = ReminderPreferences.DEFAULT.with(ReminderCategory.FLIGHTS, Lead(2 * 60))
 
         fun raisedAt(now: Long) =
-            ReminderPlanner.due(segments, twoHours, now).any { it.segmentId == flight.id }
+            ReminderPlanner.due(segments, twoHours, now)
+                .any { it.segmentId == flight.id && it.moment == ReminderMoment.START }
 
         assertTrue("too early", !raisedAt(flight.startEpochMillis - 3 * hour))
         assertTrue("inside the window", raisedAt(flight.startEpochMillis - 90 * minute))
@@ -78,7 +81,7 @@ class ReminderPlannerTest {
 
         fun signatureAt(now: Long) = ReminderPlanner
             .due(segments, preferences, now)
-            .first { it.segmentId == flight.id }
+            .first { it.segmentId == flight.id && it.moment == ReminderMoment.START }
             .signature
 
         val early = signatureAt(flight.startEpochMillis - 3 * hour)
@@ -93,7 +96,7 @@ class ReminderPlannerTest {
         }
         val afterMove = ReminderPlanner
             .due(moved, preferences, flight.startEpochMillis - 20 * minute)
-            .first { it.segmentId == flight.id }
+            .first { it.segmentId == flight.id && it.moment == ReminderMoment.START }
             .signature
         assertTrue("a rescheduled booking must announce itself again", afterMove != early)
     }
@@ -104,7 +107,7 @@ class ReminderPlannerTest {
         val preferences = ReminderPreferences.DEFAULT.with(ReminderCategory.FLIGHTS, Lead(3 * 60))
         val reminder = ReminderPlanner
             .due(segments, preferences, flight.startEpochMillis - 2 * hour)
-            .first { it.segmentId == flight.id }
+            .first { it.segmentId == flight.id && it.moment == ReminderMoment.START }
 
         assertTrue(reminder.headline.contains(flight.designator))
         assertTrue(reminder.headline.contains("2h"))
@@ -113,39 +116,102 @@ class ReminderPlannerTest {
     }
 
     @Test
-    fun `the look-ahead is the longest lead in use, and zero when all are off`() {
-        val preferences = ReminderPreferences.DEFAULT
-            .with(ReminderCategory.FLIGHTS, Lead(6 * 60))
-            .with(ReminderCategory.GROUND, Lead(30))
-        assertEquals(6 * hour, ReminderPlanner.lookAheadMillis(preferences))
+    fun `the next reminder is the earliest one still to fire, and none when all are off`() {
+        val flight = firstOf(SegmentKind.FLIGHT)
+        val now = flight.startEpochMillis - 30 * hour
+        val next = requireNotNull(ReminderPlanner.nextDueAt(segments, ReminderPreferences.DEFAULT, now))
+        // Online check-in, a day before the first departure, comes first.
+        assertEquals(flight.startEpochMillis - 24 * hour, next)
 
-        val silent = ReminderCategory.entries.fold(ReminderPreferences.DEFAULT) { acc, it ->
-            acc.with(it, Lead.OFF)
+        val silent = ReminderCategory.entries.fold(ReminderPreferences.DEFAULT) { acc, category ->
+            acc.with(category, Lead.OFF)
         }
-        assertEquals(0L, ReminderPlanner.lookAheadMillis(silent))
+        assertEquals(null, ReminderPlanner.nextDueAt(segments, silent, now))
         assertTrue(!silent.anyOn)
         assertTrue(ReminderPlanner.due(segments, silent, segments.first().startEpochMillis).isEmpty())
     }
 
     @Test
+    fun `check-in is a day ahead and stops mattering when check-in closes`() {
+        val flight = firstOf(SegmentKind.FLIGHT)
+        fun checkIns(now: Long) = ReminderPlanner.due(segments, ReminderPreferences.DEFAULT, now)
+            .filter { it.segmentId == flight.id && it.moment == ReminderMoment.CHECK_IN }
+
+        assertTrue(checkIns(flight.startEpochMillis - 25 * hour).isEmpty())
+        val due = checkIns(flight.startEpochMillis - 23 * hour).single()
+        assertTrue(due.headline.contains("Check in online"))
+        assertTrue(due.signature.startsWith("checkin|"))
+        assertTrue(checkIns(flight.startEpochMillis - 30 * minute).isEmpty())
+    }
+
+    @Test
+    fun `time to leave counts the journey from the hotel and the time at the airport`() {
+        val london = java.time.ZoneId.of("Europe/London")
+        val hotel = segments.first { it.id == "seg-hotel-london" } as Segment.Lodging
+        val heathrow = com.waymark.data.catalog.Airports.place("LHR")
+        val paris = com.waymark.data.catalog.Airports.place("CDG")
+        val day = hotel.end.toLocalDate()
+        val flight = Segment.Flight(
+            id = "lhr-cdg", tripId = hotel.tripId, carrierCode = "BA", flightNumber = "304",
+            origin = heathrow, destination = paris,
+            startEpochMillis = java.time.ZonedDateTime.of(day, java.time.LocalTime.of(16, 0), london)
+                .toInstant().toEpochMilli(),
+            endEpochMillis = java.time.ZonedDateTime.of(day, java.time.LocalTime.of(18, 20), london)
+                .toInstant().toEpochMilli(),
+            startZoneId = london.id, endZoneId = "Europe/Paris",
+        )
+        val itinerary = listOf(hotel, flight)
+
+        val leaveBy = requireNotNull(ReminderPlanner.leaveBy(flight, itinerary))
+        val journey = TransitEstimator.estimateBest(hotel.origin, heathrow).totalMinutes
+        // International: three hours at the airport, plus the journey there.
+        assertEquals(flight.startEpochMillis - (180 + journey) * minute, leaveBy)
+
+        val due = ReminderPlanner.due(itinerary, ReminderPreferences.DEFAULT, leaveBy - 20 * minute)
+            .single { it.moment == ReminderMoment.LEAVE }
+        assertTrue(due.headline, due.headline.startsWith("Leave for LHR in"))
+        assertTrue(due.detail.contains(hotel.origin.name))
+    }
+
+    @Test
+    fun `no time to leave is invented for a connection or a flight with nothing before it`() {
+        val outbound = segments.first { it.id == "seg-outbound" }
+        assertEquals(null, ReminderPlanner.leaveBy(outbound, segments))
+        val homeward = segments.first { it.id == "seg-return" }
+        // The booked transfer already ends at the airport.
+        assertEquals(null, ReminderPlanner.leaveBy(homeward, segments))
+    }
+
+    @Test
+    fun `the banner's headline is recomputed from the clock`() {
+        val flight = firstOf(SegmentKind.FLIGHT)
+        val early = ReminderPlanner.headline(flight, ReminderMoment.START, flight.startEpochMillis - 3 * hour)
+        val late = ReminderPlanner.headline(flight, ReminderMoment.START, flight.startEpochMillis - 40 * minute)
+        assertTrue(early.endsWith("in 3h"))
+        assertTrue(late.endsWith("in 40m"))
+        assertEquals(ReminderMoment.LEAVE, ReminderPlanner.momentOf("leave|x|1"))
+        assertEquals(ReminderMoment.START, ReminderPlanner.momentOf("reminder|x|1"))
+    }
+
+    @Test
     fun `the summary reads as a sentence rather than a dump`() {
-        val onlyFlights = ReminderCategory.entries.fold(ReminderPreferences.DEFAULT) { acc, it ->
-            if (it == ReminderCategory.FLIGHTS) acc else acc.with(it, Lead.OFF)
+        val onlyFlights = ReminderCategory.entries.fold(ReminderPreferences.DEFAULT) { acc, category ->
+            if (category == ReminderCategory.FLIGHTS) acc else acc.with(category, Lead.OFF)
         }
         assertEquals("Flights 3h", onlyFlights.summary())
 
-        val silent = ReminderCategory.entries.fold(ReminderPreferences.DEFAULT) { acc, it ->
-            acc.with(it, Lead.OFF)
+        val silent = ReminderCategory.entries.fold(ReminderPreferences.DEFAULT) { acc, category ->
+            acc.with(category, Lead.OFF)
         }
         assertEquals("Off for everything", silent.summary())
     }
 
     @Test
-    fun `every offered choice is at least as coarse as the check that raises it`() {
-        Lead.CHOICES.filter { it.isOn }.forEach {
-            assertTrue("${it.minutes}m is finer than the worker's period", it.minutes >= 15)
+    fun `every category offers off first, then ascending choices that include its default`() {
+        ReminderCategory.entries.forEach { category ->
+            assertEquals(Lead.OFF, category.choices.first())
+            assertEquals(category.choices.sortedBy { it.minutes }, category.choices)
+            assertTrue(category.name, category.default in category.choices)
         }
-        assertEquals(Lead.OFF, Lead.CHOICES.first())
-        assertEquals(Lead.CHOICES.sortedBy { it.minutes }, Lead.CHOICES)
     }
 }

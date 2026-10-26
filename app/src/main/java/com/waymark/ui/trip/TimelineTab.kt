@@ -28,14 +28,16 @@ import com.waymark.domain.logic.LinkNature
 import com.waymark.domain.logic.RiskLevel
 import com.waymark.domain.logic.TimeText
 import com.waymark.domain.logic.TimelineEntry
+import com.waymark.domain.model.Idea
 import com.waymark.domain.model.Segment
 import com.waymark.ui.components.Panel
 import com.waymark.ui.components.PartyFilterBar
-import com.waymark.ui.components.settleIn
 import com.waymark.ui.components.PartyMark
 import com.waymark.ui.components.SecondaryButton
 import com.waymark.ui.components.WaymarkIcon
 import com.waymark.ui.components.WaymarkIcons
+import com.waymark.ui.components.rememberSettleOnce
+import com.waymark.ui.components.settleIn
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkShapes
 import com.waymark.ui.theme.WaymarkSpacing
@@ -55,6 +57,7 @@ fun TimelineTab(
 ) {
     val colors = Waymark.colors
     val party = state.dossier?.party?.travelers.orEmpty()
+    val settled = rememberSettleOnce()
 
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
@@ -81,14 +84,15 @@ fun TimelineTab(
             }
         }
 
-        itemsIndexed(state.timeline, key = { _, entry -> entryKey(entry) }) { index, entry ->
-            // A short stagger down the column, capped inside settleIn so a
-            // forty-entry itinerary does not take a second to appear.
-            Column(modifier = Modifier.settleIn(order = index)) {
+        itemsIndexed(state.timeline, key = { _, entry -> entry.key }) { index, entry ->
+            // A short stagger down the column on first appearance, capped so
+            // a forty-entry itinerary does not take a second to appear — and
+            // not again when a row scrolls back into view.
+            Column(modifier = Modifier.settleIn(order = index, once = settled, key = entry.key)) {
                 when (entry) {
                     is TimelineEntry.DayBreak -> DayBreakRow(entry)
                     is TimelineEntry.Now -> NowRow(entry)
-                    is TimelineEntry.Link -> LinkRow(entry)
+                    is TimelineEntry.Link -> LinkRow(entry, state.freeTimeIdeas[entry.key].orEmpty())
                     is TimelineEntry.Event -> EventRow(
                         entry = entry,
                         dossierPartyInitials = state.dossier?.party?.travelers
@@ -124,13 +128,6 @@ fun TimelineTab(
             }
         }
     }
-}
-
-private fun entryKey(entry: TimelineEntry): String = when (entry) {
-    is TimelineEntry.DayBreak -> "day-${entry.date}"
-    is TimelineEntry.Event -> entry.id
-    is TimelineEntry.Link -> entry.id
-    is TimelineEntry.Now -> "now"
 }
 
 @Composable
@@ -192,9 +189,12 @@ private fun NowRow(entry: TimelineEntry.Now) {
     }
 }
 
-/** The gap between two bookings: a connection, a transfer, or free time. */
+/**
+ * The gap between two bookings: a connection, a transfer, or free time — and,
+ * for free time, the saved ideas nearby that would fit in it.
+ */
 @Composable
-private fun LinkRow(entry: TimelineEntry.Link) {
+private fun LinkRow(entry: TimelineEntry.Link, fits: List<Idea>) {
     val colors = Waymark.colors
     val verdict = entry.verdict
     val tint = when (verdict?.level) {
@@ -252,6 +252,13 @@ private fun LinkRow(entry: TimelineEntry.Link) {
             val detail = verdict?.reason ?: entry.estimate?.summary
             detail?.let {
                 Text(text = it, style = Waymark.type.hint, color = colors.textDim)
+            }
+            if (fits.isNotEmpty()) {
+                Text(
+                    text = "Would fit: " + fits.joinToString(" · ") { it.title },
+                    style = Waymark.type.hint,
+                    color = colors.accentSage,
+                )
             }
         }
     }
@@ -446,4 +453,5 @@ private fun subtitle(segment: Segment, role: EventRole): String = when (segment)
     }
 }
 
-private val GUTTER = 52.dp
+/** Wide enough for "10:55" — or "10:55 PM" on a phone set to the 12-hour clock. */
+private val GUTTER get() = if (TimeText.use24Hour) 52.dp else 68.dp

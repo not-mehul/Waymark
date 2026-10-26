@@ -103,22 +103,32 @@ git push origin v1.0.0
 signs it, uploads it as a build artifact, and opens a **draft** GitHub release
 with the APK attached. Write the notes and press publish.
 
-If the secrets are missing, the workflow still finishes — it warns, and names
-the file `waymark-<version>-unsigned.apk` so an unsigned build cannot be
-mistaken for a shippable one.
+If any of the four secrets is missing, the workflow still finishes — it warns,
+naming the ones that are missing, and names the file
+`waymark-<version>-unsigned.apk` so an unsigned build cannot be mistaken for a
+shippable one. A keystore without its passwords used to be reported as signed;
+it no longer is.
 
 ---
 
 ## Version numbers
 
-Both live in `app/build.gradle.kts`:
+Both come from the tag; there is nothing in the source to bump.
 
 - `versionName` is what a person reads — it appears in the About sheet and at
-  the foot of the trip shelf. Keep it matching the tag.
-- `versionCode` is what Android compares. It must **increase** with every
-  release or the upgrade will be refused.
+  the foot of the trip shelf. A `v1.4.2` tag builds `1.4.2`.
+- `versionCode` is what Android compares, and it must **increase** with every
+  release or the upgrade is refused. It is worked out from the name —
+  major × 10 000 + minor × 100 + patch, so `1.4.2` is `10402` — which keeps it
+  increasing as long as minor and patch stay under 100.
 
-For `v1.1.0` that means `versionCode = 2`, `versionName = "1.1.0"`.
+Tags must be `vMAJOR.MINOR.PATCH`. Anything else builds as `0.0.0` with a
+warning, and so does a build with no tag at all — a local build, or CI on a
+branch. To build a numbered release by hand:
+
+```bash
+./gradlew -PwaymarkVersion=1.4.2 assembleRelease
+```
 
 ---
 
@@ -126,8 +136,10 @@ For `v1.1.0` that means `versionCode = 2`, `versionName = "1.1.0"`.
 
 The unit suite covers the parts of the app that can be tested without a device
 — all the date arithmetic, the timeline builder, the country table, the label
-placer, the markdown export, the airport and coastline assets. It does not
-cover layout. Before a release, on a real phone:
+placer, the exports and parsers, the airport and coastline assets, and, under
+Robolectric, the database migrations, the repository and one Compose screen.
+It does not cover layout, notifications or the widget. Before a release, on a
+real phone:
 
 - **A first launch is empty.** The shelf offers "New itinerary" and, quieter,
   "Load the worked example". Nothing is written until you choose.
@@ -138,11 +150,22 @@ cover layout. Before a release, on a real phone:
   and check its record locator and ticket numbers read back.
 - **Reminders** — the trip menu shows the lead times, each category can be
   changed or switched off, and the sheet says so when Android is blocking them.
-- **Editing a flight** offers aircraft, cabin, terminals, seats and ticket
-  numbers, and keeps them after Save.
+  Set a booking a few minutes ahead with a short lead and check the
+  notification arrives on time with the screen off, and that tapping it opens
+  the booking.
+- **The widget** shows the next booking and opens it.
+- **Sharing** — share a confirmation email to Waymark and check the flights it
+  offers; share a trip file to another phone and open it; show a trip's code
+  and scan it with the other phone's camera.
+- **A boarding pass** — pick a screenshot of one in Add flight.
+- **Back up and restore** — back up every trip, delete one, open the backup.
+- **Editing a booking** reaches every field — for a flight, the number, the
+  airports, gates, aircraft, cabin, seats and ticket numbers — and keeps them
+  after Save.
 - **Destination notes** name the place the trip actually spends its days, not
   the last airport it touched.
 - **Both themes**, checked on one screen with a chart on it.
 - **Delete a trip**, and confirm nothing of it is left on the shelf.
-- **An upgrade over an older install** still opens: database version 3 drops
-  the vault, packing and document tables and keeps the itinerary.
+- **An upgrade over an older install** still opens and keeps the itinerary.
+  `MigrationTest` covers every earlier schema; a real install is the check
+  that nothing outside the database was forgotten.

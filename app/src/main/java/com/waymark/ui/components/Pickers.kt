@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -31,6 +32,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle as JavaTextStyle
 import java.util.Locale
@@ -146,14 +148,14 @@ fun DatePickerModal(
         val cells = lead + month.lengthOfMonth()
         val rows = (cells + 6) / 7
 
-        (0 until rows).forEach { row ->
+        for (row in 0 until rows) {
             Row(modifier = Modifier.fillMaxWidth()) {
-                (0 until 7).forEach { column ->
+                for (column in 0 until 7) {
                     val index = row * 7 + column
                     val dayOfMonth = index - lead + 1
                     if (dayOfMonth < 1 || dayOfMonth > month.lengthOfMonth()) {
                         Spacer(Modifier.weight(1f).aspectRatio(1f))
-                        return@forEach
+                        continue
                     }
                     val date = month.atDay(dayOfMonth)
                     DayCell(
@@ -219,56 +221,6 @@ private fun DayCell(
     }
 }
 
-/**
- * A date that may legitimately be absent — a passport whose expiry nobody has
- * looked up yet.
- *
- * Unset shows a dash rather than today's date, because defaulting to today
- * would quietly assert that the document expired this morning. Once set it can
- * be cleared again from the same control.
- */
-@Composable
-fun OptionalDateField(
-    value: LocalDate?,
-    onValueChange: (LocalDate?) -> Unit,
-    label: String,
-    modifier: Modifier = Modifier,
-    earliest: LocalDate? = null,
-    latest: LocalDate? = null,
-) {
-    var open by remember { mutableStateOf(false) }
-
-    PickerField(
-        label = label,
-        value = value?.let { TimeText.dayCompact(it) } ?: "Not set",
-        detail = value?.year?.toString(),
-        icon = WaymarkIcons.Calendar,
-        enabled = true,
-        muted = value == null,
-        modifier = modifier,
-        onClick = { open = true },
-    )
-
-    if (open) {
-        DatePickerModal(
-            initial = value ?: LocalDate.now().plusYears(5),
-            earliest = earliest,
-            latest = latest,
-            onClear = if (value == null) null else {
-                {
-                    onValueChange(null)
-                    open = false
-                }
-            },
-            onDismiss = { open = false },
-            onPick = {
-                onValueChange(it)
-                open = false
-            },
-        )
-    }
-}
-
 // — Time ———————————————————————————————————————————————————————————————————
 
 /** A tappable field that shows a time and opens the dial. */
@@ -285,7 +237,7 @@ fun TimeField(
 
     PickerField(
         label = label,
-        value = value?.format(CLOCK) ?: placeholder,
+        value = value?.let { TimeText.clock(it) } ?: placeholder,
         detail = null,
         icon = WaymarkIcons.Clock,
         enabled = enabled,
@@ -307,19 +259,15 @@ fun TimeField(
 }
 
 /**
- * The whole clock, laid out and tapped: twenty-four hours over twelve minutes.
+ * The whole clock, laid out and tapped.
  *
- * Two earlier versions of this were worse. The first was a pair of dragged
- * wheels with stepper arrows, which turned "16:20" into eleven taps or a drag
- * you had to watch. The second added a row of shortcut chips at three-hour
- * intervals — 06:00, 09:00, 12:00 and so on — which is a guess about when
- * people travel dressed up as a convenience, and gets in the way of the times
- * nobody publishes on the hour.
+ * Hours run 00–23 in the same six-wide grid the calendar uses, so the two
+ * pickers feel like the same control. Minutes are offered in fives — most
+ * departures are — with a second row that nudges the five-minute mark by one
+ * to four, because the 08:31 Eurostar and the 19:04 are real trains and a
+ * picker that cannot say so rounds a booking without telling anyone. Opening
+ * the picker on an existing time and pressing Choose never changes it.
  *
- * Every value is on screen and every value is one tap. Hours run 00–23 in the
- * same six-wide grid the calendar uses, so the two pickers feel like the same
- * control. Minutes step by five, because departures are published in fives and
- * an app that offers `:37` is offering precision it will never be asked for.
  * The running time is the modal's own title, which leaves the body to be
  * nothing but the choices.
  */
@@ -329,11 +277,12 @@ fun TimePickerModal(
     onDismiss: () -> Unit,
     onPick: (LocalTime) -> Unit,
 ) {
-    var hour by remember(initial) { mutableStateOf(initial.hour) }
-    var minute by remember(initial) { mutableStateOf(initial.minute / 5 * 5) }
+    var hour by remember(initial) { mutableIntStateOf(initial.hour) }
+    var minute by remember(initial) { mutableIntStateOf(initial.minute) }
+    val fives = minute / 5 * 5
 
     WaymarkModal(
-        title = LocalTime.of(hour, minute).format(CLOCK),
+        title = TimeText.clock(LocalTime.of(hour, minute)),
         eyebrow = "Local clock",
         onDismiss = onDismiss,
     ) {
@@ -348,8 +297,16 @@ fun TimePickerModal(
             label = "Minute",
             values = (0 until 60 step 5).toList(),
             perRow = 6,
-            selected = minute,
-            onPick = { minute = it },
+            selected = fives,
+            onPick = { minute = it + (minute - fives) },
+        )
+        ClockGrid(
+            label = "And",
+            values = (0..4).toList(),
+            perRow = 5,
+            selected = minute - fives,
+            format = { "+$it" },
+            onPick = { minute = fives + it },
         )
 
         PrimaryButton(
@@ -369,6 +326,7 @@ private fun ClockGrid(
     perRow: Int,
     selected: Int,
     onPick: (Int) -> Unit,
+    format: (Int) -> String = { it.toString().padStart(2, '0') },
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -387,7 +345,7 @@ private fun ClockGrid(
                 ) {
                     line.forEach { value ->
                         ClockCell(
-                            value = value,
+                            text = format(value),
                             selected = value == selected,
                             modifier = Modifier.weight(1f),
                             onClick = { onPick(value) },
@@ -404,7 +362,7 @@ private fun ClockGrid(
 
 @Composable
 private fun ClockCell(
-    value: Int,
+    text: String,
     selected: Boolean,
     modifier: Modifier,
     onClick: () -> Unit,
@@ -421,12 +379,73 @@ private fun ClockCell(
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = value.toString().padStart(2, '0'),
+            text = text,
             style = Waymark.type.dataSmall,
             color = if (selected) colors.onAccent else colors.textBody,
         )
     }
 }
+
+// — Zone ———————————————————————————————————————————————————————————————————
+
+/**
+ * The clock a place keeps, for a place nobody could look up.
+ *
+ * Searched rather than scrolled: there are six hundred zones and the traveler
+ * knows the one city they want. The trip's own suggestions sit on top, so the
+ * usual answer — "the clock we are on anyway" — is one tap.
+ */
+@Composable
+fun ZonePickerModal(
+    current: String,
+    suggested: List<String>,
+    onDismiss: () -> Unit,
+    onPick: (String) -> Unit,
+) {
+    var query by remember { mutableStateOf("") }
+    val zones = remember { ZoneId.getAvailableZoneIds().filter { it.contains('/') && !it.startsWith("Etc/") }.sorted() }
+    val needle = query.trim().lowercase().replace(' ', '_')
+    val shown = if (needle.isEmpty()) {
+        (suggested + current).distinct()
+    } else {
+        zones.filter { it.lowercase().contains(needle) }.take(ZONE_RESULTS)
+    }
+
+    WaymarkModal(title = "Whose clock?", eyebrow = "Time zone", onDismiss = onDismiss) {
+        WaymarkTextField(
+            value = query,
+            onValueChange = { query = it },
+            placeholder = "A city: Lisbon, Denver, Kolkata",
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (shown.isEmpty()) {
+            EmptyLine("No zone matches \"$query\".")
+        }
+        shown.forEach { zone ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(WaymarkShapes.control)
+                    .clickable(role = Role.Button) { onPick(zone) }
+                    .padding(vertical = WaymarkSpacing.snug, horizontal = WaymarkSpacing.tight),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = zone.replace('_', ' '),
+                    style = Waymark.type.bodySmall,
+                    color = if (zone == current) Waymark.colors.accentAmber else Waymark.colors.textBody,
+                )
+                Text(
+                    text = TimeText.utcOffset(zone),
+                    style = Waymark.type.dataSmall,
+                    color = Waymark.colors.textDim,
+                )
+            }
+        }
+    }
+}
+
+private const val ZONE_RESULTS = 30
 
 // — Shared ————————————————————————————————————————————————————————————————
 
@@ -488,5 +507,4 @@ private fun PickerField(
     }
 }
 
-private val CLOCK: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.US)
 private val MONTH_YEAR: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US)

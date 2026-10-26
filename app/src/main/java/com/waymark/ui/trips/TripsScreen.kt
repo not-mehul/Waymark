@@ -1,5 +1,9 @@
 package com.waymark.ui.trips
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,19 +20,26 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waymark.BuildConfig
+import com.waymark.data.share.TripArchive
 import com.waymark.domain.logic.TimeText
 import com.waymark.domain.model.Trip
 import com.waymark.domain.model.TripStatus
+import com.waymark.ui.components.Footnote
+import com.waymark.ui.components.GhostIconButton
+import com.waymark.ui.components.Hairline
+import com.waymark.ui.components.NoticeBanner
 import com.waymark.ui.components.Panel
 import com.waymark.ui.components.PrimaryButton
 import com.waymark.ui.components.SectionHeader
@@ -36,10 +47,14 @@ import com.waymark.ui.components.ThemeToggle
 import com.waymark.ui.components.WaymarkBackdrop
 import com.waymark.ui.components.WaymarkIcon
 import com.waymark.ui.components.WaymarkIcons
+import com.waymark.ui.components.WaymarkModal
+import com.waymark.ui.share.Barcodes
+import com.waymark.ui.share.CODE_PREFIX
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkShapes
 import com.waymark.ui.theme.WaymarkSpacing
 import java.time.Instant
+import kotlinx.coroutines.launch
 
 /**
  * The shelf of trips.
@@ -54,10 +69,46 @@ import java.time.Instant
 fun TripsScreen(
     viewModel: TripsViewModel,
     onOpenTrip: (String) -> Unit,
+    onOpenPeople: () -> Unit,
+    /** A backup or trip file the traveler picked, to be shown before it is opened. */
+    onOpenFile: (Uri) -> Unit,
+    /** What a trip's QR code carries, read from a picture. */
+    onOpenCode: (String) -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var composing by rememberSaveable { mutableStateOf(false) }
     var about by rememberSaveable { mutableStateOf(false) }
+    var menuOpen by rememberSaveable { mutableStateOf(false) }
+    var showArchived by rememberSaveable { mutableStateOf(false) }
+    var notice by rememberSaveable { mutableStateOf<String?>(null) }
+
+    val backUp = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(TripArchive.MIME)) { uri ->
+        uri ?: return@rememberLauncherForActivityResult
+        viewModel.backUp(context, uri) { count ->
+            notice = when (count) {
+                null -> "The backup could not be written there."
+                1 -> "One trip backed up."
+                else -> "$count trips backed up."
+            }
+        }
+    }
+    // Any type: file managers and mail apps disagree about what a .json is.
+    val restore = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(onOpenFile)
+    }
+    val readCode = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri ?: return@rememberLauncherForActivityResult
+        scope.launch {
+            val text = Barcodes.read(context, uri)
+            if (text != null && text.startsWith(CODE_PREFIX)) {
+                onOpenCode(text.removePrefix(CODE_PREFIX))
+            } else {
+                notice = "There is no Waymark trip code in that picture."
+            }
+        }
+    }
 
     WaymarkBackdrop {
         LazyColumn(
@@ -72,7 +123,13 @@ fun TripsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(WaymarkSpacing.medium),
         ) {
-            item { Masthead() }
+            item { Masthead(onMenu = { menuOpen = true }) }
+
+            notice?.let { message ->
+                item {
+                    NoticeBanner(icon = WaymarkIcons.Info, headline = message, onDismiss = { notice = null })
+                }
+            }
 
             // Under way first, then ahead, then behind. Headings appear only
             // where there is more than one group to tell apart.
@@ -115,6 +172,27 @@ fun TripsScreen(
                 }
             }
 
+            // Put-away trips stay out of sight until asked for: they are kept,
+            // not shelved, and say nothing — no reminders, no widget.
+            if (state.archived.isNotEmpty()) {
+                item {
+                    Text(
+                        text = if (showArchived) "Hide what is put away" else "Put away (${state.archived.size})",
+                        style = Waymark.type.control,
+                        color = Waymark.colors.textDim,
+                        modifier = Modifier
+                            .clip(WaymarkShapes.control)
+                            .clickable(role = Role.Button) { showArchived = !showArchived }
+                            .padding(horizontal = WaymarkSpacing.small, vertical = WaymarkSpacing.snug),
+                    )
+                }
+                if (showArchived) {
+                    items(state.archived, key = { it.id }) { trip ->
+                        TripCard(trip = trip, onClick = { onOpenTrip(trip.id) }, dimmed = true)
+                    }
+                }
+            }
+
             item {
                 Spacer(Modifier.height(WaymarkSpacing.snug))
                 PrimaryButton(
@@ -134,6 +212,18 @@ fun TripsScreen(
         AboutModal(onDismiss = { about = false })
     }
 
+    if (menuOpen) {
+        ShelfMenu(
+            onDismiss = { menuOpen = false },
+            onPeople = onOpenPeople,
+            onBackUp = { backUp.launch(BACKUP_NAME) },
+            onRestore = { restore.launch(arrayOf("*/*")) },
+            onReadCode = {
+                readCode.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            },
+        )
+    }
+
     if (composing) {
         NewTripModal(
             onDismiss = { composing = false },
@@ -147,8 +237,51 @@ fun TripsScreen(
     }
 }
 
+/** Everything about the shelf as a whole: who travels, and the trips as files. */
 @Composable
-private fun Masthead() {
+private fun ShelfMenu(
+    onDismiss: () -> Unit,
+    onPeople: () -> Unit,
+    onBackUp: () -> Unit,
+    onRestore: () -> Unit,
+    onReadCode: () -> Unit,
+) {
+    WaymarkModal(title = "Waymark", eyebrow = "Every trip", onDismiss = onDismiss) {
+        listOf(
+            Triple(WaymarkIcons.Users, "People", onPeople),
+            Triple(WaymarkIcons.Download, "Back up every trip", onBackUp),
+            Triple(WaymarkIcons.Archive, "Open a backup or a trip file", onRestore),
+            Triple(WaymarkIcons.QrCode, "Read a trip code from a picture", onReadCode),
+        ).forEachIndexed { index, (icon, label, action) ->
+            if (index > 0) Hairline()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(WaymarkShapes.control)
+                    .clickable(role = Role.Button) {
+                        onDismiss()
+                        action()
+                    }
+                    .padding(vertical = WaymarkSpacing.small),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(WaymarkSpacing.small),
+            ) {
+                WaymarkIcon(icon, tint = Waymark.colors.textDim, size = 18.dp)
+                Text(text = label, style = Waymark.type.body, color = Waymark.colors.textBody)
+            }
+        }
+        Footnote(
+            "A backup is one file with every trip in it. Keep it wherever you keep things; " +
+                "open it on a new phone to bring everything across."
+        )
+    }
+}
+
+/** `waymark-backup-2026-10-22.json` — dated, so a folder of them sorts itself. */
+private val BACKUP_NAME: String get() = "waymark-backup-${java.time.LocalDate.now()}.json"
+
+@Composable
+private fun Masthead(onMenu: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -168,7 +301,10 @@ private fun Masthead() {
                 color = Waymark.colors.textDim,
             )
         }
-        ThemeToggle()
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ThemeToggle()
+            GhostIconButton(icon = WaymarkIcons.Menu, contentDescription = "More", onClick = onMenu)
+        }
     }
 }
 
