@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.Text
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -80,7 +80,7 @@ fun TripScreen(
     // The expanded width class — a tablet, an unfolded foldable, a desktop
     // window — rather than a pixel count, so a resized window is judged the
     // same way the platform judges it.
-    val wide = currentWindowAdaptiveInfo().windowSizeClass
+    val wide = currentWindowAdaptiveInfoV2().windowSizeClass
         .isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND)
     val openSegment: (String) -> Unit = { id -> if (wide) selected = id else onOpenSegment(id) }
     val scheduling: Idea? = schedulingId?.let { id -> state.ideas.firstOrNull { it.id == id } }

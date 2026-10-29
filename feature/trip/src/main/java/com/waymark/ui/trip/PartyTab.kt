@@ -251,7 +251,7 @@ fun PartyTab(
         if (traveler != null) {
             // Bookings nobody else is on cannot stay: there would be no one
             // left on them. Say how many before they go.
-            val onlyTheirs = dossier?.segments.orEmpty().count { it.travelerIds == setOf(id) }
+            val onlyTheirs = dossier.segments.count { it.travelerIds == setOf(id) }
             ConfirmModal(
                 title = "Take ${traveler.displayName} off this trip",
                 message = if (onlyTheirs == 0) {
