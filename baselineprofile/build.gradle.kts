@@ -23,6 +23,8 @@ android {
             device = "Pixel 6"
             apiLevel = 34
             systemImageSource = "aosp"
+            // Stated rather than defaulted: AGP 10 changes the default to arm64.
+            testedAbi = "x86_64"
         }
     }
 }

@@ -429,9 +429,11 @@ change: after an intended visual change, push a commit whose message contains
 build on a Gradle-managed emulator: it opens the app, loads the worked
 example, opens the trip and reads down it, and records what ran as the
 baseline profile the release build compiles in. A commit message containing
-`[baseline profile]` runs `baseline-profile.yml`, which records the profile,
-commits it, and measures cold start uncompiled, with the profile and fully
-compiled. Locally, with an emulator image installed:
+`[baseline profile]` runs `baseline-profile.yml`, which records the profile
+into `app/src/release/generated/baselineProfiles`, commits it, and measures
+cold start uncompiled, with the profile and fully compiled. The profile is
+the one the app ships; there is no hand-written one beside it. Locally, with
+an emulator image installed:
 
 ```bash
 ./gradlew :app:generateBaselineProfile
