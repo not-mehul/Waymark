@@ -9,10 +9,12 @@ import com.waymark.data.repo.TripRepository
 import com.waymark.data.share.TripArchive
 import com.waymark.domain.model.Trip
 import com.waymark.domain.model.TripStatus
+import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -33,7 +35,8 @@ data class TripsUiState(
         get() = loaded && upcoming.isEmpty() && active.isEmpty() && past.isEmpty() && archived.isEmpty()
 }
 
-class TripsViewModel(
+@HiltViewModel
+class TripsViewModel @Inject constructor(
     private val trips: TripRepository,
     private val seeder: SampleSeeder,
 ) : ViewModel() {

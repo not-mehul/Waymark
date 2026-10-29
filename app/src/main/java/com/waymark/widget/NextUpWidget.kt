@@ -33,7 +33,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.waymark.MainActivity
 import com.waymark.R
-import com.waymark.WaymarkApplication
+import com.waymark.di.graph
 import com.waymark.domain.logic.TimeText
 import com.waymark.domain.model.Segment
 
@@ -169,8 +169,7 @@ private data class NextUp(
         )
 
         suspend fun of(context: Context, nowMillis: Long): NextUp {
-            val container = (context.applicationContext as? WaymarkApplication)?.container ?: return NOTHING
-            val (trip, segment) = container.tripRepository.nextAcrossTrips(nowMillis) ?: return NOTHING
+            val (trip, segment) = context.graph.tripRepository().nextAcrossTrips(nowMillis) ?: return NOTHING
             val under = nowMillis >= segment.startEpochMillis
             return NextUp(
                 eyebrow = if (under) "Now · ${trip.name}" else "Next · ${trip.name}",

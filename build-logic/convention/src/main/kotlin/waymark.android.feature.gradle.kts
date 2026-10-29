@@ -3,6 +3,7 @@
 // screen genuinely hosts another's sheet.
 plugins {
     id("waymark.android.compose")
+    id("waymark.hilt")
 }
 
 val libs = the<VersionCatalogsExtension>().named("libs")

@@ -1,5 +1,7 @@
 package com.waymark.di
 
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -9,7 +11,8 @@ import kotlinx.coroutines.flow.asStateFlow
  * on: a reminder tapped in the notification shade, an email shared in, a file
  * opened with Waymark. The activity posts; the navigation graph takes.
  */
-class Inbox {
+@Singleton
+class Inbox @Inject constructor() {
 
     sealed interface Request {
         data class OpenBooking(val tripId: String, val segmentId: String) : Request

@@ -10,9 +10,11 @@ import com.waymark.data.share.TripArchive
 import com.waymark.data.share.WaymarkArchive
 import com.waymark.domain.model.Trip
 import com.waymark.domain.model.TripStatus
+import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.ByteArrayOutputStream
 import java.time.Instant
 import java.time.LocalDate
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,7 +31,8 @@ import kotlinx.coroutines.withContext
  * in it. Each becomes an [Incoming] for a sheet to show; nothing reaches the
  * database until the traveler confirms it there.
  */
-class ShareViewModel(private val trips: TripRepository) : ViewModel() {
+@HiltViewModel
+class ShareViewModel @Inject constructor(private val trips: TripRepository) : ViewModel() {
 
     sealed interface Incoming {
         /** Trips from a file or a code; [replacing] are the ones already on this phone. */

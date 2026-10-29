@@ -4,6 +4,7 @@ import java.util.Properties
 // the widget. Screens live in :feature:*, everything below them in :core:*.
 plugins {
     id("waymark.android.application")
+    id("waymark.hilt")
 }
 
 /**
@@ -162,7 +163,10 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
-    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.datastore.preferences)

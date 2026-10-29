@@ -10,6 +10,10 @@ import com.waymark.domain.logic.FlightDesignator
 import com.waymark.domain.logic.LegTimes
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.Traveler
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import java.time.LocalTime
 import kotlinx.coroutines.Dispatchers
@@ -96,12 +100,18 @@ data class AddFlightUiState(
     enum class Field { ORIGIN, DESTINATION }
 }
 
-class AddFlightViewModel(
-    private val tripId: String,
+@HiltViewModel(assistedFactory = AddFlightViewModel.Factory::class)
+class AddFlightViewModel @AssistedInject constructor(
+    @Assisted private val tripId: String,
     private val trips: TripRepository,
     /** A flight read from an email or a boarding pass, to start from. */
-    initial: FlightDraft? = null,
+    @Assisted initial: FlightDraft?,
 ) : ViewModel() {
+
+    @AssistedFactory
+    interface Factory {
+        fun create(tripId: String, initial: FlightDraft?): AddFlightViewModel
+    }
 
     private val mutable = MutableStateFlow(AddFlightUiState())
 

@@ -13,12 +13,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.core.content.IntentCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.waymark.data.local.ThemeStore
 import com.waymark.di.Inbox
 import com.waymark.domain.logic.Geo
 import com.waymark.domain.logic.TimeText
 import com.waymark.ui.WaymarkApp
 import com.waymark.ui.theme.WaymarkTheme
+import dagger.hilt.android.AndroidEntryPoint
 import java.util.Locale
+import javax.inject.Inject
 import kotlinx.coroutines.launch
 
 /**
@@ -27,7 +30,14 @@ import kotlinx.coroutines.launch
  * in, a trip file opened. Each becomes a request in the [Inbox] for the
  * navigation graph to act on.
  */
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var themeStore: ThemeStore
+
+    @Inject
+    lateinit var inbox: Inbox
 
     /** Becomes true on the first frame drawn in the stored theme. */
     @Volatile
@@ -40,16 +50,15 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         readDeviceConventions()
-        val container = (application as WaymarkApplication).container
         // Only on a fresh start: a rotation re-delivers the original intent.
         if (savedInstanceState == null) receive(intent)
         setContent {
-            val stored by container.themeStore.mode.collectAsStateWithLifecycle(initialValue = null)
+            val stored by themeStore.mode.collectAsStateWithLifecycle(initialValue = null)
             val mode = stored ?: return@setContent
             val scope = rememberCoroutineScope()
             SideEffect { drawn = true }
-            WaymarkTheme(stored = mode, onModeChange = { scope.launch { container.themeStore.set(it) } }) {
-                WaymarkApp(container = container)
+            WaymarkTheme(stored = mode, onModeChange = { scope.launch { themeStore.set(it) } }) {
+                WaymarkApp(inbox = inbox)
             }
         }
     }
@@ -67,7 +76,6 @@ class MainActivity : ComponentActivity() {
 
     private fun receive(intent: Intent?) {
         intent ?: return
-        val inbox = (application as WaymarkApplication).container.inbox
         when (intent.action) {
             ACTION_OPEN_BOOKING -> {
                 val tripId = intent.getStringExtra(EXTRA_TRIP_ID) ?: return

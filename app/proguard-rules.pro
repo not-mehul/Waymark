@@ -11,3 +11,7 @@
     *** Companion;
     kotlinx.serialization.KSerializer serializer(...);
 }
+
+# The back stack is saved as the class name of each key and its fields.
+-keep class com.waymark.ui.nav.Screen { *; }
+-keep class com.waymark.ui.nav.Screen$* { *; }

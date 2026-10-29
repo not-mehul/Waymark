@@ -12,4 +12,5 @@ dependencies {
     implementation(libs.serialization.gradlePlugin)
     implementation(libs.ksp.gradlePlugin)
     implementation(libs.room.gradlePlugin)
+    implementation(libs.hilt.gradlePlugin)
 }

@@ -25,6 +25,8 @@ import com.waymark.ui.components.PartyMark
 import com.waymark.ui.components.ScreenScaffold
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -33,7 +35,8 @@ import kotlinx.coroutines.launch
 
 data class Person(val traveler: Traveler, val trips: Int)
 
-class PeopleViewModel(private val trips: TripRepository) : ViewModel() {
+@HiltViewModel
+class PeopleViewModel @Inject constructor(private val trips: TripRepository) : ViewModel() {
 
     val people: StateFlow<List<Person>?> = combine(
         trips.observeAllTravelers(),

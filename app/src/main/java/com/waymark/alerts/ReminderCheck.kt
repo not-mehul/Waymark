@@ -8,8 +8,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.content.getSystemService
-import com.waymark.WaymarkApplication
-import com.waymark.di.AppContainer
+import com.waymark.di.Graph
+import com.waymark.di.graph
 import com.waymark.domain.logic.ReminderPlanner
 import com.waymark.domain.model.RaisedReminder
 import kotlinx.coroutines.CoroutineScope
@@ -35,14 +35,14 @@ object ReminderCheck {
 
     private val lock = Mutex()
 
-    suspend fun run(context: Context, container: AppContainer, nowMillis: Long = System.currentTimeMillis()) =
+    suspend fun run(context: Context, graph: Graph, nowMillis: Long = System.currentTimeMillis()) =
         lock.withLock {
-            val itinerary = container.tripRepository.reminderItinerary(nowMillis)
-            val preferences = container.reminderStore.current()
+            val itinerary = graph.tripRepository().reminderItinerary(nowMillis)
+            val preferences = graph.reminderStore().current()
             val canPost = Notifications.granted(context)
 
             ReminderPlanner.due(itinerary, preferences, nowMillis).forEach { due ->
-                val raised = container.alertRepository.raise(
+                val raised = graph.alertRepository().raise(
                     RaisedReminder(
                         signature = due.signature,
                         segmentId = due.segmentId,
@@ -57,7 +57,7 @@ object ReminderCheck {
                 if (!raised.posted && canPost &&
                     Notifications.post(context, raised.copy(headline = due.headline), due.tripId)
                 ) {
-                    container.alertRepository.markPosted(raised.signature)
+                    graph.alertRepository().markPosted(raised.signature)
                 }
             }
 
@@ -102,11 +102,11 @@ object ReminderAlarm {
 class ReminderReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val container = (context.applicationContext as? WaymarkApplication)?.container ?: return
+        val graph = context.graph
         val pending = goAsync()
         scope.launch {
             try {
-                ReminderCheck.run(context.applicationContext, container)
+                ReminderCheck.run(context.applicationContext, graph)
             } finally {
                 pending.finish()
             }

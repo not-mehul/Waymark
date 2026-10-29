@@ -35,6 +35,10 @@ import com.waymark.domain.model.Segment
 import com.waymark.domain.model.SegmentKind
 import com.waymark.domain.model.Traveler
 import com.waymark.domain.model.TripDossier
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -113,13 +117,20 @@ data class TripUiState(
  * dispatcher when the trip changes. What depends on the clock — the "now"
  * line and the reminder banner — is all the once-a-minute tick rebuilds.
  */
-class TripViewModel(
-    private val tripId: String,
+@HiltViewModel(assistedFactory = TripViewModel.Factory::class)
+class TripViewModel @AssistedInject constructor(
+    @Assisted private val tripId: String,
     private val trips: TripRepository,
     private val alerts: AlertRepository,
     private val ideas: IdeaRepository,
     private val reminders: ReminderStore,
 ) : ViewModel() {
+
+    /** The trip is the one thing Hilt cannot know: it comes from the screen that opened it. */
+    @AssistedFactory
+    interface Factory {
+        fun create(tripId: String): TripViewModel
+    }
 
     private val travelerFilter = MutableStateFlow<String?>(null)
     private val showDismissed = MutableStateFlow(false)
