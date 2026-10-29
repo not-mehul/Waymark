@@ -81,12 +81,12 @@ val canSignRelease =
 
 android {
     namespace = "com.waymark"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.waymark"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = waymarkVersionCode
         versionName = waymarkVersion
     }

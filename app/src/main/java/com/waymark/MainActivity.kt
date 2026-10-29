@@ -7,13 +7,19 @@ import android.text.format.DateFormat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.core.content.IntentCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waymark.di.Inbox
 import com.waymark.domain.logic.Geo
 import com.waymark.domain.logic.TimeText
 import com.waymark.ui.WaymarkApp
 import com.waymark.ui.theme.WaymarkTheme
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 /**
  * The one activity. Besides hosting the app, it is the door for everything
@@ -23,7 +29,14 @@ import java.util.Locale
  */
 class MainActivity : ComponentActivity() {
 
+    /** Becomes true on the first frame drawn in the stored theme. */
+    @Volatile
+    private var drawn = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        // The system splash stays up until the stored theme has been read,
+        // so the first frame is never the other one.
+        installSplashScreen().setKeepOnScreenCondition { !drawn }
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         readDeviceConventions()
@@ -31,7 +44,11 @@ class MainActivity : ComponentActivity() {
         // Only on a fresh start: a rotation re-delivers the original intent.
         if (savedInstanceState == null) receive(intent)
         setContent {
-            WaymarkTheme(store = container.themeStore) {
+            val stored by container.themeStore.mode.collectAsStateWithLifecycle(initialValue = null)
+            val mode = stored ?: return@setContent
+            val scope = rememberCoroutineScope()
+            SideEffect { drawn = true }
+            WaymarkTheme(stored = mode, onModeChange = { scope.launch { container.themeStore.set(it) } }) {
                 WaymarkApp(container = container)
             }
         }

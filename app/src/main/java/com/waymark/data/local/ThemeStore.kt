@@ -4,26 +4,32 @@ import android.app.UiModeManager
 import android.content.Context
 import android.os.Build
 import androidx.core.content.getSystemService
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.waymark.ui.theme.ThemeMode
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 /**
  * The traveler's choice of Dusk or Dawn, kept across launches.
  *
- * It used to live in `rememberSaveable`, which survives a rotation and nothing
- * else: every cold start went back to following the system. On Android 12 and
- * later the choice is also handed to the system, so the launch splash — drawn
- * before any of the app's own code runs — is already in the right theme.
+ * On Android 12 and later the choice is also handed to the system, so the
+ * launch splash — drawn before any of the app's own code runs — is already in
+ * the right theme. Earlier, the splash stays up until the choice has been
+ * read, so the first frame is never the other theme.
  */
 class ThemeStore(context: Context) {
 
     private val appContext = context.applicationContext
-    private val preferences = appContext.getSharedPreferences(NAME, Context.MODE_PRIVATE)
+    private val store = appContext.settings
 
-    fun current(): ThemeMode =
-        ThemeMode.entries.firstOrNull { it.name == preferences.getString(KEY, null) } ?: ThemeMode.SYSTEM
+    val mode: Flow<ThemeMode> = store.safeData()
+        .map { preferences -> ThemeMode.entries.firstOrNull { it.name == preferences[KEY] } ?: ThemeMode.SYSTEM }
+        .distinctUntilChanged()
 
-    fun set(mode: ThemeMode) {
-        preferences.edit().putString(KEY, mode.name).apply()
+    suspend fun set(mode: ThemeMode) {
+        store.edit { it[KEY] = mode.name }
         applyToSystem(mode)
     }
 
@@ -39,7 +45,6 @@ class ThemeStore(context: Context) {
     }
 
     private companion object {
-        const val NAME = "waymark.appearance"
-        const val KEY = "theme"
+        val KEY = stringPreferencesKey("theme")
     }
 }

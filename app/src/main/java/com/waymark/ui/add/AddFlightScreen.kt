@@ -20,7 +20,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -70,7 +70,7 @@ fun AddFlightScreen(
     // one. Nothing is asked for on the way in.
     val reminders = LocalReminderPermission.current
     val context = LocalContext.current
-    val clipboard = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     var notice by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -119,30 +119,33 @@ fun AddFlightScreen(
                 text = "Paste an email",
                 selected = false,
                 onClick = {
-                    val text = clipboard.getText()?.text.orEmpty()
-                    val reading = BookingText.read(text)
-                    val found = reading.flights.firstOrNull()
-                    notice = if (found == null) {
-                        "Nothing on the clipboard reads as a flight. " +
-                            "Copy the part of the email with the flight number in it."
-                    } else {
-                        viewModel.prefill(
-                            FlightDraft(
-                                designator = found.designator,
-                                date = found.date,
-                                origin = found.origin,
-                                destination = found.destination,
-                                departs = found.departs,
-                                arrives = found.arrives,
-                                confirmationCode = reading.reference,
+                    scope.launch {
+                        val text = clipboard.getClipEntry()?.clipData
+                            ?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(context)?.toString().orEmpty()
+                        val reading = BookingText.read(text)
+                        val found = reading.flights.firstOrNull()
+                        notice = if (found == null) {
+                            "Nothing on the clipboard reads as a flight. " +
+                                "Copy the part of the email with the flight number in it."
+                        } else {
+                            viewModel.prefill(
+                                FlightDraft(
+                                    designator = found.designator,
+                                    date = found.date,
+                                    origin = found.origin,
+                                    destination = found.destination,
+                                    departs = found.departs,
+                                    arrives = found.arrives,
+                                    confirmationCode = reading.reference,
+                                )
                             )
-                        )
-                        "Filled in from the clipboard — check it before saving." +
-                            if (reading.flights.size > 1) {
-                                " It mentions ${reading.flights.size} flights; this is the first."
-                            } else {
-                                ""
-                            }
+                            "Filled in from the clipboard — check it before saving." +
+                                if (reading.flights.size > 1) {
+                                    " It mentions ${reading.flights.size} flights; this is the first."
+                                } else {
+                                    ""
+                                }
+                        }
                     }
                 },
                 leading = { WaymarkIcon(WaymarkIcons.Clipboard, tint = Waymark.colors.textDim, size = 15.dp) },

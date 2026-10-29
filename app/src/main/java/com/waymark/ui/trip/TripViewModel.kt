@@ -255,7 +255,7 @@ class TripViewModel(
      * and the reminder check reads the same store.
      */
     fun setReminderLead(category: ReminderCategory, lead: Lead) {
-        reminders.set(category, lead)
+        viewModelScope.launch { reminders.set(category, lead) }
     }
 
     /** Dismiss the reminder banner for a booking. */

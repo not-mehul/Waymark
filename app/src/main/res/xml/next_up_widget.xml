@@ -8,7 +8,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:targetApi="s"
     android:description="@string/widget_description"
-    android:initialLayout="@layout/widget_next_up"
+    android:initialLayout="@layout/glance_default_loading_layout"
     android:minWidth="250dp"
     android:minHeight="70dp"
     android:minResizeWidth="180dp"

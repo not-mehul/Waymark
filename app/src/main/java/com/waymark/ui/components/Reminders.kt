@@ -1,7 +1,6 @@
 package com.waymark.ui.components
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -9,19 +8,19 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.waymark.alerts.Notifications
+import com.waymark.data.local.NotificationAsk
+import kotlinx.coroutines.launch
 
 /**
  * Permission to post the one notification Waymark sends.
@@ -82,7 +81,6 @@ val LocalReminderPermission: ProvidableCompositionLocal<ReminderPermission> =
 @Composable
 fun ProvideReminderPermission(content: @Composable () -> Unit) {
     val context = LocalContext.current
-    val owner = LocalLifecycleOwner.current
 
     var granted by remember { mutableStateOf(Notifications.granted(context)) }
     var refused by remember { mutableStateOf(false) }
@@ -90,17 +88,12 @@ fun ProvideReminderPermission(content: @Composable () -> Unit) {
     // The switch can be moved from outside the app, so the answer is re-read
     // whenever the app comes back to the foreground rather than cached for the
     // lifetime of the composition.
-    DisposableEffect(owner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) granted = Notifications.granted(context)
-        }
-        owner.lifecycle.addObserver(observer)
-        onDispose { owner.lifecycle.removeObserver(observer) }
+    LifecycleResumeEffect(Unit) {
+        granted = Notifications.granted(context)
+        onPauseOrDispose { }
     }
 
-    val asked = remember {
-        context.getSharedPreferences(PERMISSION_PREFERENCES, Context.MODE_PRIVATE)
-    }
+    val scope = rememberCoroutineScope()
 
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -113,11 +106,12 @@ fun ProvideReminderPermission(content: @Composable () -> Unit) {
         ReminderPermission(
             granted = granted,
             onRequestOnce = {
-                if (!granted && Notifications.needsRequest(context) &&
-                    !asked.getBoolean(KEY_ASKED, false)
-                ) {
-                    asked.edit().putBoolean(KEY_ASKED, true).apply()
-                    launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                if (!granted && Notifications.needsRequest(context)) {
+                    scope.launch {
+                        if (NotificationAsk.firstTime(context)) {
+                            launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    }
                 }
             },
             onRequest = {
@@ -143,6 +137,3 @@ fun ProvideReminderPermission(content: @Composable () -> Unit) {
 
     CompositionLocalProvider(LocalReminderPermission provides permission, content = content)
 }
-
-private const val PERMISSION_PREFERENCES = "waymark.permissions"
-private const val KEY_ASKED = "notifications.asked"

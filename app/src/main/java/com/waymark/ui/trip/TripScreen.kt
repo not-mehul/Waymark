@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,10 +20,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.window.core.layout.WindowSizeClass
 import com.waymark.domain.logic.TimeText
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.Segment
@@ -75,7 +76,11 @@ fun TripScreen(
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
     var sharingCode by rememberSaveable { mutableStateOf(false) }
 
-    val wide = LocalConfiguration.current.screenWidthDp >= WIDE_SCREEN_DP
+    // The expanded width class — a tablet, an unfolded foldable, a desktop
+    // window — rather than a pixel count, so a resized window is judged the
+    // same way the platform judges it.
+    val wide = currentWindowAdaptiveInfo().windowSizeClass
+        .isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND)
     val openSegment: (String) -> Unit = { id -> if (wide) selected = id else onOpenSegment(id) }
     val scheduling: Idea? = schedulingId?.let { id -> state.ideas.firstOrNull { it.id == id } }
 
@@ -334,6 +339,3 @@ private fun Header(state: TripUiState, onBack: () -> Unit, onMenu: () -> Unit) {
         )
     }
 }
-
-/** Where a second pane earns its place: the Material "expanded" width class. */
-private const val WIDE_SCREEN_DP = 840

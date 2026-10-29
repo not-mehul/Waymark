@@ -19,7 +19,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-import com.waymark.data.local.ThemeStore
 
 enum class ThemeMode { SYSTEM, DUSK, DAWN }
 
@@ -51,10 +50,13 @@ val LocalThemeController: ProvidableCompositionLocal<ThemeController> =
  */
 @Composable
 fun WaymarkTheme(
-    store: ThemeStore? = null,
+    stored: ThemeMode = ThemeMode.SYSTEM,
+    onModeChange: (ThemeMode) -> Unit = {},
     content: @Composable () -> Unit,
 ) {
-    var mode by remember { mutableStateOf(store?.current() ?: ThemeMode.SYSTEM) }
+    // Follows the stored choice, and changes at once on a tap rather than
+    // waiting for the write to come back round.
+    var mode by remember(stored) { mutableStateOf(stored) }
     val systemDark = isSystemInDarkTheme()
     val isDusk = when (mode) {
         ThemeMode.SYSTEM -> systemDark
@@ -65,7 +67,7 @@ fun WaymarkTheme(
     val typography = remember { WaymarkTypography() }
     val controller = ThemeController(mode, isDusk) {
         mode = it
-        store?.set(it)
+        onModeChange(it)
     }
 
     // Native surfaces — status bar icons, scrollbars — follow the theme, the
