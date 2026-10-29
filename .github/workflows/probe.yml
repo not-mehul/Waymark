@@ -1,0 +1,11 @@
+name: Probe library APIs (temporary)
+on:
+  push:
+    branches: ["ccr-3c225ce7-sltqxd"]
+    paths: [".github/probe/**", ".github/workflows/probe.yml"]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: .github/probe/api.sh
