@@ -4,7 +4,8 @@ An Android travel-logistics app: every flight, stay, transfer and booking for a
 trip — for one traveler or a party that splits up — on one timeline, one vector
 chart. It works with the radio off.
 
-Kotlin, Jetpack Compose, Room, WorkManager. Single module; beyond AndroidX the
+Kotlin 2.4, Jetpack Compose, Room, WorkManager, DataStore and Glance, built with
+Android Gradle Plugin 9.5 on Gradle 9.8 and targeting Android 17. Single module; beyond AndroidX the
 only runtime libraries are kotlinx.serialization, for trip files, and ZXing's
 core, for reading and drawing barcodes.
 
@@ -270,12 +271,12 @@ com.waymark
 │   │               airlines, country facts, coastline, the worked example
 │   ├── share/      TripArchive (trip files, backups, QR payloads),
 │   │               BookingText (emails), Bcbp (boarding passes)
-│   ├── local/      Room entities, DAOs, codecs, migrations, ReminderStore,
-│   │               ThemeStore
+│   ├── local/      Room entities, DAOs, codecs, migrations, and the
+│   │               settings DataStore (ReminderStore, ThemeStore)
 │   └── repo/       TripRepository, IdeaRepository, AlertRepository, SampleSeeder
 ├── alerts/         ReminderCheck, the alarm for the next reminder, the
 │                   safety-net worker, and the one notification channel
-├── widget/         The next-up home-screen widget
+├── widget/         The next-up home-screen widget (Glance)
 ├── di/             AppContainer — the whole graph, readable top to bottom —
 │                   and the Inbox for what arrives from outside
 └── ui/
@@ -361,7 +362,8 @@ seam. It parses lazily, so a trip that never opens the map never pays for it.
 
 ## Building
 
-Needs a JDK 17 and an Android SDK with API 35. Gradle finds the SDK through
+Needs a JDK 21 (the code compiles to Java 17 bytecode) and an Android SDK
+with API 37. Gradle finds the SDK through
 `local.properties` or `ANDROID_HOME` — neither is in the repository, because
 both are specific to the machine.
 
@@ -385,7 +387,7 @@ export ANDROID_HOME=$HOME/Android/Sdk
 export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
 
 sdkmanager --licenses
-sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+sdkmanager "platform-tools" "platforms;android-37"
 ```
 
 Then:
