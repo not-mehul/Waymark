@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -48,7 +48,7 @@ fun ScreenScaffold(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .systemBarsPadding()
+                .safeDrawingPadding()
                 .then(if (scrolling) Modifier.verticalScroll(rememberScrollState()) else Modifier)
                 .padding(horizontal = WaymarkSpacing.screenHorizontal),
             verticalArrangement = Arrangement.spacedBy(spacing),

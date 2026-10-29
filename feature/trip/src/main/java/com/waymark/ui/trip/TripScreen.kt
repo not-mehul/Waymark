@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
@@ -89,7 +89,7 @@ fun TripScreen(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding(),
+                .safeDrawingPadding(),
         ) {
             Box(
                 modifier = Modifier

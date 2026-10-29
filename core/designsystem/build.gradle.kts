@@ -1,5 +1,6 @@
 plugins {
     id("waymark.android.compose")
+    id("waymark.screenshots")
 }
 
 android {
@@ -11,4 +12,5 @@ android {
 dependencies {
     api(projects.core.domain)
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.activity.compose)
 }

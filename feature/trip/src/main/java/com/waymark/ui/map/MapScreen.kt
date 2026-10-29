@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -130,7 +130,7 @@ fun MapScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopStart)
-                .systemBarsPadding()
+                .safeDrawingPadding()
                 .padding(WaymarkSpacing.snug),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -148,7 +148,7 @@ fun MapScreen(
             onSelect = { projection = MapProjection.entries[it] },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .systemBarsPadding()
+                .safeDrawingPadding()
                 .padding(WaymarkSpacing.medium)
                 .width(180.dp),
         )

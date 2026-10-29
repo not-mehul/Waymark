@@ -1,5 +1,6 @@
 package com.waymark.ui.components
 
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -19,7 +20,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,11 +35,14 @@ import androidx.compose.ui.window.DialogProperties
 import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkShapes
 import com.waymark.ui.theme.WaymarkSpacing
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * The modal card: densest surface in the system, a translucent amber hairline,
  * decorative corner brackets, and an entrance that fades and settles rather
- * than bouncing. Dismissible by the close control, the backdrop, or back.
+ * than bouncing. Dismissible by the close control, the backdrop, or back —
+ * and the system's predictive back gesture shrinks it away under the finger,
+ * so the traveler sees what letting go will do before they let go.
  */
 @Composable
 fun WaymarkModal(
@@ -58,6 +65,18 @@ fun WaymarkModal(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
+        // How far a back gesture has gone, 0 to 1; back to 0 if it is let go of.
+        var back by remember { mutableFloatStateOf(0f) }
+        PredictiveBackHandler { gesture ->
+            try {
+                gesture.collect { back = it.progress }
+                onDismiss()
+            } catch (cancelled: CancellationException) {
+                back = 0f
+                throw cancelled
+            }
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -74,10 +93,10 @@ fun WaymarkModal(
                 modifier = modifier
                     .fillMaxWidth()
                     .graphicsLayer {
-                        alpha = appear
+                        alpha = appear * (1f - BACK_FADE * back)
                         translationY = (1f - appear) * 16.dp.toPx()
                     }
-                    .scale(0.96f + 0.04f * appear)
+                    .scale((0.96f + 0.04f * appear) * (1f - BACK_SHRINK * back))
                     .glow(colors.accentAmber, 0.18f, WaymarkShapes.modal)
                     .clip(WaymarkShapes.modal)
                     .background(colors.modal)
@@ -153,3 +172,7 @@ fun ConfirmModal(
         }
     }
 }
+
+/** How much of itself a modal gives up to a back gesture taken all the way. */
+private const val BACK_SHRINK = 0.1f
+private const val BACK_FADE = 0.3f
