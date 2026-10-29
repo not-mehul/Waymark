@@ -270,6 +270,7 @@ private fun Incoming(
         )
 
         is ShareViewModel.Incoming.Problem -> ProblemModal(problem = shown, onDismiss = share::dismiss)
+
         null -> Unit
     }
 }

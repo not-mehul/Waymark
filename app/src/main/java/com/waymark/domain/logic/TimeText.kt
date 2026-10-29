@@ -44,9 +44,12 @@ object TimeText {
 
     fun dateRange(start: LocalDate, end: LocalDate): String = when {
         start == end -> start.format(dayShort)
+
         start.year == end.year && start.month == end.month ->
             "${start.dayOfMonth}–${end.dayOfMonth} ${start.format(DateTimeFormatter.ofPattern("MMM yyyy", Locale.US))}"
+
         start.year == end.year -> "${start.format(monthDay)} – ${end.format(monthDay)} ${start.year}"
+
         else -> "${start.format(monthDay)} ${start.year} – ${end.format(monthDay)} ${end.year}"
     }
 

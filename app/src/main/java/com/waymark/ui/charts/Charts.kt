@@ -31,7 +31,7 @@ import com.waymark.ui.theme.Waymark
 import com.waymark.ui.theme.WaymarkSpacing
 import kotlin.math.max
 
-/**
+/*
  * The chart kit.
  *
  * **Why nothing here encodes identity with hue.** The palette has two accents,

@@ -91,8 +91,11 @@ fun TimelineTab(
             Column(modifier = Modifier.settleIn(order = index, once = settled, key = entry.key)) {
                 when (entry) {
                     is TimelineEntry.DayBreak -> DayBreakRow(entry)
+
                     is TimelineEntry.Now -> NowRow(entry)
+
                     is TimelineEntry.Link -> LinkRow(entry, state.freeTimeIdeas[entry.key].orEmpty())
+
                     is TimelineEntry.Event -> EventRow(
                         entry = entry,
                         dossierPartyInitials = state.dossier?.party?.travelers
@@ -417,7 +420,9 @@ private fun DetailLine(segment: Segment) {
 
 private fun iconFor(segment: Segment): ImageVector = when (segment) {
     is Segment.Flight -> WaymarkIcons.Plane
+
     is Segment.Lodging -> WaymarkIcons.Bed
+
     is Segment.Ground -> when (segment.mode) {
         com.waymark.domain.model.GroundMode.TRAIN,
         com.waymark.domain.model.GroundMode.TRANSIT,
@@ -431,23 +436,27 @@ private fun iconFor(segment: Segment): ImageVector = when (segment) {
 
 private fun headline(segment: Segment, role: EventRole): String = when (segment) {
     is Segment.Flight -> "${segment.origin.shortLabel} → ${segment.destination.shortLabel}"
+
     is Segment.Lodging -> when (role) {
         EventRole.CHECK_OUT -> "Check out · ${segment.propertyName}"
         else -> segment.propertyName
     }
 
     is Segment.Ground -> "${segment.origin.shortLabel} → ${segment.destination.shortLabel}"
+
     is Segment.Experience -> segment.name
 }
 
 private fun subtitle(segment: Segment, role: EventRole): String = when (segment) {
     is Segment.Flight -> "${segment.designator} · ${segment.operatedBy ?: segment.carrierCode}"
+
     is Segment.Lodging -> when (role) {
         EventRole.CHECK_OUT -> segment.origin.city.ifBlank { segment.origin.name }
         else -> segment.origin.address ?: segment.origin.city
     }
 
     is Segment.Ground -> segment.mode.label
+
     is Segment.Experience -> segment.origin.address ?: segment.origin.city.ifBlank {
         segment.category
     }

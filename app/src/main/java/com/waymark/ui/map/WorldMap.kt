@@ -177,6 +177,7 @@ fun WorldMap(
 
             val view: MapView = when (projection) {
                 MapProjection.FLAT -> FlatView(flatCentre, flatZoom, size)
+
                 MapProjection.GLOBE -> GlobeView(
                     centreLat = spinLat.toDouble(),
                     centreLon = spinLon.toDouble(),

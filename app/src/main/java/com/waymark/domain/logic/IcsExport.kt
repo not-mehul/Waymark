@@ -75,15 +75,18 @@ object IcsExport {
                     add("$who: $seat")
                 }
             }
+
             is Segment.Lodging -> {
                 add("${segment.nights} night" + if (segment.nights == 1L) "" else "s")
                 segment.roomDescription?.let { add(it) }
                 segment.checkInNote?.let { add(it) }
             }
+
             is Segment.Ground -> {
                 segment.provider?.let { add(it) }
                 segment.pickupInstruction?.let { add(it) }
             }
+
             is Segment.Experience -> segment.curatedBy?.let { add(it) }
         }
         segment.note?.let { add(it) }

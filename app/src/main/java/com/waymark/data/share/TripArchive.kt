@@ -143,7 +143,9 @@ object TripArchive {
 
     private fun trimmed(archive: WaymarkArchive, detail: CodeDetail): WaymarkArchive = when (detail) {
         CodeDetail.EVERYTHING -> archive
+
         CodeDetail.BOOKINGS_AND_NOTES -> archive.copy(trips = archive.trips.map { it.copy(ideas = emptyList()) })
+
         CodeDetail.BOOKINGS -> archive.copy(
             trips = archive.trips.map { trip ->
                 trip.copy(
@@ -303,12 +305,15 @@ object TripArchive {
                 aircraft = segment.aircraft, cabin = segment.cabin, seats = segment.seats,
                 tickets = segment.ticketNumbers, operatedBy = segment.operatedBy,
             )
+
             is Segment.Lodging -> base.copy(
                 name = segment.propertyName, room = segment.roomDescription, checkInNote = segment.checkInNote,
             )
+
             is Segment.Ground -> base.copy(
                 mode = segment.mode.name, provider = segment.provider, pickup = segment.pickupInstruction,
             )
+
             is Segment.Experience -> base.copy(
                 name = segment.name, category = segment.category, tips = segment.curatedBy,
             )
@@ -333,6 +338,7 @@ object TripArchive {
                 arrivalGate = row.arrivalGate, aircraft = row.aircraft, cabin = row.cabin,
                 seats = row.seats, operatedBy = row.operatedBy,
             )
+
             "LODGING" -> Segment.Lodging(
                 id = row.id, tripId = tripId, propertyName = row.name ?: origin.name, origin = origin,
                 startEpochMillis = row.start, endEpochMillis = row.end,
@@ -340,6 +346,7 @@ object TripArchive {
                 confirmationCode = row.reference, bookedWith = row.bookedWith, note = row.note,
                 roomDescription = row.room, checkInNote = row.checkInNote,
             )
+
             "GROUND" -> Segment.Ground(
                 id = row.id, tripId = tripId,
                 mode = GroundMode.entries.firstOrNull { it.name == row.mode } ?: GroundMode.TAXI,
@@ -349,6 +356,7 @@ object TripArchive {
                 confirmationCode = row.reference, bookedWith = row.bookedWith, note = row.note,
                 provider = row.provider, pickupInstruction = row.pickup,
             )
+
             "EXPERIENCE" -> Segment.Experience(
                 id = row.id, tripId = tripId, name = row.name ?: origin.name,
                 category = row.category.orEmpty(), origin = origin,
@@ -357,6 +365,7 @@ object TripArchive {
                 confirmationCode = row.reference, bookedWith = row.bookedWith, note = row.note,
                 curatedBy = row.tips,
             )
+
             else -> null
         }
     }

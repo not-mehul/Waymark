@@ -306,7 +306,9 @@ private fun IdeaCard(
             }
             when {
                 setAside -> FieldLabel("Not this trip", color = colors.textFaint)
+
                 scheduled -> FieldLabel("On the timeline", color = colors.accentSage)
+
                 idea.plannedDate != null -> FieldLabel(
                     TimeText.dayCompact(idea.plannedDate),
                     color = colors.accentAmber,

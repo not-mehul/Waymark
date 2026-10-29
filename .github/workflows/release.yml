@@ -21,16 +21,16 @@ jobs:
     timeout-minutes: 40
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Unit tests
         run: ./gradlew --no-daemon testDebugUnitTest
@@ -92,7 +92,7 @@ jobs:
           echo "path=$target" >> "$GITHUB_OUTPUT"
 
       - name: Upload the APK as a build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: waymark-apk
           path: ${{ steps.apk.outputs.path }}
@@ -102,7 +102,7 @@ jobs:
       # unsigned build should never go out without somebody noticing it.
       - name: Draft the GitHub release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           draft: true
           name: Waymark ${{ github.ref_name }}

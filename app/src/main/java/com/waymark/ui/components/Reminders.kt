@@ -123,6 +123,7 @@ fun ProvideReminderPermission(content: @Composable () -> Unit) {
             onRequest = {
                 when {
                     granted -> Unit
+
                     refused || !Notifications.needsRequest(context) -> {
                         runCatching {
                             context.startActivity(
@@ -133,6 +134,7 @@ fun ProvideReminderPermission(content: @Composable () -> Unit) {
                         }
                         Unit
                     }
+
                     else -> launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
             },

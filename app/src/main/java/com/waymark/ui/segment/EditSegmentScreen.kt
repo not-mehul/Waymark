@@ -433,10 +433,15 @@ private fun ExperienceDetail(form: SegmentForm, onChange: (SegmentForm) -> Unit)
 
 private fun describe(problem: SegmentForm.Problem): String = when (problem) {
     SegmentForm.Problem.NoName -> "Give it a name."
+
     SegmentForm.Problem.NoTraveler -> "Someone has to be on it."
+
     is SegmentForm.Problem.UnknownAirport ->
         if (problem.code.isEmpty()) "Both airports are needed." else "Waymark does not know an airport ${problem.code}."
+
     SegmentForm.Problem.NotAFlightNumber -> "That is not a flight number — it reads like BA286."
+
     SegmentForm.Problem.EndsBeforeStart -> "It ends before it starts."
+
     SegmentForm.Problem.TooLongForAFlight -> "Longer than any flight — check the times against each airport's clock."
 }

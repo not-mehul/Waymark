@@ -172,10 +172,12 @@ class TripRepository(private val database: WaymarkDatabase) {
                 val ids = segment.travelerIds
                 when {
                     ids.isEmpty() || travelerId !in ids -> Unit
+
                     ids == setOf(travelerId) -> {
                         ideas.releaseSegment(segment.id)
                         segments.delete(segment.id)
                     }
+
                     else -> segments.upsert(
                         Mappers.toEntity(
                             segment.copyCommon(travelerIds = normaliseParty(ids - travelerId, remaining))

@@ -37,7 +37,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle as JavaTextStyle
 import java.util.Locale
 
-/**
+/*
  * Dates and times are picked, not typed.
  *
  * Everything here used to be a text field: `2026-05-14`, `16:20`, parsed on

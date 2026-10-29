@@ -1,11 +1,15 @@
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+// AGP 9 builds Kotlin itself, so there is no `kotlin-android` plugin here:
+// only the compiler plugins, KSP for Room, and Room's own plugin for the
+// schema directory.
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
 }
 
 /**
@@ -77,12 +81,12 @@ val canSignRelease =
 
 android {
     namespace = "com.waymark"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.waymark"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = waymarkVersionCode
         versionName = waymarkVersion
     }
@@ -116,10 +120,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
         // The About sheet prints the version it is running; this is where it
@@ -150,8 +150,16 @@ android {
     }
 }
 
-ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
+    }
+}
+
+// Each database version's schema, committed, so a migration can be tested
+// against the shape the previous version actually wrote.
+room {
+    schemaDirectory("$projectDir/schemas")
 }
 
 // Said once, at the top of a release build, rather than discovered later when
@@ -165,6 +173,7 @@ if (!canSignRelease && gradle.startParameter.taskNames.any { it.contains("elease
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
@@ -175,6 +184,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material3.adaptive)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     implementation(libs.androidx.navigation.compose)
@@ -184,6 +194,8 @@ dependencies {
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.profileinstaller)
 
     implementation(libs.kotlinx.serialization.json)

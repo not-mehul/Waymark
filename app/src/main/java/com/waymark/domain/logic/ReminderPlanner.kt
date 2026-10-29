@@ -194,7 +194,9 @@ object ReminderPlanner {
         itinerary: List<Segment> = listOf(segment),
     ): String = when (moment) {
         ReminderMoment.START -> startHeadline(segment, minutesUntil(segment.startEpochMillis, nowMillis))
+
         ReminderMoment.CHECK_IN -> "Check in online for ${labelOf(segment)}"
+
         ReminderMoment.LEAVE -> {
             val leaveBy = leaveBy(segment, itinerary)
             val place = segment.origin.shortLabel
@@ -295,9 +297,11 @@ object ReminderPlanner {
     private fun detail(segment: Segment, moment: ReminderMoment, itinerary: List<Segment>): String =
         when (moment) {
             ReminderMoment.START -> startDetail(segment)
+
             ReminderMoment.CHECK_IN ->
                 "Departs ${TimeText.dayCompact(segment.start.toLocalDate())} at " +
                     "${TimeText.clock(segment.start)} from ${segment.origin.shortLabel}"
+
             ReminderMoment.LEAVE -> leaveDetail(segment, itinerary)
         }
 

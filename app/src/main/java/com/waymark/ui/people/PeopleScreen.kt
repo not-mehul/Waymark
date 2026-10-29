@@ -65,7 +65,9 @@ fun PeopleScreen(viewModel: PeopleViewModel, onBack: () -> Unit) {
         val list = people
         when {
             list == null -> EmptyLine("Reading…")
+
             list.isEmpty() -> EmptyLine("Nobody yet. Travelers are added from a trip's Party tab.")
+
             else -> {
                 list.forEach { person ->
                     Panel(onClick = { editing = person.traveler.id }, modifier = Modifier.fillMaxWidth()) {
