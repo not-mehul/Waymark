@@ -44,6 +44,7 @@ class WaymarkApplication : Application() {
             // This only tidies what earlier builds left behind.
             trips.repair()
             Directories.loadCities()
+            NextUpWidget.publishPreview(this@WaymarkApplication)
         }
         scope.launch {
             // Any change to a booking, a trip or a reminder setting moves the

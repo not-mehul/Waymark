@@ -10,6 +10,7 @@ import android.os.Build
 import androidx.core.content.getSystemService
 import com.waymark.di.Graph
 import com.waymark.di.graph
+import com.waymark.domain.logic.LiveJourney
 import com.waymark.domain.logic.ReminderPlanner
 import com.waymark.domain.model.RaisedReminder
 import kotlinx.coroutines.CoroutineScope
@@ -26,8 +27,9 @@ import kotlinx.coroutines.sync.withLock
  *
  * It raises what is due, posts what Android will show, and only then records a
  * reminder as posted — so one that fell due while notifications were blocked is
- * still shown once they are allowed, if its booking has not started. Then it
- * sets a single alarm for the next reminder anywhere in the app, which is what
+ * still shown once they are allowed, if its booking has not started. It
+ * brings the journey under way, if there is one, up to date. Then it sets a
+ * single alarm for the next reminder or redraw anywhere in the app, which is what
  * makes them punctual: a periodic worker can be deferred by Doze past the very
  * departure it was meant to announce.
  */
@@ -61,7 +63,15 @@ object ReminderCheck {
                 }
             }
 
-            ReminderAlarm.set(context, ReminderPlanner.nextDueAt(itinerary, preferences, nowMillis))
+            LiveUpdates.show(context, LiveJourney.of(itinerary, preferences, nowMillis))
+
+            // One alarm for whichever comes first: the next reminder, or the
+            // next redraw of the journey under way.
+            val next = listOfNotNull(
+                ReminderPlanner.nextDueAt(itinerary, preferences, nowMillis),
+                LiveJourney.nextChangeAt(itinerary, preferences, nowMillis),
+            ).minOrNull()
+            ReminderAlarm.set(context, next)
         }
 }
 

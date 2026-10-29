@@ -256,13 +256,13 @@ class TripRepository(private val database: WaymarkDatabase) {
     /** Emits whenever any booking or trip changes. */
     fun observeItineraryChanges(): Flow<Unit> = segments.observeChanges().map { }
 
-    /** The next thing happening across every trip, for the home-screen widget. */
-    suspend fun nextAcrossTrips(nowMillis: Long): Pair<Trip, Segment>? {
-        val row = segments.nextAcrossTrips(nowMillis) ?: return null
-        val segment = Mappers.toSegment(row) ?: return null
-        val trip = trips.find(row.tripId)?.let(Mappers::toTrip) ?: return null
-        return trip to segment
-    }
+    /** What is happening next across every trip, soonest first, for the home-screen widget. */
+    suspend fun nextAcrossTrips(nowMillis: Long, limit: Int = 1): List<Pair<Trip, Segment>> =
+        segments.nextAcrossTrips(nowMillis, limit).mapNotNull { row ->
+            val segment = Mappers.toSegment(row) ?: return@mapNotNull null
+            val trip = trips.find(row.tripId)?.let(Mappers::toTrip) ?: return@mapNotNull null
+            trip to segment
+        }
 
     /** Whole trips as the archive format carries them: every trip, or the ones named. */
     suspend fun bundles(tripIds: Collection<String>? = null): List<TripArchive.TripBundle> =

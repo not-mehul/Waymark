@@ -7,6 +7,8 @@
         Everything it knows was typed in, shared in, or opened on this device.
     -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Lets the journey under way be shown as a Live Update on Android 16 and later. -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
 
     <!--
         Cloud backup stays off: an itinerary is not uploaded anywhere by the

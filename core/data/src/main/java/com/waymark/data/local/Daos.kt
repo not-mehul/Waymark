@@ -120,17 +120,17 @@ interface SegmentDao {
     @Query("SELECT * FROM segments WHERE startEpochMillis > :fromMillis ORDER BY startEpochMillis")
     suspend fun startingAfter(fromMillis: Long): List<SegmentEntity>
 
-    /** The next booking across every trip, for the home-screen widget. */
+    /** The next bookings across every trip, soonest first, for the home-screen widget. */
     @Query(
         """
         SELECT segments.* FROM segments
         INNER JOIN trips ON trips.id = segments.tripId
         WHERE segments.endEpochMillis >= :nowMillis AND trips.archived = 0
         ORDER BY segments.startEpochMillis
-        LIMIT 1
+        LIMIT :limit
         """
     )
-    suspend fun nextAcrossTrips(nowMillis: Long): SegmentEntity?
+    suspend fun nextAcrossTrips(nowMillis: Long, limit: Int): List<SegmentEntity>
 
     /**
      * Ticks whenever a booking or a trip changes — what tells the reminder

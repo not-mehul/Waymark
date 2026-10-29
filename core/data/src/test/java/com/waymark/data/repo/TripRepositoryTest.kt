@@ -130,7 +130,16 @@ class TripRepositoryTest {
         runBlocking { trips.setArchived(sample.trip.id, true) }
         val now = sample.trip.startEpochMillis - 86_400_000L
         assertTrue(runBlocking { trips.reminderItinerary(now) }.isEmpty())
-        assertNull(runBlocking { trips.nextAcrossTrips(now) })
+        assertTrue(runBlocking { trips.nextAcrossTrips(now) }.isEmpty())
+    }
+
+    @Test
+    fun `the widget reads the next few bookings soonest first`() {
+        val now = sample.trip.startEpochMillis - 86_400_000L
+        val next = runBlocking { trips.nextAcrossTrips(now, limit = 3) }
+        assertEquals(3, next.size)
+        assertEquals(next.map { it.second.startEpochMillis }.sorted(), next.map { it.second.startEpochMillis })
+        assertTrue(next.all { it.first.id == sample.trip.id })
     }
 
     private fun Segment.copyAsOnly(travelerId: String, id: String): Segment =

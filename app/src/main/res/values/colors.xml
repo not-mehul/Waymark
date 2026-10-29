@@ -15,4 +15,8 @@
     <!-- The home-screen widget, drawn by the launcher rather than by Compose. -->
     <color name="widget_surface">#F2EADC</color>
     <color name="widget_rim">#33A8763E</color>
+    <!-- The widget picker's preview on Android 12 to 14; the widget itself sets its ink in code. -->
+    <color name="widget_ink">#2A221B</color>
+    <color name="widget_ink_dim">#6E6255</color>
+    <color name="widget_ink_accent">#A8763E</color>
 </resources>

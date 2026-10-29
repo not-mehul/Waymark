@@ -14,7 +14,8 @@ import com.waymark.R
 import com.waymark.domain.model.RaisedReminder
 
 /**
- * The app's whole notification surface: one channel, one kind of message.
+ * The app's reminders: one channel, one kind of message. The journey under
+ * way has a channel of its own, in [LiveUpdates].
  *
  * There were two channels once — "Disruption" for cancellations and "Flight
  * updates" for gate changes — from a version of Waymark that watched a
@@ -53,6 +54,8 @@ object Notifications {
         // Retire the channels of earlier builds so an upgrade does not leave
         // two dead switches behind in the system settings.
         listOf("waymark.disruption", "waymark.updates").forEach(manager::deleteNotificationChannel)
+
+        LiveUpdates.createChannel(context)
     }
 
     /**
@@ -90,7 +93,7 @@ object Notifications {
     fun granted(context: Context): Boolean = NotificationAccess.granted(context)
 
     /** Tapping a reminder opens the booking it is about, inside its trip. */
-    private fun openBooking(context: Context, tripId: String, segmentId: String): PendingIntent {
+    fun openBooking(context: Context, tripId: String, segmentId: String): PendingIntent {
         val intent = Intent(context, MainActivity::class.java)
             .setAction(MainActivity.ACTION_OPEN_BOOKING)
             .putExtra(MainActivity.EXTRA_TRIP_ID, tripId)
