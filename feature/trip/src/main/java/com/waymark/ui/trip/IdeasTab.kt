@@ -304,13 +304,14 @@ private fun IdeaCard(
                     color = colors.textDim,
                 )
             }
+            val plannedDate = idea.plannedDate
             when {
                 setAside -> FieldLabel("Not this trip", color = colors.textFaint)
 
                 scheduled -> FieldLabel("On the timeline", color = colors.accentSage)
 
-                idea.plannedDate != null -> FieldLabel(
-                    TimeText.dayCompact(idea.plannedDate),
+                plannedDate != null -> FieldLabel(
+                    TimeText.dayCompact(plannedDate),
                     color = colors.accentAmber,
                 )
             }

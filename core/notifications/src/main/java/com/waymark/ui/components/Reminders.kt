@@ -126,7 +126,6 @@ fun ProvideReminderPermission(content: @Composable () -> Unit) {
                                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             )
                         }
-                        Unit
                     }
 
                     else -> launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
