@@ -80,6 +80,11 @@ jobs:
       - name: Assemble debug
         run: ./gradlew --no-daemon assembleDebug
 
+      # The benchmark module only builds against a release-like app, which
+      # nothing above compiles; this keeps it compiling between profile runs.
+      - name: Build the benchmarks
+        run: ./gradlew --no-daemon :baselineprofile:assembleBenchmarkRelease
+
       # Room writes the schema of the current database version on every
       # build. A schema the build changed, or one it wrote that is not
       # committed, is a database change nobody has reviewed — and the next
@@ -91,6 +96,13 @@ jobs:
             echo "::error::The Room schema changed. Build locally and commit core/data/schemas."
             exit 1
           fi
+
+      # Every screenshot test is compared with the reference committed beside
+      # it; screenshots.yml records new references after an intended change,
+      # and this push is not the one to check them against.
+      - name: Screenshots match
+        if: ${{ !contains(github.event.head_commit.message, '[record screenshots]') }}
+        run: ./gradlew --no-daemon verifyRoborazziDebug
 
       - name: Android lint
         run: ./gradlew --no-daemon lintDebug
@@ -108,5 +120,6 @@ jobs:
           name: reports
           path: |
             **/build/reports/tests/
+            **/build/outputs/roborazzi/
             app/build/reports/lint-results-debug.html
           retention-days: 7

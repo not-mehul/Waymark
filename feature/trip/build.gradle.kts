@@ -1,5 +1,6 @@
 plugins {
     id("waymark.android.feature")
+    id("waymark.screenshots")
 }
 
 android {

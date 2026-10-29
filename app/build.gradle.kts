@@ -105,6 +105,12 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
         }
+        // The baseline-profile plugin adds release-like build types to
+        // measure and profile; they are only ever installed on a test device,
+        // so the debug key signs them whether or not a release key exists.
+        matching { it.name == "nonMinifiedRelease" || it.name == "benchmarkRelease" }.configureEach {
+            signingConfig = signingConfigs.getByName("debug")
+        }
     }
 
     buildFeatures {
@@ -173,4 +179,6 @@ dependencies {
     implementation(libs.androidx.profileinstaller)
 
     testImplementation(libs.junit)
+
+    baselineProfile(projects.baselineprofile)
 }

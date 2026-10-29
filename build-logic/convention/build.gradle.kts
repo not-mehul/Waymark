@@ -13,4 +13,6 @@ dependencies {
     implementation(libs.ksp.gradlePlugin)
     implementation(libs.room.gradlePlugin)
     implementation(libs.hilt.gradlePlugin)
+    implementation(libs.roborazzi.gradlePlugin)
+    implementation(libs.baselineprofile.gradlePlugin)
 }
