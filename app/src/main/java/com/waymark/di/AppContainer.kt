@@ -53,9 +53,7 @@ class AppContainer(context: Context) {
     suspend fun loadAirportDirectory() = withContext(Dispatchers.IO) {
         if (Airports.directoryLoaded) return@withContext
         runCatching {
-            appContext.assets.open(AirportDirectory.ASSET_NAME).bufferedReader().use { reader ->
-                Airports.install(AirportDirectory.parse(reader.lineSequence()))
-            }
+            Airports.install(AirportDirectory.readBundled { AirportDirectory.parse(it) })
         }.onFailure { error ->
             Log.w("Waymark", "Station directory unavailable; core list only", error)
         }
@@ -69,9 +67,7 @@ class AppContainer(context: Context) {
     suspend fun loadCityDirectory() = withContext(Dispatchers.IO) {
         if (Cities.loaded) return@withContext
         runCatching {
-            appContext.assets.open(CityDirectory.ASSET_NAME).bufferedReader().use { reader ->
-                Cities.install(CityDirectory.parse(reader.lineSequence()))
-            }
+            Cities.install(CityDirectory.readBundled { CityDirectory.parse(it) })
         }.onFailure { error ->
             Log.w("Waymark", "City gazetteer unavailable; typed places keep the trip's zone", error)
         }

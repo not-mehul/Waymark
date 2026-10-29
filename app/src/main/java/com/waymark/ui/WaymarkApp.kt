@@ -23,6 +23,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.waymark.BuildConfig
 import com.waymark.data.share.BookingText
 import com.waymark.di.AppContainer
 import com.waymark.di.Inbox
@@ -143,6 +144,7 @@ fun WaymarkApp(
                 val context = LocalContext.current
                 TripsScreen(
                     viewModel = viewModel,
+                    versionName = BuildConfig.VERSION_NAME,
                     onOpenTrip = { openTrip(it) },
                     onOpenPeople = { navController.navigate(Routes.People) },
                     onOpenFile = { uri: Uri -> share.openFile(context, uri) },

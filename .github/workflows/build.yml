@@ -50,14 +50,12 @@ jobs:
           echo "$DETEKT_SHA256  detekt.jar" | sha256sum -c -
 
       - name: ktlint
-        run: java -jar ktlint.jar "app/src/**/*.kt" "*.kts" "app/*.kts" --relative
+        run: java -jar ktlint.jar "**/src/**/*.kt" "**/*.kts" "!**/build/**" --relative
 
       - name: detekt
-        run: >
-          java -jar detekt.jar
-          --input app/src/main/java,app/src/test/java
-          --config config/detekt.yml
-          --build-upon-default-config
+        run: |
+          sources=$(find . -path ./build-logic -prune -o -type d \( -path '*/src/main/java' -o -path '*/src/test/java' \) -print | paste -sd, -)
+          java -jar detekt.jar --input "$sources" --config config/detekt.yml --build-upon-default-config
 
   check:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
@@ -88,9 +86,9 @@ jobs:
       # version's migration test will need it.
       - name: Room schema is committed
         run: |
-          if [ -n "$(git status --porcelain app/schemas)" ]; then
-            git status --porcelain app/schemas
-            echo "::error::The Room schema changed. Build locally and commit app/schemas."
+          if [ -n "$(git status --porcelain core/data/schemas)" ]; then
+            git status --porcelain core/data/schemas
+            echo "::error::The Room schema changed. Build locally and commit core/data/schemas."
             exit 1
           fi
 
@@ -109,6 +107,6 @@ jobs:
         with:
           name: reports
           path: |
-            app/build/reports/tests/
+            **/build/reports/tests/
             app/build/reports/lint-results-debug.html
           retention-days: 7

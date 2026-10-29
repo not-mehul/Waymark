@@ -1,15 +1,9 @@
 import java.util.Properties
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-// AGP 9 builds Kotlin itself, so there is no `kotlin-android` plugin here:
-// only the compiler plugins, KSP for Room, and Room's own plugin for the
-// schema directory.
+// The app shell: the activity, navigation, the dependency graph, reminders and
+// the widget. Screens live in :feature:*, everything below them in :core:*.
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.room)
+    id("waymark.android.application")
 }
 
 /**
@@ -81,12 +75,9 @@ val canSignRelease =
 
 android {
     namespace = "com.waymark"
-    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.waymark"
-        minSdk = 26
-        targetSdk = 37
         versionCode = waymarkVersionCode
         versionName = waymarkVersion
     }
@@ -115,13 +106,7 @@ android {
         }
     }
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
     buildFeatures {
-        compose = true
         // The About sheet prints the version it is running; this is where it
         // comes from, rather than a second copy of the number in the source.
         buildConfig = true
@@ -131,16 +116,12 @@ android {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
 
-    testOptions {
-        // Robolectric reads the merged manifest and resources, and the Room
-        // tests need the real schema in the real SQLite.
-        unitTests.isIncludeAndroidResources = true
-    }
-
     lint {
         // Lint runs in CI on every push; a warning is a note, an error is a stop.
         abortOnError = true
-        checkDependencies = false
+        // The libraries are linted as part of the app, with the app's view
+        // of what is used and what is not.
+        checkDependencies = true
         // A plain-text report beside the HTML one, which CI prints in full.
         textReport = true
         // The app asks for no network permission and needs none: nothing to update from.
@@ -148,18 +129,6 @@ android {
         disable += "NewerVersionAvailable"
         disable += "AndroidGradlePluginVersion"
     }
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
-    }
-}
-
-// Each database version's schema, committed, so a migration can be tested
-// against the shape the previous version actually wrote.
-room {
-    schemaDirectory("$projectDir/schemas")
 }
 
 // Said once, at the top of a release build, rather than discovered later when
@@ -172,6 +141,15 @@ if (!canSignRelease && gradle.startParameter.taskNames.any { it.contains("elease
 }
 
 dependencies {
+    implementation(projects.core.data)
+    implementation(projects.core.designsystem)
+    implementation(projects.core.notifications)
+    implementation(projects.feature.shelf)
+    implementation(projects.feature.people)
+    implementation(projects.feature.share)
+    implementation(projects.feature.flight)
+    implementation(projects.feature.trip)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -181,34 +159,14 @@ dependencies {
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.foundation)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.material3.adaptive)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     implementation(libs.androidx.navigation.compose)
-
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
-
     implementation(libs.androidx.work.runtime.ktx)
-    implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.profileinstaller)
 
-    implementation(libs.kotlinx.serialization.json)
-    // Barcode decoding only — QR codes for sharing a trip, and the Aztec or
-    // PDF417 on a boarding pass. Pure Java, no camera or network code.
-    implementation(libs.zxing.core)
-
     testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.robolectric)
-    testImplementation(libs.androidx.test.core)
-    testImplementation(libs.androidx.test.junit)
-    testImplementation(platform(libs.androidx.compose.bom))
-    testImplementation(libs.androidx.compose.ui.test.junit4)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
