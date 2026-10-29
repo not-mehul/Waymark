@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -231,7 +232,7 @@ fun WaymarkApp(
         when (val taken = container.inbox.take()) {
             is Inbox.Request.OpenBooking -> openTrip(taken.tripId, Routes.Booking(taken.segmentId))
             is Inbox.Request.SharedText -> share.openText(taken.text)
-            is Inbox.Request.ImportFile -> share.openFile(context, Uri.parse(taken.uri))
+            is Inbox.Request.ImportFile -> share.openFile(context, taken.uri.toUri())
             is Inbox.Request.ImportCode -> share.openCode(taken.payload)
             null -> Unit
         }

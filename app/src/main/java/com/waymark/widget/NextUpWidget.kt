@@ -3,6 +3,7 @@ package com.waymark.widget
 import android.content.Context
 import android.content.Intent
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.MutablePreferences
@@ -20,6 +21,7 @@ import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
+import androidx.glance.color.ColorProvider
 import androidx.glance.currentState
 import androidx.glance.layout.Column
 import androidx.glance.layout.fillMaxSize
@@ -29,7 +31,6 @@ import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
 import com.waymark.MainActivity
 import com.waymark.R
 import com.waymark.WaymarkApplication
@@ -66,13 +67,13 @@ class NextUpWidget : GlanceAppWidget() {
         ) {
             Text(
                 text = next.eyebrow,
-                style = TextStyle(color = ColorProvider(R.color.widget_accent), fontSize = 11.sp),
+                style = TextStyle(color = ACCENT, fontSize = 11.sp),
                 maxLines = 1,
             )
             Text(
                 text = next.title,
                 style = TextStyle(
-                    color = ColorProvider(R.color.widget_text),
+                    color = TEXT,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Medium,
                 ),
@@ -80,7 +81,7 @@ class NextUpWidget : GlanceAppWidget() {
             )
             Text(
                 text = next.detail,
-                style = TextStyle(color = ColorProvider(R.color.widget_dim), fontSize = 13.sp),
+                style = TextStyle(color = DIM, fontSize = 13.sp),
                 maxLines = 2,
             )
         }
@@ -106,6 +107,11 @@ class NextUpWidget : GlanceAppWidget() {
         }
     }
 }
+
+// The widget's ink, Dawn by day and Dusk by night, following the launcher.
+private val TEXT = ColorProvider(day = Color(0xFF2A221B), night = Color(0xFFF5ECD9))
+private val DIM = ColorProvider(day = Color(0xFF6E6255), night = Color(0xFFA89C8C))
+private val ACCENT = ColorProvider(day = Color(0xFFA8763E), night = Color(0xFFD4A574))
 
 /** The launcher's door to [NextUpWidget]. */
 class NextUpWidgetReceiver : GlanceAppWidgetReceiver() {
