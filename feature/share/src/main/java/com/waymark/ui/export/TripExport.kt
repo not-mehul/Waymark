@@ -1,17 +1,33 @@
 package com.waymark.ui.export
 
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.net.Uri
+import android.os.Bundle
+import android.os.CancellationSignal
+import android.os.ParcelFileDescriptor
+import android.print.PageRange
+import android.print.PrintAttributes
+import android.print.PrintDocumentAdapter
+import android.print.PrintDocumentAdapter.LayoutResultCallback
+import android.print.PrintDocumentAdapter.WriteResultCallback
+import android.print.PrintDocumentInfo
+import android.print.PrintManager
 import android.util.Log
 import androidx.core.content.FileProvider
 import com.waymark.data.share.TripArchive
 import com.waymark.domain.logic.IcsExport
+import com.waymark.domain.logic.ItineraryDocument
 import com.waymark.domain.logic.MarkdownExport
 import com.waymark.domain.logic.TripAnalyticsReport
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.TripDossier
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.IOException
 
 /** What a trip is shared as: the trip, its ideas, and its numbers when worked out. */
 data class TripShare(
@@ -21,10 +37,10 @@ data class TripShare(
 )
 
 /**
- * Hands the trip to whatever the traveler wants to keep it in, in one of three
- * forms: a markdown itinerary to read, a calendar file whose events land in
- * any calendar app, and a Waymark trip file that another phone opens back into
- * a whole trip.
+ * Hands the trip to whatever the traveler wants to keep it in: a printable
+ * PDF itinerary, or the same pages sent straight to a printer; a markdown
+ * itinerary to read; a calendar file whose events land in any calendar app;
+ * and a Waymark trip file that another phone opens back into a whole trip.
  *
  * Each file is written to the cache and shared through a `FileProvider`, so
  * the receiving app gets a read grant for one document rather than any
@@ -41,6 +57,95 @@ object TripExport {
         val payload = MarkdownExport.Payload(dossier = dossier, ideas = state.ideas, analytics = state.analytics)
         val text = MarkdownExport.render(payload)
         return share(context, dossier, MarkdownExport.fileName(payload), text, "text/markdown", alsoAsText = true)
+    }
+
+    /** The itinerary as a PDF, to keep, send or print elsewhere. */
+    fun sharePdf(context: Context, payload: ItineraryDocument.Payload): Boolean {
+        val dossier = payload.dossier
+        val uri = writePdf(context, payload)?.let { uriOf(context, it) } ?: return false
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "application/pdf"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_TITLE, dossier.trip.name)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(
+            Intent.createChooser(send, "Share ${dossier.trip.name}").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+        return true
+    }
+
+    /** The same pages, handed to the system's print dialog. Needs the activity. */
+    fun print(context: Context, payload: ItineraryDocument.Payload): Boolean {
+        val activity = context.findActivity() ?: return false
+        val manager = activity.getSystemService(PrintManager::class.java) ?: return false
+        val file = writePdf(context, payload) ?: return false
+        val name = payload.dossier.trip.name
+        manager.print(
+            name,
+            PdfFileAdapter(file, file.name),
+            PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4).build(),
+        )
+        return true
+    }
+
+    private fun writePdf(context: Context, payload: ItineraryDocument.Payload): File? = runCatching {
+        val directory = File(context.cacheDir, "exports").apply { mkdirs() }
+        val file = File(directory, ItineraryDocument.fileName(payload.dossier))
+        file.outputStream().use { out ->
+            ItineraryPdf.write(ItineraryDocument.build(payload), "${payload.dossier.trip.name} · Waymark", out)
+        }
+        file
+    }.getOrElse { error ->
+        Log.w(TAG, "Could not write the itinerary PDF", error)
+        null
+    }
+
+    private fun uriOf(context: Context, file: File): Uri? = runCatching {
+        FileProvider.getUriForFile(context, "${context.packageName}.exports", file)
+    }.getOrNull()
+
+    private tailrec fun Context.findActivity(): Activity? = when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
+    }
+
+    /** Hands a PDF already written to the print system, page for page. */
+    private class PdfFileAdapter(private val file: File, private val name: String) : PrintDocumentAdapter() {
+
+        override fun onLayout(
+            oldAttributes: PrintAttributes?,
+            newAttributes: PrintAttributes,
+            cancellationSignal: CancellationSignal,
+            callback: LayoutResultCallback,
+            extras: Bundle?,
+        ) {
+            if (cancellationSignal.isCanceled) {
+                callback.onLayoutCancelled()
+                return
+            }
+            val info = PrintDocumentInfo.Builder(name)
+                .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
+                .build()
+            callback.onLayoutFinished(info, oldAttributes != newAttributes)
+        }
+
+        override fun onWrite(
+            pages: Array<out PageRange>,
+            destination: ParcelFileDescriptor,
+            cancellationSignal: CancellationSignal,
+            callback: WriteResultCallback,
+        ) {
+            try {
+                FileInputStream(file).use { input ->
+                    FileOutputStream(destination.fileDescriptor).use { output -> input.copyTo(output) }
+                }
+                callback.onWriteFinished(arrayOf(PageRange.ALL_PAGES))
+            } catch (error: IOException) {
+                callback.onWriteFailed(error.message)
+            }
+        }
     }
 
     /** Every booking as a calendar event, in UTC, so no calendar can misplace it. */

@@ -17,6 +17,7 @@ import com.waymark.data.local.ThemeStore
 import com.waymark.di.Inbox
 import com.waymark.domain.logic.Geo
 import com.waymark.domain.logic.TimeText
+import com.waymark.domain.logic.WeatherText
 import com.waymark.ui.WaymarkApp
 import com.waymark.ui.theme.WaymarkTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -106,7 +107,9 @@ class MainActivity : ComponentActivity() {
     /** The clock and the units the rest of the phone already uses. */
     private fun readDeviceConventions() {
         TimeText.use24Hour = DateFormat.is24HourFormat(this)
-        Geo.metric = Locale.getDefault().country.uppercase() !in Geo.MILE_REGIONS
+        val region = Locale.getDefault().country.uppercase()
+        Geo.metric = region !in Geo.MILE_REGIONS
+        WeatherText.fahrenheit = region in WeatherText.FAHRENHEIT_REGIONS
     }
 
     companion object {

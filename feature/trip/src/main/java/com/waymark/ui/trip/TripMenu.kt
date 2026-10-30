@@ -41,6 +41,10 @@ fun TripMenu(
     onOpenMap: () -> Unit,
     onExportMarkdown: () -> Unit,
     onExportCalendar: () -> Unit,
+    onExportPdf: () -> Unit,
+    onPrint: () -> Unit,
+    onOnlineExtras: () -> Unit,
+    onlineExtras: Boolean,
     onShareFile: () -> Unit,
     onShareCode: () -> Unit,
     onEdit: () -> Unit,
@@ -71,8 +75,21 @@ fun TripMenu(
         MenuRow(WaymarkIcons.Calendar, "Add to a calendar", "Every booking, as calendar events") {
             onDismiss(); onExportCalendar()
         }
-        MenuRow(WaymarkIcons.Pencil, "Export as markdown", "The whole trip, as text to keep or print") {
+        MenuRow(WaymarkIcons.Download, "Itinerary as a PDF", "Every booking by day, with the references and costs") {
+            onDismiss(); onExportPdf()
+        }
+        MenuRow(WaymarkIcons.Clipboard, "Print the itinerary", "The same pages, to a printer") {
+            onDismiss(); onPrint()
+        }
+        MenuRow(WaymarkIcons.Pencil, "Export as markdown", "The whole trip, as text to keep or edit") {
             onDismiss(); onExportMarkdown()
+        }
+        MenuRow(
+            WaymarkIcons.Sun,
+            "Online extras",
+            if (onlineExtras) "On: weather and live exchange rates" else "Off: Waymark makes no network request",
+        ) {
+            onDismiss(); onOnlineExtras()
         }
 
         Hairline()

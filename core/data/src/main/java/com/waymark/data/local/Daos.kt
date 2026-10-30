@@ -214,3 +214,66 @@ interface AlertDao {
     @Query("DELETE FROM raised_alerts WHERE segmentId NOT IN (SELECT id FROM segments)")
     suspend fun pruneOrphans()
 }
+
+@Dao
+interface CostDao {
+
+    @Query("SELECT * FROM expenses WHERE tripId = :tripId ORDER BY spentOnEpochDay, addedAtMillis")
+    fun observeExpenses(tripId: String): Flow<List<ExpenseEntity>>
+
+    @Query("SELECT * FROM expenses WHERE tripId = :tripId ORDER BY spentOnEpochDay, addedAtMillis")
+    suspend fun expenses(tripId: String): List<ExpenseEntity>
+
+    @Upsert
+    suspend fun upsertExpense(expense: ExpenseEntity)
+
+    @Upsert
+    suspend fun upsertExpenses(expenses: List<ExpenseEntity>)
+
+    @Query("DELETE FROM expenses WHERE id = :expenseId")
+    suspend fun deleteExpense(expenseId: String)
+
+    @Query("DELETE FROM expenses WHERE tripId = :tripId")
+    suspend fun deleteExpensesFor(tripId: String)
+
+    @Query("SELECT * FROM trip_costs WHERE tripId = :tripId")
+    fun observeSettings(tripId: String): Flow<TripCostsEntity?>
+
+    @Query("SELECT * FROM trip_costs WHERE tripId = :tripId")
+    suspend fun settings(tripId: String): TripCostsEntity?
+
+    @Upsert
+    suspend fun upsertSettings(settings: TripCostsEntity)
+
+    @Query("SELECT * FROM trip_rates WHERE tripId = :tripId ORDER BY currency")
+    fun observeRates(tripId: String): Flow<List<TripRateEntity>>
+
+    @Query("SELECT * FROM trip_rates WHERE tripId = :tripId ORDER BY currency")
+    suspend fun rates(tripId: String): List<TripRateEntity>
+
+    @Upsert
+    suspend fun upsertRates(rates: List<TripRateEntity>)
+
+    @Query("DELETE FROM trip_rates WHERE tripId = :tripId AND currency = :currency")
+    suspend fun deleteRate(tripId: String, currency: String)
+
+    @Query("DELETE FROM trip_rates WHERE tripId = :tripId")
+    suspend fun deleteRatesFor(tripId: String)
+}
+
+@Dao
+interface WeatherDao {
+
+    @Query("SELECT * FROM weather_days WHERE placeKey IN (:placeKeys) AND epochDay BETWEEN :fromDay AND :toDay")
+    fun observe(placeKeys: List<String>, fromDay: Long, toDay: Long): Flow<List<WeatherDayEntity>>
+
+    @Query("SELECT * FROM weather_days WHERE placeKey = :placeKey AND epochDay BETWEEN :fromDay AND :toDay")
+    suspend fun forPlace(placeKey: String, fromDay: Long, toDay: Long): List<WeatherDayEntity>
+
+    @Upsert
+    suspend fun upsert(days: List<WeatherDayEntity>)
+
+    /** Days that have passed are of no more use. */
+    @Query("DELETE FROM weather_days WHERE epochDay < :beforeDay")
+    suspend fun prune(beforeDay: Long)
+}

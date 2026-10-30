@@ -29,16 +29,17 @@ fun AboutModal(versionName: String, onDismiss: () -> Unit) {
         onDismiss = onDismiss,
     ) {
         Text(
-            text = "Everything for a trip in one place, held on this device. " +
-                "Waymark asks for no network permission, so it cannot phone home, " +
-                "cannot leak an itinerary, and cannot stop working when the signal does.",
+            text = "Everything for a trip in one place, held on this device, and working " +
+                "with the radio off. No itinerary is ever sent anywhere. The only time " +
+                "Waymark goes online is for the weather and exchange rates, and only once " +
+                "you turn on online extras in a trip's menu.",
             style = Waymark.type.bodySmall,
             color = Waymark.colors.textBody,
         )
         Text(
             text = "Nothing is backed up off this device. A trip lives on this phone " +
-                "until you export it as markdown, which is the way to keep a copy " +
-                "anywhere else or hand one to somebody.",
+                "until you back it up to a file or share it, which is the way to keep " +
+                "a copy anywhere else or hand one to somebody.",
             style = Waymark.type.hint,
             color = Waymark.colors.textDim,
         )

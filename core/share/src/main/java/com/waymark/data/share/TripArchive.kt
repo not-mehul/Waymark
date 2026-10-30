@@ -1,16 +1,21 @@
 package com.waymark.data.share
 
 import com.waymark.data.catalog.Airports
+import com.waymark.domain.model.ExchangeRate
+import com.waymark.domain.model.Expense
+import com.waymark.domain.model.ExpenseCategory
 import com.waymark.domain.model.GroundMode
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
+import com.waymark.domain.model.Money
 import com.waymark.domain.model.Place
 import com.waymark.domain.model.PriceBand
 import com.waymark.domain.model.SeatPreference
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.Traveler
 import com.waymark.domain.model.Trip
+import com.waymark.domain.model.TripCosts
 import java.io.ByteArrayOutputStream
 import java.time.LocalDate
 import java.util.Base64
@@ -62,6 +67,8 @@ object TripArchive {
         val travelers: List<Traveler>,
         val segments: List<Segment>,
         val ideas: List<Idea>,
+        /** Null when the file says nothing about costs, as one from an older Waymark does. */
+        val costs: TripCosts? = null,
     )
 
     fun archiveOf(bundles: List<TripBundle>, nowMillis: Long = System.currentTimeMillis()): WaymarkArchive =
@@ -82,6 +89,7 @@ object TripArchive {
                     party = bundle.travelers.map { it.id },
                     segments = bundle.segments.map(::toArchive),
                     ideas = bundle.ideas.map(::toArchive),
+                    costs = bundle.costs?.let(::toArchive),
                 )
             },
         )
@@ -118,6 +126,7 @@ object TripArchive {
                 travelers = trip.party.mapNotNull { travelers[it] },
                 segments = trip.segments.mapNotNull { fromArchive(it, trip.id) },
                 ideas = trip.ideas.mapNotNull { fromArchive(it, trip.id) },
+                costs = trip.costs?.let { fromArchive(it, trip.id) },
             )
         }
     }
@@ -166,6 +175,9 @@ object TripArchive {
     private fun lean(archive: WaymarkArchive): WaymarkArchive = archive.copy(
         trips = archive.trips.map { trip ->
             trip.copy(
+                // What the party spent stays with the party's own files; a
+                // code shown across a room carries the itinerary.
+                costs = null,
                 segments = trip.segments.map { row ->
                     val destination = row.destination?.takeUnless { it == row.origin }
                     row.copy(
@@ -251,6 +263,37 @@ object TripArchive {
     private const val MAX_INFLATED_BYTES = 1_000_000
 
     // — Domain ⇄ file ——————————————————————————————————————————————————————
+
+    private fun toArchive(costs: TripCosts): ArchiveCosts = ArchiveCosts(
+        settleIn = costs.settleCurrency,
+        expenses = costs.expenses.map { expense ->
+            ArchiveExpense(
+                id = expense.id, description = expense.description, amount = expense.amount.minor,
+                currency = expense.amount.currency, paidBy = expense.paidBy, among = expense.splitAmong.sorted(),
+                day = expense.spentOn.toString(), category = expense.category.name, added = expense.addedAtMillis,
+            )
+        },
+        rates = costs.rates.map { ArchiveRate(it.currency, it.perUnit, it.asOf.toString(), it.manual) },
+    )
+
+    private fun fromArchive(costs: ArchiveCosts, tripId: String): TripCosts = TripCosts(
+        settleCurrency = costs.settleIn?.takeIf { it.length == 3 },
+        expenses = costs.expenses.mapNotNull { row ->
+            val day = runCatching { LocalDate.parse(row.day) }.getOrNull() ?: return@mapNotNull null
+            if (row.amount <= 0 || row.currency.length != 3) return@mapNotNull null
+            Expense(
+                id = row.id, tripId = tripId, description = row.description,
+                amount = Money(row.amount, row.currency.uppercase()), paidBy = row.paidBy,
+                splitAmong = row.among.toSet(), spentOn = day,
+                category = ExpenseCategory.entries.firstOrNull { it.name == row.category } ?: ExpenseCategory.OTHER,
+                addedAtMillis = row.added,
+            )
+        },
+        rates = costs.rates.mapNotNull { row ->
+            val asOf = runCatching { LocalDate.parse(row.asOf) }.getOrNull() ?: return@mapNotNull null
+            row.perUnit.takeIf { it > 0.0 && it.isFinite() }?.let { ExchangeRate(row.currency, it, asOf, row.manual) }
+        },
+    )
 
     private fun toArchive(place: Place) = ArchivePlace(
         name = place.name, code = place.code, city = place.city, country = place.country,
@@ -415,6 +458,39 @@ data class ArchiveTrip(
     val party: List<String> = emptyList(),
     val segments: List<ArchiveSegment> = emptyList(),
     val ideas: List<ArchiveIdea> = emptyList(),
+    val costs: ArchiveCosts? = null,
+)
+
+@Serializable
+data class ArchiveCosts(
+    val settleIn: String? = null,
+    val expenses: List<ArchiveExpense> = emptyList(),
+    val rates: List<ArchiveRate> = emptyList(),
+)
+
+@Serializable
+data class ArchiveExpense(
+    val id: String,
+    val description: String,
+    /** In the currency's smallest unit. */
+    val amount: Long,
+    val currency: String,
+    val paidBy: String,
+    /** Traveler ids; empty for the whole party. */
+    val among: List<String> = emptyList(),
+    /** ISO date. */
+    val day: String,
+    val category: String = "OTHER",
+    val added: Long = 0L,
+)
+
+@Serializable
+data class ArchiveRate(
+    val currency: String,
+    val perUnit: Double,
+    /** ISO date. */
+    val asOf: String,
+    val manual: Boolean = false,
 )
 
 @Serializable

@@ -36,8 +36,8 @@ sealed class Segment {
      *
      * This used to live in a separate encrypted `reservations` table behind a
      * biometric prompt. A code you cannot read without authenticating is a code
-     * you cannot read at a check-in desk with your hands full, and the app has
-     * no network to leak it to in the first place — so it is a field on the
+     * you cannot read at a check-in desk with your hands full, and the app
+     * never sends a booking anywhere in the first place — so it is a field on the
      * booking now, like the terminal or the seat.
      */
     abstract val confirmationCode: String?

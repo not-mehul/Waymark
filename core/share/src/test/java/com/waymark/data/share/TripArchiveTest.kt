@@ -1,9 +1,15 @@
 package com.waymark.data.share
 
 import com.waymark.data.catalog.SampleItinerary
+import com.waymark.domain.model.ExchangeRate
+import com.waymark.domain.model.Expense
+import com.waymark.domain.model.ExpenseCategory
+import com.waymark.domain.model.Money
+import com.waymark.domain.model.TripCosts
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -74,5 +80,42 @@ class TripArchiveTest {
         val text = TripArchive.encode(TripArchive.archiveOf(listOf(trip), nowMillis = 1L))
             .replaceFirst("\"format\"", "\"somethingNew\": 1, \"format\"")
         assertEquals(1, TripArchive.decode(text).trips.size)
+    }
+
+    private val costs = TripCosts(
+        settleCurrency = "GBP",
+        expenses = listOf(
+            Expense(
+                id = "e1", tripId = bundle.trip.id, description = "Dinner at Dishoom",
+                amount = Money(8_640, "GBP"), paidBy = bundle.travelers.first().id,
+                splitAmong = bundle.travelers.map { it.id }.toSet(), spentOn = LocalDate.of(2026, 5, 15),
+                category = ExpenseCategory.FOOD, addedAtMillis = 5L,
+            ),
+            Expense(
+                id = "e2", tripId = bundle.trip.id, description = "Musée d'Orsay",
+                amount = Money(3_200, "EUR"), paidBy = bundle.travelers.last().id,
+                spentOn = LocalDate.of(2026, 5, 19), category = ExpenseCategory.ACTIVITY, addedAtMillis = 6L,
+            ),
+        ),
+        rates = listOf(ExchangeRate("EUR", 0.85, LocalDate.of(2026, 5, 1), manual = true)),
+    )
+
+    @Test
+    fun `what a trip cost travels with it in a file`() {
+        val text = TripArchive.encode(TripArchive.archiveOf(listOf(trip.copy(costs = costs)), nowMillis = 1L))
+        val back = TripArchive.bundlesOf(TripArchive.decode(text)).single()
+        assertEquals(costs, back.costs)
+    }
+
+    @Test
+    fun `a file that says nothing of costs leaves them unknown, not empty`() {
+        val text = TripArchive.encode(TripArchive.archiveOf(listOf(trip), nowMillis = 1L))
+        assertNull(TripArchive.bundlesOf(TripArchive.decode(text)).single().costs)
+    }
+
+    @Test
+    fun `a code carries the itinerary, not the spending`() {
+        val code = requireNotNull(TripArchive.toCode(TripArchive.archiveOf(listOf(trip.copy(costs = costs)), nowMillis = 1L)))
+        assertNull(TripArchive.bundlesOf(TripArchive.fromCode(code.payload)).single().costs)
     }
 }

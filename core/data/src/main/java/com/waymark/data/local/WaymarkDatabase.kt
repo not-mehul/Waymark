@@ -15,8 +15,12 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SegmentEntity::class,
         IdeaEntity::class,
         RaisedAlertEntity::class,
+        ExpenseEntity::class,
+        TripCostsEntity::class,
+        TripRateEntity::class,
+        WeatherDayEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class WaymarkDatabase : RoomDatabase() {
@@ -26,6 +30,8 @@ abstract class WaymarkDatabase : RoomDatabase() {
     abstract fun segmentDao(): SegmentDao
     abstract fun ideaDao(): IdeaDao
     abstract fun alertDao(): AlertDao
+    abstract fun costDao(): CostDao
+    abstract fun weatherDao(): WeatherDao
 
     companion object {
         const val NAME = "waymark.db"
@@ -50,7 +56,7 @@ abstract class WaymarkDatabase : RoomDatabase() {
          * crash to fix, not a database to quietly empty.
          */
         val MIGRATIONS: Array<Migration> by lazy {
-            arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
         }
 
         /**
@@ -249,6 +255,44 @@ abstract class WaymarkDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_raised_alerts_segmentId` " +
                         "ON `raised_alerts` (`segmentId`)"
+                )
+            }
+        }
+
+        /**
+         * Version 5 adds what a trip costs: expenses, the currency they are
+         * settled in, and the rates they are converted at — and a cache of
+         * the weather, so a forecast fetched at home is still there abroad.
+         * Nothing that exists changes.
+         */
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `expenses` (`id` TEXT NOT NULL, `tripId` TEXT NOT NULL, " +
+                        "`description` TEXT NOT NULL, `amountMinor` INTEGER NOT NULL, " +
+                        "`currency` TEXT NOT NULL, `paidBy` TEXT NOT NULL, `splitAmong` TEXT, " +
+                        "`spentOnEpochDay` INTEGER NOT NULL, `category` TEXT NOT NULL, " +
+                        "`addedAtMillis` INTEGER NOT NULL, PRIMARY KEY(`id`), " +
+                        "FOREIGN KEY(`tripId`) REFERENCES `trips`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_expenses_tripId` ON `expenses` (`tripId`)")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `trip_costs` (`tripId` TEXT NOT NULL, " +
+                        "`settleCurrency` TEXT NOT NULL, PRIMARY KEY(`tripId`), " +
+                        "FOREIGN KEY(`tripId`) REFERENCES `trips`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `trip_rates` (`tripId` TEXT NOT NULL, " +
+                        "`currency` TEXT NOT NULL, `perUnit` REAL NOT NULL, `asOfEpochDay` INTEGER NOT NULL, " +
+                        "`manual` INTEGER NOT NULL, PRIMARY KEY(`tripId`, `currency`), " +
+                        "FOREIGN KEY(`tripId`) REFERENCES `trips`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_trip_rates_tripId` ON `trip_rates` (`tripId`)")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `weather_days` (`placeKey` TEXT NOT NULL, " +
+                        "`epochDay` INTEGER NOT NULL, `code` INTEGER NOT NULL, `highC` REAL NOT NULL, " +
+                        "`lowC` REAL NOT NULL, `rainChance` INTEGER, `rainMm` REAL, `basis` TEXT NOT NULL, " +
+                        "`fetchedAtMillis` INTEGER NOT NULL, PRIMARY KEY(`placeKey`, `epochDay`))"
                 )
             }
         }

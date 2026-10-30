@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowSizeClass
+import com.waymark.domain.logic.ItineraryDocument
 import com.waymark.domain.logic.TimeText
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.Segment
@@ -35,6 +36,8 @@ import com.waymark.ui.components.TabRail
 import com.waymark.ui.components.UndoBar
 import com.waymark.ui.components.WaymarkBackdrop
 import com.waymark.ui.components.WaymarkIcons
+import com.waymark.ui.costs.CostsTab
+import com.waymark.ui.costs.OnlineExtrasModal
 import com.waymark.ui.export.TripExport
 import com.waymark.ui.export.TripShare
 import com.waymark.ui.share.TripCodeModal
@@ -66,7 +69,15 @@ fun TripScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val tab by viewModel.tab.collectAsStateWithLifecycle()
+    val costs by viewModel.costs.state.collectAsStateWithLifecycle()
+    val weather by viewModel.weather.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var explainingOnline by rememberSaveable { mutableStateOf(false) }
+
+    /** The itinerary to print: the bookings, what was spent, and the weather already fetched. */
+    fun itinerary(): ItineraryDocument.Payload? = state.dossier?.let { dossier ->
+        ItineraryDocument.Payload(dossier = dossier, costs = costs.summary, weather = weather.byDay)
+    }
     val reminders = LocalReminderPermission.current
     var schedulingId by rememberSaveable { mutableStateOf<String?>(null) }
     var menuOpen by rememberSaveable { mutableStateOf(false) }
@@ -142,6 +153,8 @@ fun TripScreen(
                             onShowDismissed = viewModel::showDismissed,
                         )
 
+                        TripTab.COSTS -> CostsTab(viewModel.costs)
+
                         TripTab.PARTY -> PartyTab(
                             state = state,
                             onAddTraveler = viewModel::addTraveler,
@@ -197,6 +210,10 @@ fun TripScreen(
             onOpenMap = onOpenMap,
             onExportMarkdown = { TripExport.shareMarkdown(context, state.share) },
             onExportCalendar = { TripExport.shareCalendar(context, state.share) },
+            onExportPdf = { itinerary()?.let { TripExport.sharePdf(context, it) } },
+            onPrint = { itinerary()?.let { TripExport.print(context, it) } },
+            onOnlineExtras = { explainingOnline = true },
+            onlineExtras = weather.online,
             onShareFile = { TripExport.shareTripFile(context, state.share) },
             onShareCode = { sharingCode = true },
             onEdit = { editingTrip = true },
@@ -207,6 +224,14 @@ fun TripScreen(
             },
             onDelete = { confirmingDelete = true },
             reminderSummary = state.reminders.summary(),
+        )
+    }
+
+    if (explainingOnline) {
+        OnlineExtrasModal(
+            enabled = weather.online,
+            onSet = viewModel.costs::setOnline,
+            onDismiss = { explainingOnline = false },
         )
     }
 

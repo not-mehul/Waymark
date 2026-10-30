@@ -28,6 +28,6 @@ rootProject.name = "Waymark"
 
 include(":app")
 include(":core:domain", ":core:catalog", ":core:share")
-include(":core:data", ":core:designsystem", ":core:notifications")
+include(":core:data", ":core:designsystem", ":core:notifications", ":core:online")
 include(":feature:shelf", ":feature:people", ":feature:share", ":feature:flight", ":feature:trip")
 include(":baselineprofile")

@@ -1,8 +1,6 @@
 # Releasing Waymark
 
-Waymark ships as an APK you sideload — there is no Play listing, and the app
-asks for no network permission, so there is nothing for a store review to
-check. Publishing is a tag push.
+Waymark ships as an APK you sideload — there is no Play listing. Publishing is a tag push.
 
 ---
 

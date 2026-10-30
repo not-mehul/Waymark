@@ -1,9 +1,13 @@
 package com.waymark.data.local
 
+import com.waymark.domain.model.ExchangeRate
+import com.waymark.domain.model.Expense
+import com.waymark.domain.model.ExpenseCategory
 import com.waymark.domain.model.GroundMode
 import com.waymark.domain.model.Idea
 import com.waymark.domain.model.IdeaKind
 import com.waymark.domain.model.IdeaStatus
+import com.waymark.domain.model.Money
 import com.waymark.domain.model.Place
 import com.waymark.domain.model.PriceBand
 import com.waymark.domain.model.RaisedReminder
@@ -12,6 +16,9 @@ import com.waymark.domain.model.Segment
 import com.waymark.domain.model.SegmentKind
 import com.waymark.domain.model.Traveler
 import com.waymark.domain.model.Trip
+import com.waymark.domain.model.WeatherBasis
+import com.waymark.domain.model.WeatherDay
+import java.time.LocalDate
 
 /** Row ⇄ model. Nothing here encrypts: the app stores what it is given. */
 object Mappers {
@@ -260,5 +267,67 @@ object Mappers {
         raisedAtMillis = reminder.raisedAtMillis,
         posted = reminder.posted,
         acknowledged = reminder.acknowledged,
+    )
+
+    fun toExpense(entity: ExpenseEntity): Expense = Expense(
+        id = entity.id,
+        tripId = entity.tripId,
+        description = entity.description,
+        amount = Money(entity.amountMinor, entity.currency),
+        paidBy = entity.paidBy,
+        splitAmong = Codecs.decodeIds(entity.splitAmong),
+        spentOn = LocalDate.ofEpochDay(entity.spentOnEpochDay),
+        category = ExpenseCategory.entries.firstOrNull { it.name == entity.category } ?: ExpenseCategory.OTHER,
+        addedAtMillis = entity.addedAtMillis,
+    )
+
+    fun toEntity(expense: Expense): ExpenseEntity = ExpenseEntity(
+        id = expense.id,
+        tripId = expense.tripId,
+        description = expense.description,
+        amountMinor = expense.amount.minor,
+        currency = expense.amount.currency,
+        paidBy = expense.paidBy,
+        splitAmong = expense.splitAmong.takeIf { it.isNotEmpty() }?.let(Codecs::encodeIds),
+        spentOnEpochDay = expense.spentOn.toEpochDay(),
+        category = expense.category.name,
+        addedAtMillis = expense.addedAtMillis,
+    )
+
+    fun toRate(entity: TripRateEntity): ExchangeRate = ExchangeRate(
+        currency = entity.currency,
+        perUnit = entity.perUnit,
+        asOf = LocalDate.ofEpochDay(entity.asOfEpochDay),
+        manual = entity.manual,
+    )
+
+    fun toEntity(tripId: String, rate: ExchangeRate): TripRateEntity = TripRateEntity(
+        tripId = tripId,
+        currency = rate.currency,
+        perUnit = rate.perUnit,
+        asOfEpochDay = rate.asOf.toEpochDay(),
+        manual = rate.manual,
+    )
+
+    fun toWeather(entity: WeatherDayEntity): WeatherDay = WeatherDay(
+        date = LocalDate.ofEpochDay(entity.epochDay),
+        code = entity.code,
+        highC = entity.highC,
+        lowC = entity.lowC,
+        rainChance = entity.rainChance,
+        rainMm = entity.rainMm,
+        basis = WeatherBasis.entries.firstOrNull { it.name == entity.basis } ?: WeatherBasis.FORECAST,
+    )
+
+    fun toEntity(placeKey: String, day: WeatherDay, fetchedAtMillis: Long): WeatherDayEntity = WeatherDayEntity(
+        placeKey = placeKey,
+        epochDay = day.date.toEpochDay(),
+        code = day.code,
+        highC = day.highC,
+        lowC = day.lowC,
+        rainChance = day.rainChance,
+        rainMm = day.rainMm,
+        basis = day.basis.name,
+        fetchedAtMillis = fetchedAtMillis,
     )
 }

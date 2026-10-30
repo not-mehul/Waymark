@@ -173,3 +173,89 @@ data class RaisedAlertEntity(
     /** Dismissed from the trip screen's banner by the traveler. */
     val acknowledged: Boolean,
 )
+
+/** Something one traveler paid for and the party shares. Amounts in the currency's smallest unit. */
+@Entity(
+    tableName = "expenses",
+    foreignKeys = [
+        ForeignKey(
+            entity = TripEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["tripId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("tripId")],
+)
+data class ExpenseEntity(
+    @PrimaryKey val id: String,
+    val tripId: String,
+    val description: String,
+    val amountMinor: Long,
+    val currency: String,
+    /** A traveler id; not a foreign key, so a payer who leaves the trip is still owed. */
+    val paidBy: String,
+    /** Traveler ids; empty for the whole party. */
+    val splitAmong: String?,
+    val spentOnEpochDay: Long,
+    val category: String,
+    val addedAtMillis: Long,
+)
+
+/** The currency a trip's costs are settled in, once somebody has chosen one. */
+@Entity(
+    tableName = "trip_costs",
+    foreignKeys = [
+        ForeignKey(
+            entity = TripEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["tripId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class TripCostsEntity(
+    @PrimaryKey val tripId: String,
+    val settleCurrency: String,
+)
+
+/** How much of the trip's settling currency one unit of [currency] is worth. */
+@Entity(
+    tableName = "trip_rates",
+    primaryKeys = ["tripId", "currency"],
+    foreignKeys = [
+        ForeignKey(
+            entity = TripEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["tripId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("tripId")],
+)
+data class TripRateEntity(
+    val tripId: String,
+    val currency: String,
+    val perUnit: Double,
+    val asOfEpochDay: Long,
+    /** Typed by the traveler: a live rate never replaces it. */
+    val manual: Boolean,
+)
+
+/**
+ * A day's weather at a place, kept so the trip shows it with the radio off.
+ * Places are keyed to a hundredth of a degree; nothing ties a row to a trip.
+ */
+@Entity(tableName = "weather_days", primaryKeys = ["placeKey", "epochDay"])
+data class WeatherDayEntity(
+    val placeKey: String,
+    val epochDay: Long,
+    val code: Int,
+    val highC: Double,
+    val lowC: Double,
+    val rainChance: Int?,
+    val rainMm: Double?,
+    /** `FORECAST` or `LAST_YEAR`. */
+    val basis: String,
+    val fetchedAtMillis: Long,
+)

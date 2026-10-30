@@ -2,12 +2,14 @@ package com.waymark.data.repo
 
 import androidx.room.withTransaction
 import com.waymark.data.local.Mappers
+import com.waymark.data.local.TripCostsEntity
 import com.waymark.data.local.TripMemberEntity
 import com.waymark.data.local.WaymarkDatabase
 import com.waymark.data.share.TripArchive
 import com.waymark.domain.model.Segment
 import com.waymark.domain.model.Traveler
 import com.waymark.domain.model.Trip
+import com.waymark.domain.model.TripCosts
 import com.waymark.domain.model.TripDossier
 import com.waymark.domain.model.TripParty
 import com.waymark.domain.model.copyCommon
@@ -32,6 +34,7 @@ class TripRepository(private val database: WaymarkDatabase) {
     private val segments = database.segmentDao()
     private val ideas = database.ideaDao()
     private val alerts = database.alertDao()
+    private val costs = database.costDao()
 
     fun observeTrips(): Flow<List<Trip>> =
         trips.observeAll().map { rows -> rows.map(Mappers::toTrip) }
@@ -275,6 +278,11 @@ class TripRepository(private val database: WaymarkDatabase) {
                         travelers = travelers.forTrip(row.id).map(Mappers::toTraveler),
                         segments = segments.forTrip(row.id).mapNotNull(Mappers::toSegment),
                         ideas = ideas.forTrip(row.id).map(Mappers::toIdea),
+                        costs = TripCosts(
+                            settleCurrency = costs.settings(row.id)?.settleCurrency,
+                            expenses = costs.expenses(row.id).map(Mappers::toExpense),
+                            rates = costs.rates(row.id).map(Mappers::toRate),
+                        ),
                     )
                 }
         }
@@ -317,10 +325,21 @@ class TripRepository(private val database: WaymarkDatabase) {
                 )
                 ideas.deleteForTrip(tripId)
                 ideas.upsertAll(bundle.ideas.map { Mappers.toEntity(it.copy(tripId = tripId)) })
+                // A file from a Waymark that did not know about costs says
+                // nothing about them, which is not the same as "there are none".
+                bundle.costs?.let { replaceCosts(tripId, it) }
             }
             alerts.pruneOrphans()
             travelers.pruneOrphans()
         }
+    }
+
+    private suspend fun replaceCosts(tripId: String, incoming: TripCosts) {
+        costs.deleteExpensesFor(tripId)
+        costs.upsertExpenses(incoming.expenses.map { Mappers.toEntity(it.copy(tripId = tripId)) })
+        incoming.settleCurrency?.let { costs.upsertSettings(TripCostsEntity(tripId, it)) }
+        costs.deleteRatesFor(tripId)
+        costs.upsertRates(incoming.rates.map { Mappers.toEntity(tripId, it) })
     }
 
     /** A trip's dates should never exclude something booked inside it. */

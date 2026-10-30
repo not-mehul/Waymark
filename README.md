@@ -15,8 +15,8 @@ core, for reading and drawing barcodes.
 ## What it does
 
 **Enter a flight.** A designator, a date, two airport codes, two times off a
-picker. Waymark calls no schedule service and no tracking API — it asks for no
-network permission at all — so what it contributes is only what an airport code
+picker. Waymark calls no schedule service and no tracking API, so what it
+contributes is only what an airport code
 already implies: coordinates and a time zone, from a bundled directory of
 **8,831 IATA stations**. That is enough to put the leg on the map, to work out
 that a 16:20 out of San Francisco lands the following morning, and to show the
@@ -70,6 +70,22 @@ landing. On Android 16 and later it is a Live Update: pinned at the top of the
 shade, on the lock screen, and as a chip in the status bar carrying the time
 left. It follows the departure-reminder setting for its kind.
 
+**Split the costs.** A trip's Costs tab takes each expense as it happens —
+what it was, how much and in which currency, who paid and who it was for —
+and says who owes whom: the total, each person's share, and the fewest
+payments that square it. Expenses in another currency are converted once, at
+a rate the traveler types or, with online extras on, the European Central
+Bank's rate for the day. Costs travel with the trip in files and backups.
+
+**The weather where you are going.** With online extras on, the "On arrival"
+screen shows each day still to come at the place the trip will be: a forecast
+for the next two weeks, and the same dates last year beyond that. What is
+fetched is kept, so it is there abroad without a signal.
+
+**Print it.** The trip menu writes the itinerary as an A4 PDF — every booking
+under its day, in local time, with who is on it, its reference, the day's
+weather and who owes whom — to share, or sends the same pages to a printer.
+
 **Nothing on first launch.** The shelf opens empty, with the worked example
 offered rather than installed. Somebody planning a real trip does not begin by
 deleting a stranger's holiday, and somebody who wants to see what a full
@@ -79,8 +95,8 @@ itinerary looks like is one tap away from a week in London and Paris.
 locator and a ticket number are fields on the booking that carries them, shown
 in the open on the booking screen. They were a separate encrypted table behind
 a fingerprint for a while, which is a ceremony rather than a protection on a
-device that holds nothing else encrypted and has no network to leak anything
-to — and a code you cannot read without authenticating is a code you cannot
+device that holds nothing else encrypted and never sends an itinerary
+anywhere — and a code you cannot read without authenticating is a code you cannot
 read at a check-in desk with a bag in one hand.
 
 **Travel as a group.** Travelers are profiles — seat and meal preference,
@@ -269,7 +285,7 @@ own value; legend text wears a text token, never the series colour.
 
 ## Architecture
 
-Twelve modules, each built by a convention plugin from `build-logic`, so a
+Thirteen modules, each built by a convention plugin from `build-logic`, so a
 module's own build file says only what is particular to it:
 
 ```
@@ -277,21 +293,23 @@ app                 The activity, Navigation 3 back stack, Hilt graph, reminders
                     the Live Update and the widget
 feature/
 ├── shelf           The trip shelf, About, backups
-├── trip            A trip: timeline, bookings, party, ideas, map, numbers, insights
+├── trip            A trip: timeline, bookings, party, ideas, costs, map, numbers, insights
 ├── flight          Adding a flight
 ├── people          Everyone on every trip
 └── share           Importing and exporting: files, codes, emails, barcodes
 core/
 ├── domain          Plain Kotlin. Trip, Traveler, Segment (sealed), Idea, and the
 │                   logic: TimelineBuilder, ConnectionRisk, PartySplitAnalyzer,
-│                   ReminderPlanner, LiveJourney, TripAnalytics, exports, Geo…
+│                   ReminderPlanner, LiveJourney, CostSplitter, WeatherPlan,
+│                   TripAnalytics, exports, Geo…
 ├── catalog         Plain Kotlin. Stations, cities, airlines, country facts,
 │                   coastline, the worked example — large tables as resources
 ├── share           Plain Kotlin. Trip files, backups, QR payloads, emails,
 │                   boarding passes
 ├── data            Room, the settings DataStore, the repositories
 ├── designsystem    Tokens, type, shapes, the component kit, charts
-└── notifications   Whether the app may notify, and asking once
+├── notifications   Whether the app may notify, and asking once
+└── online          The only network code: weather and exchange rates, opt-in
 baselineprofile     Macrobenchmarks and the baseline-profile generator
 ```
 
@@ -333,9 +351,11 @@ hand for a fingerprint. Nothing here is sent anywhere, so what protects a code
 is the device's own lock screen, as it does for everything else on it.
 
 **Flight data comes from the traveler, and only from the traveler.** There is
-no provider interface, no network client, and no status subsystem; the manifest
-declares no `INTERNET` permission, so the app *cannot* call anything even by
-mistake. A booking holds the times it was given, and changing them means
+no provider interface and no status subsystem. The one network client in the
+app, `core/online`, fetches the weather and the day's exchange rates, and only
+after the traveler turns on online extras; it sends a place to about a
+kilometre and the dates, or a request for today's rates, and never a booking,
+a name or a trip. A booking holds the times it was given, and changing them means
 editing the booking — which reaches every field, not only the times.
 
 **A connection is something one traveler makes.** The timeline walks each
@@ -450,8 +470,7 @@ schema differs from the committed one.
 
 ### Releasing
 
-Waymark ships as a sideloaded APK — there is no store listing, and an app that
-asks for no network permission has nothing for a review to check. Publishing is
+Waymark ships as a sideloaded APK — there is no store listing. Publishing is
 a tag push:
 
 ```bash
@@ -480,6 +499,16 @@ and share code; the database, the repository, a view model and a Compose screen
 run under Robolectric against a real SQLite and a real composition, and the
 screenshot tests draw the component kit and a whole screen in both themes.
 
+- `CostSplitterTest` — an even split, the odd cent, a split among some, no
+  more settling payments than people less one, a foreign expense converted
+  once, an expense with no rate listed rather than counted, a payer who has
+  left the party still owed, and amounts read the way people type them
+- `WeatherPlanTest`, `ParsingTest`, `WeatherRepositoryTest` — where the trip is
+  on each day still to come, forecast within two weeks and last year beyond,
+  both services' replies read and refused, and **nothing fetched at all while
+  online extras are off**
+- `ItineraryDocumentTest` — every booking once under its day, every reference,
+  the day's weather, and who pays whom
 - `LiveJourneyTest` — the journey under way: nothing long before departure, a
   countdown from three hours out, a bar that fills to landing, gone on arrival,
   quiet when flight reminders are off, and woken exactly when it next changes
@@ -573,9 +602,18 @@ screenshot tests draw the component kit and a whole screen in both themes.
 
 Places where the app says less than it could:
 
-- **Nothing here is live, and the app says so.** Every flight time, gate and
-  terminal was typed in by a traveler. Waymark holds no network permission, so
-  there is no version of it that quietly starts calling a service.
+- **Nothing about a booking is live, and the app says so.** Every flight time,
+  gate and terminal was typed in by a traveler. The app holds the network
+  permission for its two online extras, weather and exchange rates, and makes
+  no request at all until they are turned on; a test checks that with them off
+  nothing is fetched.
+- **Weather beyond two weeks is a year old.** No service forecasts further
+  out, so those days show what the same dates were like last year, labelled as
+  such. It is a guide to what to pack, not a forecast.
+- **Exchange rates are reference rates.** The European Central Bank's daily
+  rates cover about thirty currencies and are not what a card or a bureau
+  charges. A rate from a receipt can be typed in, and a typed rate is never
+  replaced by a live one.
 - **Offline cuts both ways.** Nothing is backed up off the device on its own.
   A trip lives on one phone until it is shared or backed up to a file, and a
   lost phone with no backup is a lost trip. The About sheet says this too,

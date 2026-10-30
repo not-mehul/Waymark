@@ -131,7 +131,7 @@ android {
         checkDependencies = true
         // A plain-text report beside the HTML one, which CI prints in full.
         textReport = true
-        // The app asks for no network permission and needs none: nothing to update from.
+        // Dependency versions are Dependabot's to raise, not lint's to nag about.
         disable += "GradleDependency"
         disable += "NewerVersionAvailable"
         disable += "AndroidGradlePluginVersion"
@@ -151,6 +151,7 @@ dependencies {
     implementation(projects.core.data)
     implementation(projects.core.designsystem)
     implementation(projects.core.notifications)
+    implementation(projects.core.online)
     implementation(projects.feature.shelf)
     implementation(projects.feature.people)
     implementation(projects.feature.share)

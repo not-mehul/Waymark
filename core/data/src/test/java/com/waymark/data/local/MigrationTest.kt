@@ -5,8 +5,12 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.waymark.data.repo.CostRepository
 import com.waymark.data.repo.TripRepository
+import com.waymark.domain.model.Expense
+import com.waymark.domain.model.Money
 import com.waymark.domain.model.Segment
+import java.time.LocalDate
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -103,6 +107,30 @@ class MigrationTest {
         assertEquals(0, runBlocking { database.segmentDao().all().size })
         assertEquals(0, runBlocking { database.travelerDao().allMembers().size })
         assertEquals(0, runBlocking { database.ideaDao().forTrip(TRIP).size })
+    }
+
+    @Test
+    fun `an upgraded database keeps costs, and they go with their trip`() {
+        write(3, OldSchema.v3(documents = false))
+        val database = open()
+        val costs = CostRepository(database)
+        runBlocking {
+            costs.save(
+                Expense(
+                    id = "e", tripId = TRIP, description = "Dinner", amount = Money(4_200, "GBP"),
+                    paidBy = "nobody-in-particular", spentOn = LocalDate.of(2026, 5, 15),
+                )
+            )
+            costs.setSettleCurrency(TRIP, "GBP")
+            costs.setManualRate(TRIP, "EUR", 0.85, LocalDate.of(2026, 5, 1))
+            assertEquals(1, costs.current(TRIP).expenses.size)
+
+            TripRepository(database).deleteTrip(TRIP)
+            val left = costs.current(TRIP)
+            assertTrue(left.expenses.isEmpty())
+            assertTrue(left.rates.isEmpty())
+            assertNull(left.settleCurrency)
+        }
     }
 
     private fun assertTripSurvived(database: WaymarkDatabase, bookedWith: String?, reference: String? = null) {

@@ -1,13 +1,17 @@
 package com.waymark.di
 
 import android.content.Context
+import com.waymark.data.local.OnlineStore
 import com.waymark.data.local.ReminderStore
 import com.waymark.data.local.ThemeStore
 import com.waymark.data.local.WaymarkDatabase
 import com.waymark.data.repo.AlertRepository
+import com.waymark.data.repo.CostRepository
 import com.waymark.data.repo.IdeaRepository
 import com.waymark.data.repo.SampleSeeder
 import com.waymark.data.repo.TripRepository
+import com.waymark.online.RatesUpdater
+import com.waymark.online.WeatherRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -49,6 +53,24 @@ object AppModule {
     @Provides
     @Singleton
     fun ideaRepository(database: WaymarkDatabase): IdeaRepository = IdeaRepository(database)
+
+    @Provides
+    @Singleton
+    fun costRepository(database: WaymarkDatabase): CostRepository = CostRepository(database)
+
+    /** Whether the app may go online for the weather and the rates: off until the traveler says. */
+    @Provides
+    @Singleton
+    fun onlineStore(@ApplicationContext context: Context): OnlineStore = OnlineStore(context)
+
+    @Provides
+    @Singleton
+    fun ratesUpdater(costs: CostRepository, online: OnlineStore): RatesUpdater = RatesUpdater(costs, online)
+
+    @Provides
+    @Singleton
+    fun weatherRepository(database: WaymarkDatabase, online: OnlineStore): WeatherRepository =
+        WeatherRepository(database.weatherDao(), online)
 
     @Provides
     @Singleton

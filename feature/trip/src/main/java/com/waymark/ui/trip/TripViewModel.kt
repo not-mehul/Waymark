@@ -3,8 +3,10 @@ package com.waymark.ui.trip
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.waymark.data.catalog.Places
+import com.waymark.data.local.OnlineStore
 import com.waymark.data.local.ReminderStore
 import com.waymark.data.repo.AlertRepository
+import com.waymark.data.repo.CostRepository
 import com.waymark.data.repo.IdeaRepository
 import com.waymark.data.repo.TripRepository
 import com.waymark.domain.logic.CityGroup
@@ -35,6 +37,10 @@ import com.waymark.domain.model.Segment
 import com.waymark.domain.model.SegmentKind
 import com.waymark.domain.model.Traveler
 import com.waymark.domain.model.TripDossier
+import com.waymark.online.RatesUpdater
+import com.waymark.online.WeatherRepository
+import com.waymark.ui.costs.CostsModel
+import com.waymark.ui.insights.WeatherModel
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -71,6 +77,7 @@ enum class TripTab(val label: String) {
     TIMELINE("Timeline"),
     IDEAS("Ideas"),
     PARTY("Party"),
+    COSTS("Costs"),
 }
 
 /** Where the trip is on a day: what typed places are resolved against. */
@@ -124,6 +131,10 @@ class TripViewModel @AssistedInject constructor(
     private val alerts: AlertRepository,
     private val ideas: IdeaRepository,
     private val reminders: ReminderStore,
+    costRepository: CostRepository,
+    ratesUpdater: RatesUpdater,
+    weatherRepository: WeatherRepository,
+    online: OnlineStore,
 ) : ViewModel() {
 
     /** The trip is the one thing Hilt cannot know: it comes from the screen that opened it. */
@@ -145,6 +156,12 @@ class TripViewModel @AssistedInject constructor(
 
     private val ideaList = ideas.observe(tripId)
         .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+
+    /** What the trip costs and who owes whom: the Costs tab. */
+    val costs = CostsModel(tripId, viewModelScope, dossier, costRepository, ratesUpdater, online)
+
+    /** The weather where the trip will be, when the traveler has let the app fetch it. */
+    val weather = WeatherModel(viewModelScope, dossier, weatherRepository, online)
 
     /** Drives the "now" line and the relative times; one tick a minute is plenty. */
     private val clock = flow {
