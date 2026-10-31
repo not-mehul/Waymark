@@ -5,4 +5,7 @@
     <string name="share_add_to_trip">Add to a Waymark trip</string>
     <string name="share_open_trip">Open in Waymark</string>
     <string name="widget_description">The next booking on any trip, and how long until it.</string>
+    <string name="widget_preview_eyebrow">Next · Lisbon</string>
+    <string name="widget_preview_title">TP 1351 · LHR → LIS</string>
+    <string name="widget_preview_detail">Thu 14 May, 09:40 · London Heathrow · in 3h</string>
 </resources>

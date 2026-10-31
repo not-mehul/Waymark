@@ -14,7 +14,9 @@ updates:
       kotlin:
         patterns: ["org.jetbrains.kotlin*", "com.google.devtools.ksp*"]
       testing:
-        patterns: ["junit*", "org.robolectric*", "androidx.test*"]
+        patterns: ["junit*", "org.robolectric*", "androidx.test*", "io.github.takahirom.roborazzi*", "androidx.benchmark*", "androidx.baselineprofile*"]
+      hilt:
+        patterns: ["com.google.dagger*", "androidx.hilt*"]
 
   - package-ecosystem: github-actions
     directory: "/"

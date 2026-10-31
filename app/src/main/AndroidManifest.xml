@@ -2,11 +2,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!--
-        Waymark asks for no network permission at all. It cannot phone home,
-        cannot leak an itinerary, and cannot stop working when the signal does.
-        Everything it knows was typed in, shared in, or opened on this device.
+        The network is for two opt-in extras only — the weather where the trip
+        will be, and the day's exchange rates — and is not touched until the
+        traveler turns them on. Everything else works with the radio off: every
+        itinerary was typed in, shared in, or opened on this device, and none
+        of it is ever sent anywhere. See core/online, the only code that
+        opens a connection.
     -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Lets the journey under way be shown as a Live Update on Android 16 and later. -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
 
     <!--
         Cloud backup stays off: an itinerary is not uploaded anywhere by the
@@ -32,7 +38,7 @@
             android:configChanges="uiMode"
             android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.Waymark">
+            android:theme="@style/Theme.Waymark.Starting">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -76,7 +82,7 @@
             android:exported="false" />
 
         <receiver
-            android:name=".widget.NextUpWidget"
+            android:name=".widget.NextUpWidgetReceiver"
             android:exported="false"
             android:label="@string/widget_name">
             <intent-filter>

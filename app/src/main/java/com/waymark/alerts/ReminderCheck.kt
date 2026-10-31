@@ -8,8 +8,9 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.content.getSystemService
-import com.waymark.WaymarkApplication
-import com.waymark.di.AppContainer
+import com.waymark.di.Graph
+import com.waymark.di.graph
+import com.waymark.domain.logic.LiveJourney
 import com.waymark.domain.logic.ReminderPlanner
 import com.waymark.domain.model.RaisedReminder
 import kotlinx.coroutines.CoroutineScope
@@ -26,8 +27,9 @@ import kotlinx.coroutines.sync.withLock
  *
  * It raises what is due, posts what Android will show, and only then records a
  * reminder as posted — so one that fell due while notifications were blocked is
- * still shown once they are allowed, if its booking has not started. Then it
- * sets a single alarm for the next reminder anywhere in the app, which is what
+ * still shown once they are allowed, if its booking has not started. It
+ * brings the journey under way, if there is one, up to date. Then it sets a
+ * single alarm for the next reminder or redraw anywhere in the app, which is what
  * makes them punctual: a periodic worker can be deferred by Doze past the very
  * departure it was meant to announce.
  */
@@ -35,14 +37,14 @@ object ReminderCheck {
 
     private val lock = Mutex()
 
-    suspend fun run(context: Context, container: AppContainer, nowMillis: Long = System.currentTimeMillis()) =
+    suspend fun run(context: Context, graph: Graph, nowMillis: Long = System.currentTimeMillis()) =
         lock.withLock {
-            val itinerary = container.tripRepository.reminderItinerary(nowMillis)
-            val preferences = container.reminderStore.current()
+            val itinerary = graph.tripRepository().reminderItinerary(nowMillis)
+            val preferences = graph.reminderStore().current()
             val canPost = Notifications.granted(context)
 
             ReminderPlanner.due(itinerary, preferences, nowMillis).forEach { due ->
-                val raised = container.alertRepository.raise(
+                val raised = graph.alertRepository().raise(
                     RaisedReminder(
                         signature = due.signature,
                         segmentId = due.segmentId,
@@ -57,11 +59,19 @@ object ReminderCheck {
                 if (!raised.posted && canPost &&
                     Notifications.post(context, raised.copy(headline = due.headline), due.tripId)
                 ) {
-                    container.alertRepository.markPosted(raised.signature)
+                    graph.alertRepository().markPosted(raised.signature)
                 }
             }
 
-            ReminderAlarm.set(context, ReminderPlanner.nextDueAt(itinerary, preferences, nowMillis))
+            LiveUpdates.show(context, LiveJourney.of(itinerary, preferences, nowMillis))
+
+            // One alarm for whichever comes first: the next reminder, or the
+            // next redraw of the journey under way.
+            val next = listOfNotNull(
+                ReminderPlanner.nextDueAt(itinerary, preferences, nowMillis),
+                LiveJourney.nextChangeAt(itinerary, preferences, nowMillis),
+            ).minOrNull()
+            ReminderAlarm.set(context, next)
         }
 }
 
@@ -102,11 +112,11 @@ object ReminderAlarm {
 class ReminderReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val container = (context.applicationContext as? WaymarkApplication)?.container ?: return
+        val graph = context.graph
         val pending = goAsync()
         scope.launch {
             try {
-                ReminderCheck.run(context.applicationContext, container)
+                ReminderCheck.run(context.applicationContext, graph)
             } finally {
                 pending.finish()
             }

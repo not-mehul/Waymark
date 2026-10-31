@@ -4,8 +4,10 @@ An Android travel-logistics app: every flight, stay, transfer and booking for a
 trip — for one traveler or a party that splits up — on one timeline, one vector
 chart. It works with the radio off.
 
-Kotlin, Jetpack Compose, Room, WorkManager. Single module; beyond AndroidX the
-only runtime libraries are kotlinx.serialization, for trip files, and ZXing's
+Kotlin 2.4, Jetpack Compose, Navigation 3, Hilt, Room, WorkManager, DataStore
+and Glance, built with Android Gradle Plugin 9.5 on Gradle 9.8 and targeting
+Android 17. Beyond AndroidX and Hilt the only runtime libraries are
+kotlinx.serialization, for trip files and the saved back stack, and ZXing's
 core, for reading and drawing barcodes.
 
 ---
@@ -13,8 +15,8 @@ core, for reading and drawing barcodes.
 ## What it does
 
 **Enter a flight.** A designator, a date, two airport codes, two times off a
-picker. Waymark calls no schedule service and no tracking API — it asks for no
-network permission at all — so what it contributes is only what an airport code
+picker. Waymark calls no schedule service and no tracking API, so what it
+contributes is only what an airport code
 already implies: coordinates and a time zone, from a bundled directory of
 **8,831 IATA stations**. That is enough to put the leg on the map, to work out
 that a 16:20 out of San Francisco lands the following morning, and to show the
@@ -56,7 +58,33 @@ opens the booking. One notification channel, asked for once, when you save
 your first flight.
 
 **See what is next without opening anything.** A home-screen widget shows the
-next booking across every trip, counting down, and opens it.
+next booking across every trip, counting down, and opens it. Small, it is the
+booking and the time left; wide, its day, time and place; tall, the two
+bookings after it as well. The widget picker shows it drawn, with a booking in
+it, rather than as a blank tile.
+
+**The journey under way, on the lock screen.** From three hours before a
+flight — half an hour before a train or a transfer — until it arrives, one
+ongoing notification counts down to departure and then fills a bar to
+landing. On Android 16 and later it is a Live Update: pinned at the top of the
+shade, on the lock screen, and as a chip in the status bar carrying the time
+left. It follows the departure-reminder setting for its kind.
+
+**Split the costs.** A trip's Costs tab takes each expense as it happens —
+what it was, how much and in which currency, who paid and who it was for —
+and says who owes whom: the total, each person's share, and the fewest
+payments that square it. Expenses in another currency are converted once, at
+a rate the traveler types or, with online extras on, the European Central
+Bank's rate for the day. Costs travel with the trip in files and backups.
+
+**The weather where you are going.** With online extras on, the "On arrival"
+screen shows each day still to come at the place the trip will be: a forecast
+for the next two weeks, and the same dates last year beyond that. What is
+fetched is kept, so it is there abroad without a signal.
+
+**Print it.** The trip menu writes the itinerary as an A4 PDF — every booking
+under its day, in local time, with who is on it, its reference, the day's
+weather and who owes whom — to share, or sends the same pages to a printer.
 
 **Nothing on first launch.** The shelf opens empty, with the worked example
 offered rather than installed. Somebody planning a real trip does not begin by
@@ -67,8 +95,8 @@ itinerary looks like is one tap away from a week in London and Paris.
 locator and a ticket number are fields on the booking that carries them, shown
 in the open on the booking screen. They were a separate encrypted table behind
 a fingerprint for a while, which is a ceremony rather than a protection on a
-device that holds nothing else encrypted and has no network to leak anything
-to — and a code you cannot read without authenticating is a code you cannot
+device that holds nothing else encrypted and never sends an itinerary
+anywhere — and a code you cannot read without authenticating is a code you cannot
 read at a check-in desk with a bag in one hand.
 
 **Travel as a group.** Travelers are profiles — seat and meal preference,
@@ -257,48 +285,55 @@ own value; legend text wears a text token, never the series colour.
 
 ## Architecture
 
+Thirteen modules, each built by a convention plugin from `build-logic`, so a
+module's own build file says only what is particular to it:
+
 ```
-com.waymark
-├── domain/
-│   ├── model/      Trip, Traveler, Segment (sealed), Idea, RaisedReminder
-│   └── logic/      TimelineBuilder, ConnectionRisk, TransitEstimator,
-│                   PartySplitAnalyzer, IdeaBoard, TimeAtPlace, ReminderPlanner,
-│                   Whereabouts, LegTimes, TripAnalytics, MarkdownExport,
-│                   IcsExport, LabelPlacer, Geo (incl. orthographic globe)
-├── data/
-│   ├── catalog/    Stations (core list + world directory), cities, Places,
-│   │               airlines, country facts, coastline, the worked example
-│   ├── share/      TripArchive (trip files, backups, QR payloads),
-│   │               BookingText (emails), Bcbp (boarding passes)
-│   ├── local/      Room entities, DAOs, codecs, migrations, ReminderStore,
-│   │               ThemeStore
-│   └── repo/       TripRepository, IdeaRepository, AlertRepository, SampleSeeder
-├── alerts/         ReminderCheck, the alarm for the next reminder, the
-│                   safety-net worker, and the one notification channel
-├── widget/         The next-up home-screen widget
-├── di/             AppContainer — the whole graph, readable top to bottom —
-│                   and the Inbox for what arrives from outside
-└── ui/
-    ├── theme/      Tokens, type ramp, shapes, spacing
-    ├── components/ Panel, buttons, chips, toggles, modal, icons, backdrop,
-    │               Pickers (date, time, zone), ChoiceCards, TabRail, StepFlow
-    ├── charts/     BarSeries, DayLoadChart, Meter, RingFigure, SplitBar
-    ├── map/        WorldMap — one component, flat and orthographic projections
-    ├── export/     Markdown, calendar and trip-file sharing
-    ├── share/      Import, shared emails, trip codes, barcodes
-    └── trips/ trip/ add/ segment/ people/ insights/ analytics/
+app                 The activity, Navigation 3 back stack, Hilt graph, reminders,
+                    the Live Update and the widget
+feature/
+├── shelf           The trip shelf, About, backups
+├── trip            A trip: timeline, bookings, party, ideas, costs, map, numbers, insights
+├── flight          Adding a flight
+├── people          Everyone on every trip
+└── share           Importing and exporting: files, codes, emails, barcodes
+core/
+├── domain          Plain Kotlin. Trip, Traveler, Segment (sealed), Idea, and the
+│                   logic: TimelineBuilder, ConnectionRisk, PartySplitAnalyzer,
+│                   ReminderPlanner, LiveJourney, CostSplitter, WeatherPlan,
+│                   TripAnalytics, exports, Geo…
+├── catalog         Plain Kotlin. Stations, cities, airlines, country facts,
+│                   coastline, the worked example — large tables as resources
+├── share           Plain Kotlin. Trip files, backups, QR payloads, emails,
+│                   boarding passes
+├── data            Room, the settings DataStore, the repositories
+├── designsystem    Tokens, type, shapes, the component kit, charts
+├── notifications   Whether the app may notify, and asking once
+└── online          The only network code: weather and exchange rates, opt-in
+baselineprofile     Macrobenchmarks and the baseline-profile generator
 ```
+
+**Dependency injection is Hilt.** The core modules are plain classes with
+plain constructors — their tests build them by hand — and the app module
+provides them. View models are `@HiltViewModel`; the two that need a trip
+(and, for adding a flight, a flight read from an email) take it through
+assisted injection. What Android constructs itself — the reminder worker, the
+alarm receiver, the widget — reaches the graph through one entry point.
+
+**Navigation is Navigation 3.** The back stack is a list of `@Serializable`
+`Screen` keys that the app owns and edits directly, so "open this booking from
+a notification" is two `add`s rather than a deep-link graph, and the list
+survives the process being stopped. Each screen gets its own view-model store;
+the screens of one trip share the trip's view model through a store kept for
+as long as any of them is on the stack, so the timeline, a booking, the map
+and the numbers read the same dossier rather than each subscribing again. The
+derived state — timeline, splits, ideas board, numbers — is worked out off the
+main thread. Back is the system's predictive back, between screens and out of
+every sheet.
 
 **The domain layer is plain Kotlin.** No Android imports, no Compose, no Room —
 which is why the interesting logic is unit-testable on the JVM and why most of
 the tests below run in a fraction of a second.
-
-**Navigation is typed.** Every destination is a `@Serializable` class and its
-arguments are its fields. A trip's screens live in one nested graph that owns
-the trip's id and its one view model, so the timeline, the booking, the map and
-the numbers read the same dossier rather than each subscribing again; the
-derived state — timeline, splits, ideas board, numbers — is worked out off the
-main thread.
 
 **Persistence.** One Room database. Segments live in a single table with a
 `kind` discriminator; the alternative — a table per kind — buys nothing and
@@ -316,9 +351,11 @@ hand for a fingerprint. Nothing here is sent anywhere, so what protects a code
 is the device's own lock screen, as it does for everything else on it.
 
 **Flight data comes from the traveler, and only from the traveler.** There is
-no provider interface, no network client, and no status subsystem; the manifest
-declares no `INTERNET` permission, so the app *cannot* call anything even by
-mistake. A booking holds the times it was given, and changing them means
+no provider interface and no status subsystem. The one network client in the
+app, `core/online`, fetches the weather and the day's exchange rates, and only
+after the traveler turns on online extras; it sends a place to about a
+kilometre and the dates, or a request for today's rates, and never a booking,
+a name or a trip. A booking holds the times it was given, and changing them means
 editing the booking — which reaches every field, not only the times.
 
 **A connection is something one traveler makes.** The timeline walks each
@@ -338,7 +375,7 @@ outside the graph on purpose. A sweep on start-up repairs anything a previous
 version orphaned. Trip deletion asks for the trip's name to be typed: it is the only
 irreversible thing the app can do, and the only friction of its kind.
 
-**The station directory.** `assets/airports.txt` holds 8,831 IATA stations —
+**The station directory.** `core/catalog`'s `airports.txt` holds 8,831 IATA stations —
 the supplied table, with the 259 closed fields dropped and 26 duplicate codes
 resolved in favour of the larger, better-described row. **Time zones were
 resolved from each station's coordinates when the file was generated**, against
@@ -361,7 +398,8 @@ seam. It parses lazily, so a trip that never opens the map never pays for it.
 
 ## Building
 
-Needs a JDK 17 and an Android SDK with API 35. Gradle finds the SDK through
+Needs a JDK 21 (the code compiles to Java 17 bytecode) and an Android SDK
+with API 37. Gradle finds the SDK through
 `local.properties` or `ANDROID_HOME` — neither is in the repository, because
 both are specific to the machine.
 
@@ -385,32 +423,54 @@ export ANDROID_HOME=$HOME/Android/Sdk
 export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
 
 sdkmanager --licenses
-sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+sdkmanager "platform-tools" "platforms;android-37"
 ```
 
 Then:
 
 ```bash
-./gradlew :app:testDebugUnitTest    # the unit suite, Robolectric included
-./gradlew :app:assembleDebug        # the APK
-./gradlew :app:lintDebug            # Android lint
+./gradlew testDebugUnitTest         # the unit suite, every module, Robolectric included
+./gradlew verifyRoborazziDebug      # the screenshot tests, against the committed references
+./gradlew assembleDebug             # the APK
+./gradlew lintDebug                 # Android lint, the libraries included
 ```
 
-The unit tests need no emulator and no device. There is nothing else to
-configure: no API key, no account, no service.
+The unit and screenshot tests need no emulator and no device. There is
+nothing else to configure: no API key, no account, no service.
+
+**Screenshots.** The component kit and the edit-booking screen are drawn in
+both themes by Robolectric and compared with the PNGs under each module's
+`src/test/screenshots`. The references are drawn on CI's Linux runner, where
+they are checked, so a font difference between machines never reads as a
+change: after an intended visual change, push a commit whose message contains
+`[record screenshots]`, and `screenshots.yml` records and commits them.
+
+**Baseline profile and benchmarks.** `:baselineprofile` drives the release
+build on a Gradle-managed emulator: it opens the app, loads the worked
+example, opens the trip and reads down it, and records what ran as the
+baseline profile the release build compiles in. A commit message containing
+`[baseline profile]` runs `baseline-profile.yml`, which records the profile
+into `app/src/release/generated/baselineProfiles`, commits it, and measures
+cold start uncompiled, with the profile and fully compiled. The profile is
+the one the app ships; there is no hand-written one beside it. Locally, with
+an emulator image installed:
+
+```bash
+./gradlew :app:generateBaselineProfile
+./gradlew :baselineprofile:pixel6Api34BenchmarkReleaseAndroidTest
+```
 
 Style is checked by ktlint and detekt, run in CI as their command-line jars
 against `.editorconfig` and `config/detekt.yml`; the same two commands work
 locally with the jars from Maven Central (versions in `build.yml`).
 
-The build writes the Room schema to `app/schemas`. A change to the database
+The build writes the Room schema to `core/data/schemas`. A change to the database
 shows up there and must be committed with a migration; CI fails a build whose
 schema differs from the committed one.
 
 ### Releasing
 
-Waymark ships as a sideloaded APK — there is no store listing, and an app that
-asks for no network permission has nothing for a review to check. Publishing is
+Waymark ships as a sideloaded APK — there is no store listing. Publishing is
 a tag push:
 
 ```bash
@@ -436,7 +496,24 @@ be mistaken for a shippable one.
 
 Unit tests over every layer. Most are plain JVM tests of the domain, catalog
 and share code; the database, the repository, a view model and a Compose screen
-run under Robolectric against a real SQLite and a real composition.
+run under Robolectric against a real SQLite and a real composition, and the
+screenshot tests draw the component kit and a whole screen in both themes.
+
+- `CostSplitterTest` — an even split, the odd cent, a split among some, no
+  more settling payments than people less one, a foreign expense converted
+  once, an expense with no rate listed rather than counted, a payer who has
+  left the party still owed, and amounts read the way people type them
+- `WeatherPlanTest`, `ParsingTest`, `WeatherRepositoryTest` — where the trip is
+  on each day still to come, forecast within two weeks and last year beyond,
+  both services' replies read and refused, and **nothing fetched at all while
+  online extras are off**
+- `ItineraryDocumentTest` — every booking once under its day, every reference,
+  the day's weather, and who pays whom
+- `LiveJourneyTest` — the journey under way: nothing long before departure, a
+  countdown from three hours out, a bar that fills to landing, gone on arrival,
+  quiet when flight reminders are off, and woken exactly when it next changes
+- `ComponentsScreenshotTest`, `EditSegmentScreenshotTest` — the kit and the
+  edit screen, Dusk and Dawn, pixel for pixel
 
 - `MigrationTest` — **every schema an earlier build could have left on a
   phone** — three version 1 builds, version 2, early and late version 3 —
@@ -446,7 +523,8 @@ run under Robolectric against a real SQLite and a real composition.
 - `TripRepositoryTest` — import replaces rather than duplicates, everyone
   ticked is stored as everyone, a booking widens its trip, removing a traveler
   takes their own bookings and keeps the shared ones, a profile on another trip
-  survives, an archived trip stays quiet
+  survives, an archived trip stays quiet, the widget reads the next few
+  bookings soonest first
 - `MappersTest` — every kind of row round-trips, an unknown kind is skipped
   rather than a crash, legacy `0,0` coordinates read as unknown
 - `ShareViewModelTest`, `EditSegmentScreenTest` — an email offers its flights,
@@ -524,9 +602,18 @@ run under Robolectric against a real SQLite and a real composition.
 
 Places where the app says less than it could:
 
-- **Nothing here is live, and the app says so.** Every flight time, gate and
-  terminal was typed in by a traveler. Waymark holds no network permission, so
-  there is no version of it that quietly starts calling a service.
+- **Nothing about a booking is live, and the app says so.** Every flight time,
+  gate and terminal was typed in by a traveler. The app holds the network
+  permission for its two online extras, weather and exchange rates, and makes
+  no request at all until they are turned on; a test checks that with them off
+  nothing is fetched.
+- **Weather beyond two weeks is a year old.** No service forecasts further
+  out, so those days show what the same dates were like last year, labelled as
+  such. It is a guide to what to pack, not a forecast.
+- **Exchange rates are reference rates.** The European Central Bank's daily
+  rates cover about thirty currencies and are not what a card or a bureau
+  charges. A rate from a receipt can be typed in, and a typed rate is never
+  replaced by a live one.
 - **Offline cuts both ways.** Nothing is backed up off the device on its own.
   A trip lives on one phone until it is shared or backed up to a file, and a
   lost phone with no backup is a lost trip. The About sheet says this too,
@@ -568,7 +655,7 @@ the IATA table supplied with the project, deduplicated and cleaned, with time
 zones resolved from coordinates at generation time, and ISO country codes
 expanded to names by the bundled country table. The city gazetteer is
 [GeoNames](https://www.geonames.org) `cities15000` (CC BY 4.0), built into
-`assets/cities.txt` by `tools/build_cities.py`; the airline names are
+`core/catalog`'s `cities.txt` by `tools/build_cities.py`; the airline names are
 hand-compiled. That table — currency, socket
 type, mains voltage, emergency number and driving side for 240 countries and
 territories — is hand-compiled. Everything else in the app was entered by

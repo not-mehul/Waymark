@@ -2,7 +2,8 @@
 <resources>
     <color name="widget_surface">#1A1612</color>
     <color name="widget_rim">#4DD4A574</color>
-    <color name="widget_text">#F5ECD9</color>
-    <color name="widget_dim">#A89C8C</color>
-    <color name="widget_accent">#D4A574</color>
+    <!-- The widget picker's preview on Android 12 to 14; the widget itself sets its ink in code. -->
+    <color name="widget_ink">#F5ECD9</color>
+    <color name="widget_ink_dim">#A89C8C</color>
+    <color name="widget_ink_accent">#D4A574</color>
 </resources>
