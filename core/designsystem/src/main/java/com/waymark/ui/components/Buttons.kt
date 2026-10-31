@@ -125,7 +125,7 @@ fun SecondaryButton(
         ) {
             val tint = when {
                 !enabled -> colors.textFaint
-                inverted -> colors.onAccent
+                inverted -> colors.onInvert
                 else -> colors.textStrong
             }
             icon?.let { WaymarkIcon(it, tint = tint, size = 15.dp) }
