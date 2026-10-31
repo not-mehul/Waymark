@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build app/src/main/assets/cities.txt, the bundled city gazetteer.
+"""Build core/catalog/src/main/resources/com/waymark/data/catalog/cities.txt, the bundled city gazetteer.
 
 Source: GeoNames "cities15000" (every populated place of 15,000 people or more,
 CC BY 4.0, https://www.geonames.org/), as packaged in the geonamescache Python
@@ -73,7 +73,7 @@ def main(source: str) -> None:
             )
         )
 
-    target = Path(__file__).resolve().parent.parent / "app/src/main/assets/cities.txt"
+    target = Path(__file__).resolve().parent.parent / "core/catalog/src/main/resources/com/waymark/data/catalog/cities.txt"
     target.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"{len(cities)} cities, {len(zones)} zones -> {target}")
 

@@ -9,8 +9,16 @@
     -->
     <style name="Theme.Waymark" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/window_dawn</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <!--
+        What the activity opens in: the system splash in the window colour,
+        handing over to Theme.Waymark once the first frame is ready.
+    -->
+    <style name="Theme.Waymark.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/window_dawn</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.Waymark</item>
     </style>
 </resources>

@@ -1,7 +1,2 @@
-plugins {
-    alias(libs.plugins.android.application) apply false
-    alias(libs.plugins.kotlin.android) apply false
-    alias(libs.plugins.kotlin.compose) apply false
-    alias(libs.plugins.kotlin.serialization) apply false
-    alias(libs.plugins.ksp) apply false
-}
+// Every module's build is described by the convention plugins in build-logic;
+// there is nothing to configure across the whole project here.

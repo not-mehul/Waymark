@@ -7,7 +7,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.waymark.WaymarkApplication
+import com.waymark.di.graph
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CancellationException
 
@@ -24,19 +24,15 @@ class DepartureWatchWorker(
     params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
 
-    override suspend fun doWork(): Result {
-        val container = (applicationContext as? WaymarkApplication)?.container
-            ?: return Result.success()
-        return try {
-            ReminderCheck.run(applicationContext, container)
-            Result.success()
-        } catch (cancelled: CancellationException) {
-            // Stopped by WorkManager: not a failure to retry.
-            throw cancelled
-        } catch (error: Exception) {
-            Log.w("Waymark", "Reminder check failed; WorkManager will try again", error)
-            Result.retry()
-        }
+    override suspend fun doWork(): Result = try {
+        ReminderCheck.run(applicationContext, applicationContext.graph)
+        Result.success()
+    } catch (cancelled: CancellationException) {
+        // Stopped by WorkManager: not a failure to retry.
+        throw cancelled
+    } catch (error: Exception) {
+        Log.w("Waymark", "Reminder check failed; WorkManager will try again", error)
+        Result.retry()
     }
 }
 

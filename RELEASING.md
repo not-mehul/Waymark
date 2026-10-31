@@ -1,8 +1,6 @@
 # Releasing Waymark
 
-Waymark ships as an APK you sideload — there is no Play listing, and the app
-asks for no network permission, so there is nothing for a store review to
-check. Publishing is a tag push.
+Waymark ships as an APK you sideload — there is no Play listing. Publishing is a tag push.
 
 ---
 
@@ -153,7 +151,15 @@ real phone:
   Set a booking a few minutes ahead with a short lead and check the
   notification arrives on time with the screen off, and that tapping it opens
   the booking.
-- **The widget** shows the next booking and opens it.
+- **The widget** shows the next booking and opens it; resized small and tall
+  it changes shape, and the widget picker shows it drawn.
+- **The journey under way** — make a flight that left an hour ago and lands in
+  two: an ongoing notification shows the bar part-filled and the time to
+  landing. On Android 16 and later it is a Live Update, with a status-bar chip.
+- **Predictive back** — start a back swipe on a sheet and on a screen and let
+  go: both follow the finger and come back.
+- **The baseline profile** — run `baseline-profile.yml` before a release that
+  changed start-up or the trip screen, so the profile compiled in is current.
 - **Sharing** — share a confirmation email to Waymark and check the flights it
   offers; share a trip file to another phone and open it; show a trip's code
   and scan it with the other phone's camera.

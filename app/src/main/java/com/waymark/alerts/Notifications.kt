@@ -1,24 +1,21 @@
 package com.waymark.alerts
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import com.waymark.MainActivity
 import com.waymark.R
 import com.waymark.domain.model.RaisedReminder
 
 /**
- * The app's whole notification surface: one channel, one kind of message.
+ * The app's reminders: one channel, one kind of message. The journey under
+ * way has a channel of its own, in [LiveUpdates].
  *
  * There were two channels once — "Disruption" for cancellations and "Flight
  * updates" for gate changes — from a version of Waymark that watched a
@@ -57,6 +54,8 @@ object Notifications {
         // Retire the channels of earlier builds so an upgrade does not leave
         // two dead switches behind in the system settings.
         listOf("waymark.disruption", "waymark.updates").forEach(manager::deleteNotificationChannel)
+
+        LiveUpdates.createChannel(context)
     }
 
     /**
@@ -91,21 +90,10 @@ object Notifications {
         }
     }
 
-    /**
-     * True when the app may post. Below Android 13 posting needs no permission,
-     * so the question does not arise.
-     */
-    fun granted(context: Context): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
-            PackageManager.PERMISSION_GRANTED
-
-    /** Whether the platform will show a request at all, or has stopped asking. */
-    fun needsRequest(context: Context): Boolean =
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !granted(context)
+    fun granted(context: Context): Boolean = NotificationAccess.granted(context)
 
     /** Tapping a reminder opens the booking it is about, inside its trip. */
-    private fun openBooking(context: Context, tripId: String, segmentId: String): PendingIntent {
+    fun openBooking(context: Context, tripId: String, segmentId: String): PendingIntent {
         val intent = Intent(context, MainActivity::class.java)
             .setAction(MainActivity.ACTION_OPEN_BOOKING)
             .putExtra(MainActivity.EXTRA_TRIP_ID, tripId)
