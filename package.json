@@ -1,0 +1,46 @@
+{
+  "name": "waymark",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Offline-first trip planner — Editorial Dusk & Dawn (Svelte rewrite, in progress)",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
+    "check": "node design/build-tokens.mjs --check && npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build",
+    "tokens": "node design/build-tokens.mjs --css src/styles/tokens.css --fonts src/styles/fonts"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.6.0",
+    "fflate": "^0.8.3",
+    "temporal-polyfill": "^1.0.6"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.0",
+    "@eslint/js": "^10.0.1",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@types/node": "^26.6.6",
+    "eslint": "^10.13.0",
+    "eslint-plugin-svelte": "^3.23.1",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "prettier-plugin-svelte": "^3.5.2",
+    "svelte": "^5.57.3",
+    "svelte-check": "^4.7.7",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vite": "^8.3.5",
+    "vite-plugin-singlefile": "^2.3.4",
+    "vitest": "^5.0.5"
+  }
+}

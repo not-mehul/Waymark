@@ -25,6 +25,24 @@ env:
   DETEKT_SHA256: 3afe89a11120303c73c9bdda3d8fe558dd9070a6937d27819ddc04b275381245
 
 jobs:
+  # The web app that replaces the Kotlin one, phase by phase: tokens and
+  # contrast, formatting, lint, types, the unit suite and a production build.
+  web:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      - run: npm run check
+
   style:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest

@@ -19,3 +19,9 @@ local.properties
 keystore.properties
 *.keystore
 *.jks
+
+# The Svelte app
+node_modules/
+dist/
+test-results/
+playwright-report/
