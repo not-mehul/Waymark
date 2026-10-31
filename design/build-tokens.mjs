@@ -138,6 +138,8 @@ function css(fontUrl) {
 // ---------- Kotlin (Waymark, until it moves to Svelte) ----------
 
 const camel = (s) => s.replace(/-([a-z0-9])/g, (_, c) => c.toUpperCase());
+// ktlint and detekt: a constant is a const val in SCREAMING_SNAKE_CASE.
+const screaming = (s) => s.replace(/-/g, '_').toUpperCase();
 
 function argb(value) {
   const { r, g, b, a } = parse(value);
@@ -152,7 +154,7 @@ function kotlin(pkg) {
     out.push(`internal object ${name} {`);
     for (const [k, v] of Object.entries(tokens.color)) out.push(`    val ${camel(k)} = Color(${argb(v[theme])})`);
     for (const [k, v] of Object.entries(tokens.rgb)) out.push(`    val ${camel(k)} = Color(${argb(`rgb(${v[theme]})`)})`);
-    for (const [k, v] of Object.entries(tokens.number)) out.push(`    val ${camel(k)} = ${v[theme]}f`);
+    for (const [k, v] of Object.entries(tokens.number)) out.push(`    const val ${screaming(k)} = ${v[theme]}f`);
     out.push('}', '');
   }
   return out.join('\n');

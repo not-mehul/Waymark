@@ -121,7 +121,7 @@ val DuskColors = WaymarkColors(
 
     focusRing = DuskTokens.focusRing,
     shadow = DuskTokens.shadowRgb,
-    shadowStrength = DuskTokens.shadowStrength,
+    shadowStrength = DuskTokens.SHADOW_STRENGTH,
 
     dangerWash = DuskTokens.errorBg,
     noticeWash = DuskTokens.noticeBg,
@@ -173,7 +173,7 @@ val DawnColors = WaymarkColors(
 
     focusRing = DawnTokens.focusRing,
     shadow = DawnTokens.shadowRgb,
-    shadowStrength = DawnTokens.shadowStrength,
+    shadowStrength = DawnTokens.SHADOW_STRENGTH,
 
     dangerWash = DawnTokens.errorBg,
     noticeWash = DawnTokens.noticeBg,
