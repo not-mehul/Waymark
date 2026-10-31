@@ -8,6 +8,7 @@ import android.graphics.pdf.PdfDocument
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
+import androidx.core.graphics.withTranslation
 import com.waymark.domain.logic.ItineraryDocument.Block
 import java.io.OutputStream
 
@@ -142,10 +143,7 @@ private class Pages(private val document: PdfDocument, private val footer: Strin
 
     private fun draw(layout: StaticLayout?, x: Float, top: Float) {
         layout ?: return
-        canvas.save()
-        canvas.translate(x, top)
-        layout.draw(canvas)
-        canvas.restore()
+        canvas.withTranslation(x, top) { layout.draw(this) }
     }
 
     private fun rule(paint: Paint) {
