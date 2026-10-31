@@ -65,7 +65,7 @@ internal object DuskTokens {
     val dangerRgb = Color(0xFFF87171)
     val creamRgb = Color(0xFFF5ECD9)
     val shadowRgb = Color(0xFF000000)
-    const val shadowStrength = 1f
+    val shadowStrength = 1f
 }
 
 internal object DawnTokens {
@@ -130,5 +130,5 @@ internal object DawnTokens {
     val dangerRgb = Color(0xFFC0392B)
     val creamRgb = Color(0xFF785F32)
     val shadowRgb = Color(0xFF5A482C)
-    const val shadowStrength = 0.4f
+    val shadowStrength = 0.4f
 }
