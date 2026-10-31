@@ -259,6 +259,13 @@ class TripRepository(private val database: WaymarkDatabase) {
     /** Emits whenever any booking or trip changes. */
     fun observeItineraryChanges(): Flow<Unit> = segments.observeChanges().map { }
 
+    /**
+     * Fires once now and again after any write to what a trip file carries:
+     * trips, their party, bookings, ideas and costs.
+     */
+    fun observeArchiveChanges(): Flow<Unit> =
+        database.invalidationTracker.createFlow(*ARCHIVE_TABLES).map { }
+
     /** What is happening next across every trip, soonest first, for the home-screen widget. */
     suspend fun nextAcrossTrips(nowMillis: Long, limit: Int = 1): List<Pair<Trip, Segment>> =
         segments.nextAcrossTrips(nowMillis, limit).mapNotNull { row ->
@@ -354,6 +361,11 @@ class TripRepository(private val database: WaymarkDatabase) {
 
     companion object {
         private const val DAY_MILLIS = 24 * 60 * 60 * 1000L
+
+        /** The tables behind [bundles]: alerts and the weather cache are not part of a trip file. */
+        private val ARCHIVE_TABLES = arrayOf(
+            "trips", "travelers", "trip_members", "segments", "ideas", "expenses", "trip_costs", "trip_rates",
+        )
 
         /** Full 128-bit ids: rows are upserted, so a collision would overwrite silently. */
         fun newId(prefix: String): String = "$prefix-${UUID.randomUUID()}"
