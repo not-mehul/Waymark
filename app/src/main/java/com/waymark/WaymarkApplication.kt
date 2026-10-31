@@ -1,6 +1,7 @@
 package com.waymark
 
 import android.app.Application
+import android.util.Log
 import com.waymark.alerts.DepartureWatch
 import com.waymark.alerts.Notifications
 import com.waymark.alerts.ReminderCheck
@@ -8,6 +9,7 @@ import com.waymark.data.local.ReminderStore
 import com.waymark.data.repo.TripRepository
 import com.waymark.di.Directories
 import com.waymark.di.graph
+import com.waymark.migration.HandoverSnapshot
 import com.waymark.widget.NextUpWidget
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -56,9 +58,20 @@ class WaymarkApplication : Application() {
                     NextUpWidget.refresh(this@WaymarkApplication)
                 }
         }
+        scope.launch {
+            // A copy of every trip for the next version of the app to import
+            // (see HandoverSnapshot): written now, then after each change.
+            trips.observeArchiveChanges()
+                .debounce(SETTLE_MILLIS)
+                .collect {
+                    runCatching { HandoverSnapshot.write(this@WaymarkApplication, trips) }
+                        .onFailure { Log.w(TAG, "Could not write the handover snapshot", it) }
+                }
+        }
     }
 
     private companion object {
         const val SETTLE_MILLIS = 1_000L
+        const val TAG = "Waymark"
     }
 }
