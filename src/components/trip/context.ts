@@ -2,7 +2,7 @@
 // and the one dialog slot over it.
 
 import { getContext, setContext } from 'svelte';
-import type { Segment } from '../../domain/model';
+import type { Idea, Segment, Traveler } from '../../domain/model';
 import type { TripModel } from '../../state/trip.svelte';
 
 export type TripSheet =
@@ -12,7 +12,12 @@ export type TripSheet =
   | { name: 'online' }
   | { name: 'delete' }
   | { name: 'removeSegment'; segment: Segment }
-  | { name: 'addPlan' };
+  | { name: 'addPlan' }
+  | { name: 'addTraveler' }
+  | { name: 'addIdea' }
+  | { name: 'scheduleIdea'; idea: Idea }
+  | { name: 'editTraveler'; traveler: Traveler }
+  | { name: 'removeTraveler'; traveler: Traveler };
 
 export interface TripContext {
   model: TripModel;

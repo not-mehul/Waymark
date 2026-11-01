@@ -8,7 +8,8 @@
   import ModalHead from '../ui/ModalHead.svelte';
   import OptionChips from '../ui/OptionChips.svelte';
 
-  let { traveler }: { traveler: Traveler } = $props();
+  /** Closes the dialog it is in: the shelf's, unless a trip passes its own. */
+  let { traveler, onclose = () => ui.close() }: { traveler: Traveler; onclose?: () => void } = $props();
 
   // A draft: nothing changes until Save.
   // svelte-ignore state_referenced_locally
@@ -37,7 +38,7 @@
         .filter((line) => line !== ''),
       contactPhone: orNull(phone)
     });
-    ui.close();
+    onclose();
   }
 </script>
 
@@ -75,7 +76,7 @@
     bind:value={phone}
   />
   <div class="btn-row">
-    <button type="button" class="btn btn-muted" onclick={() => ui.close()}>Cancel</button>
+    <button type="button" class="btn btn-muted" onclick={onclose}>Cancel</button>
     <button type="submit" class="btn btn-primary" disabled={!fullName.trim()}
       ><Icon name="check" /> Save</button
     >

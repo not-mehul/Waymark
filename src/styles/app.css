@@ -1397,3 +1397,149 @@ input[type='time']::-webkit-calendar-picker-indicator {
 .section-toggle .link-button {
   margin: 0;
 }
+
+/* ─── Tabs of a trip ──────────────────────────────────────── */
+
+.tab-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.traveler-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.traveler-filter {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: left;
+  border-radius: var(--radius);
+}
+.traveler-filter:focus-visible {
+  outline: 2px solid var(--focus-ring);
+}
+.party-mark.large {
+  width: 34px;
+  height: 34px;
+}
+.party-mark.dim {
+  opacity: 0.4;
+}
+.faint {
+  color: var(--text-faint);
+}
+.accent {
+  color: var(--accent-amber);
+}
+.split {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.split-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.split-head .t-data {
+  color: var(--text-heading);
+}
+
+/* ─── Ideas ───────────────────────────────────────────────── */
+
+.section-header.with-trailing h2 {
+  margin: 0;
+}
+.section-header.with-trailing::after {
+  order: 1;
+}
+.section-header.with-trailing > span {
+  order: 2;
+  color: var(--text-faint);
+}
+.section-header.with-trailing > span.critical {
+  color: var(--danger);
+}
+.segmented.full {
+  display: flex;
+}
+.segmented.full button {
+  flex: 1;
+}
+.idea-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+.idea-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  text-align: left;
+  width: 100%;
+  border-radius: var(--radius);
+}
+.idea-head:focus-visible {
+  outline: 2px solid var(--focus-ring);
+}
+.idea-icon {
+  color: var(--accent-amber);
+  padding-top: 2px;
+}
+.idea-icon.sage,
+.sage {
+  color: var(--accent-sage);
+}
+.idea-icon.faint {
+  color: var(--text-faint);
+}
+.idea-card.done .idea-title {
+  text-decoration: line-through;
+}
+.idea-card.done .idea-title,
+.idea-card.set-aside .idea-title {
+  color: var(--text-faint);
+}
+.idea-note {
+  color: var(--text-muted);
+}
+.idea-card.done .idea-note {
+  color: var(--text-faint);
+}
+.with-icon {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.idea-actions {
+  align-items: center;
+}
+
+/* ─── Undo bar ────────────────────────────────────────────── */
+
+.undo-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: calc(100vw - 2 * var(--space-4));
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  background: var(--modal-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(var(--shadow-rgb), calc(0.3 * var(--shadow-strength)));
+}
+.undo-bar .t-body-small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

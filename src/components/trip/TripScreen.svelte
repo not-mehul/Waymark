@@ -9,6 +9,8 @@
   import NoticeBanner from '../ui/NoticeBanner.svelte';
   import TabRail from '../ui/TabRail.svelte';
   import { useTrip } from './context';
+  import IdeasTab from './IdeasTab.svelte';
+  import PartyTab from './PartyTab.svelte';
   import Timeline from './Timeline.svelte';
 
   const { model, open } = useTrip();
@@ -53,8 +55,22 @@
         onopen={openSegment}
         onaddflight={() => ui.go({ name: 'trip', tripId: model.tripId, adding: 'flight' })}
       />
+    {:else if model.tab === 'IDEAS'}
+      <IdeasTab />
+    {:else if model.tab === 'PARTY'}
+      <PartyTab />
     {:else}
       <p class="t-hint empty-line">This view arrives in the next part of the rewrite.</p>
     {/if}
   </div>
+
+  {#if model.removedIdea}
+    {@const removed = model.removedIdea}
+    <div class="undo-bar" role="status">
+      <span class="t-body-small">Removed “{removed.title}”</span>
+      <button type="button" class="btn btn-secondary" onclick={() => model.undoDelete()}>
+        <Icon name="undo" /> Undo
+      </button>
+    </div>
+  {/if}
 </section>

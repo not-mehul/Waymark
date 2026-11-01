@@ -8,7 +8,12 @@
   import SegmentScreen from '../segment/SegmentScreen.svelte';
   import Modal from '../ui/Modal.svelte';
   import { provideTrip, type TripSheet } from './context';
+  import TravelerProfile from '../people/TravelerProfile.svelte';
   import AddPlan from './AddPlan.svelte';
+  import AddIdea from './AddIdea.svelte';
+  import AddTraveler from './AddTraveler.svelte';
+  import ScheduleIdea from './ScheduleIdea.svelte';
+  import RemoveTraveler from './RemoveTraveler.svelte';
   import DeleteTrip from './DeleteTrip.svelte';
   import EditTrip from './EditTrip.svelte';
   import OnlineExtras from './OnlineExtras.svelte';
@@ -65,6 +70,16 @@
         <OnlineExtras />
       {:else if current.name === 'delete'}
         <DeleteTrip />
+      {:else if current.name === 'addIdea'}
+        <AddIdea />
+      {:else if current.name === 'scheduleIdea'}
+        <ScheduleIdea idea={current.idea} />
+      {:else if current.name === 'addTraveler'}
+        <AddTraveler />
+      {:else if current.name === 'editTraveler'}
+        <TravelerProfile traveler={current.traveler} onclose={close} />
+      {:else if current.name === 'removeTraveler'}
+        <RemoveTraveler traveler={current.traveler} />
       {:else if current.name === 'addPlan'}
         <AddPlan />
       {:else if current.name === 'removeSegment'}
