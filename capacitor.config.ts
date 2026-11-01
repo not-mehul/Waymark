@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
-// The Android project (android/) arrives with the native features in phase 5
-// of the rewrite. Until then this only names the app.
+// The Android shell (android/): Capacitor's WebView host for the page, and
+// the Waymark plugin for what has to run with the app closed.
 const config: CapacitorConfig = {
   // The Kotlin app's id, so the new APK installs as an update over it.
   appId: 'com.waymark',
@@ -9,6 +9,13 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   // WebView background before the page paints; matches the Dusk surface.
   backgroundColor: '#0f0d0b',
+  server: {
+    // Android keys a WebView's IndexedDB by origin, so this is where every
+    // trip lives. Named outright, so a change of Capacitor's default can never
+    // open an empty shelf.
+    hostname: 'localhost',
+    androidScheme: 'https'
+  },
   android: {
     allowMixedContent: false,
     // Keep in sync with build.target in vite.config.ts.

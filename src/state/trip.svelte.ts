@@ -4,6 +4,7 @@
 // shows here without asking; the clock ticks once a minute for the "now"
 // line and the countdowns.
 
+import { askForReminders } from './shell.svelte';
 import { liveQuery, type Subscription } from 'dexie';
 import { partyWarnings, splitWindows } from '../domain/party-split';
 import {
@@ -147,8 +148,9 @@ export class TripModel {
   // — Bookings ———————————————————————————————————————————————————————————
 
   /** Written once, on Save: a booking never drifts while it is being read. */
-  saveSegment(segment: Segment): Promise<void> {
-    return trips.saveSegment(segment);
+  async saveSegment(segment: Segment): Promise<void> {
+    await trips.saveSegment(segment);
+    void askForReminders();
   }
 
   deleteSegment(segmentId: string): Promise<void> {

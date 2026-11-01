@@ -12,10 +12,12 @@ import { markdownFileName, renderMarkdown } from '../domain/markdown';
 import type { WeatherDay } from '../domain/model';
 import { systemZone, todayIn } from '../domain/time';
 import { weatherStops } from '../domain/weather';
+import { callNative, isNativeShell } from '../platform/native';
 import { shareFile } from '../share/files';
 import { archiveOf, encodeArchive, MIME } from '../share/trip-archive';
 import { weather } from './app';
 import type { TripModel } from './trip.svelte';
+import { ui } from './ui.svelte';
 
 type Outcome = Awaited<ReturnType<typeof shareFile>>;
 
@@ -80,6 +82,16 @@ export async function printItinerary(model: TripModel): Promise<void> {
     host.remove();
     window.removeEventListener('afterprint', done);
   };
+  if (isNativeShell()) {
+    // The WebView has no print dialog of its own: the shell hands this page,
+    // laid out for print, to Android's, and answers once the job is spooled.
+    await callNative('print', { name: d.trip.name }).catch((err: unknown) => {
+      console.error('Print', err);
+      ui.tell('The itinerary could not be printed.');
+    });
+    done();
+    return;
+  }
   window.addEventListener('afterprint', done);
   window.print();
 }

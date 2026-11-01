@@ -2,6 +2,7 @@
 // notice the shelf shows after something finishes. Screens read and set this;
 // it holds no trip data, which comes live from IndexedDB.
 
+import type { BookingReading } from '../share/booking-text';
 import type { TripBundle } from '../share/trip-archive';
 import type { Traveler } from '../domain/model';
 import { pushBackHandler } from '../platform/native';
@@ -29,7 +30,8 @@ export type Modal =
   | { name: 'about' }
   | { name: 'import'; bundles: TripBundle[]; existing: Set<string> }
   | { name: 'problem'; title: string; detail: string }
-  | { name: 'traveler'; traveler: Traveler };
+  | { name: 'traveler'; traveler: Traveler }
+  | { name: 'sharedFlights'; reading: BookingReading };
 
 class Ui {
   screen = $state<Screen>({ name: 'shelf' });

@@ -13,18 +13,25 @@ export interface HandoverSource {
   read(): Promise<string | null>;
   /** Called only once every trip in it is safely in IndexedDB. */
   remove(): Promise<void>;
+  /**
+   * True when the earlier app's database is on the phone but no file came
+   * with it: the release that writes the file was skipped.
+   */
+  stranded?(): Promise<boolean>;
 }
 
 export type HandoverResult =
   /** No file: a fresh install, a browser, or a handover already done. */
   | { outcome: 'none' }
+  /** Trips are in the earlier app's database, which a page cannot open, and there is no file. */
+  | { outcome: 'stranded' }
   | { outcome: 'imported'; trips: number; bookings: number }
   /** The file is kept, so nothing is lost and the next launch tries again. */
   | { outcome: 'failed'; reason: string };
 
 export async function runHandover(source: HandoverSource, trips: TripRepository): Promise<HandoverResult> {
   const text = await source.read();
-  if (text === null) return { outcome: 'none' };
+  if (text === null) return (await source.stranded?.()) ? { outcome: 'stranded' } : { outcome: 'none' };
   let bundles;
   try {
     bundles = bundlesOf(decodeArchive(text));

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The themed-icon variant. A monochrome drawable is tinted by the system with
+    a single colour, so the two-tone split of the full mark would collapse to a
+    flat diamond. This keeps the axis as a cut-out instead, which survives any
+    tint the launcher chooses.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,26 L75,64 L54,82 L33,64 Z
+                          M54,34 L41,62 L54,72 L67,62 Z"
+        android:fillType="evenOdd" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M52.4,28 L55.6,28 L55.6,80 L52.4,80 Z" />
+</vector>

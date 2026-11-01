@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launch screen for Android 8–11. Android 12+ uses the system splash
+     screen configured in styles.xml (same background, adaptive icon). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/app_surface" />
+    <item
+        android:width="112dp"
+        android:height="112dp"
+        android:drawable="@mipmap/ic_launcher"
+        android:gravity="center" />
+</layer-list>

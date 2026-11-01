@@ -11,6 +11,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --host",
+    "sync": "npm run build && cap sync android",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
@@ -21,6 +22,7 @@
     "tokens": "node design/build-tokens.mjs --css src/styles/tokens.css --fonts src/styles/fonts"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.0",
     "@capacitor/core": "^8.6.0",
     "dexie": "^4.4.7",
     "fflate": "^0.8.3",
@@ -30,6 +32,7 @@
   "devDependencies": {
     "@capacitor/cli": "^8.6.0",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@types/node": "^26.6.6",
     "eslint": "^10.13.0",

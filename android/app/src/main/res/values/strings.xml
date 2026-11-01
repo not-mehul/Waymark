@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Waymark</string>
+    <string name="title_activity_main">Waymark</string>
+    <string name="package_name">com.waymark</string>
+    <string name="custom_url_scheme">com.waymark</string>
+    <string name="share_add_to_trip">Add to a Waymark trip</string>
+    <string name="share_open_trip">Open in Waymark</string>
+    <string name="share_chooser_title">Send from Waymark</string>
+    <string name="share_failed">Could not share that: %1$s</string>
+    <string name="widget_name">Waymark · Next up</string>
+    <string name="widget_description">The next booking on any trip, and how long until it.</string>
+    <string name="widget_preview_eyebrow">Next · Lisbon</string>
+    <string name="widget_preview_title">TP 1351 · LHR → LIS</string>
+    <string name="widget_preview_detail">Thu 14 May, 09:40 · London Heathrow · in 3h</string>
+    <string name="reminders_channel">Reminders</string>
+    <string name="reminders_channel_description">Before a booking you have entered starts</string>
+    <string name="underway_channel">Journey under way</string>
+    <string name="underway_channel_description">The flight or train you are on, from shortly before it leaves until it arrives</string>
+</resources>
