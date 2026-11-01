@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { buildSampleItinerary } from '../../src/catalog/sample-itinerary';
 import { localDate } from '../../src/domain/time';
-import { backupFileName, MAX_FILE_BYTES, readTripFile, readTripText } from '../../src/share/files';
-import { archiveOf, encodeArchive } from '../../src/share/trip-archive';
+import {
+  backupFileName,
+  MAX_FILE_BYTES,
+  readTripCode,
+  readTripFile,
+  readTripText,
+  TRIP_CODE_PREFIX
+} from '../../src/share/files';
+import { archiveOf, encodeArchive, toCode } from '../../src/share/trip-archive';
 
 const blob = (text: string, size = text.length) => ({ size, text: () => Promise.resolve(text) });
 
@@ -38,4 +45,25 @@ describe('reading a trip file', () => {
 
 it('names a backup by the day it was made', () => {
   expect(backupFileName(localDate(2026, 11, 1))).toBe('waymark-backup-2026-11-01.json');
+});
+
+describe('reading a scanned trip code', () => {
+  const sample = buildSampleItinerary(localDate(2026, 11, 7));
+  const code = toCode(archiveOf([{ ...sample, costs: null }]))!;
+
+  it('opens the trip from the link a code holds', () => {
+    const incoming = readTripCode(TRIP_CODE_PREFIX + code.payload);
+    expect(incoming.kind).toBe('trips');
+    if (incoming.kind === 'trips') expect(incoming.bundles[0]!.trip.id).toBe(sample.trip.id);
+  });
+
+  it('opens the bare payload too', () => {
+    expect(readTripCode(code.payload).kind).toBe('trips');
+  });
+
+  it('explains a code that is not a trip', () => {
+    expect(readTripCode('M1DESMARAIS/LUC       EABC123 YULFRAAC 0834 326J001A0025 100')).toMatchObject({
+      kind: 'problem'
+    });
+  });
 });

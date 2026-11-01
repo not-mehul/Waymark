@@ -27,7 +27,7 @@
     },
     {
       icon: 'upload',
-      label: 'Open a backup or a trip file',
+      label: 'Open a backup, a trip file or a trip code',
       act: () => {
         ui.close();
         onpickfile();

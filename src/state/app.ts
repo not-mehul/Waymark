@@ -6,6 +6,7 @@ import { CostRepository } from '../db/costs';
 import { openDatabase } from '../db/database';
 import { IdeaRepository } from '../db/ideas';
 import { TripRepository } from '../db/trips';
+import { WeatherRepository } from '../online/weather';
 import { Settings } from './settings.svelte';
 
 export const db = openDatabase();
@@ -13,6 +14,7 @@ export const trips = new TripRepository(db);
 export const ideas = new IdeaRepository(db);
 export const costs = new CostRepository(db);
 export const alerts = new AlertRepository(db);
+export const weather = new WeatherRepository(db);
 export const settings = new Settings();
 
 /** The build's version, from package.json (see vite.config.ts). */

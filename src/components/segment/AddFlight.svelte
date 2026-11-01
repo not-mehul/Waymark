@@ -2,18 +2,21 @@
   // A flight, typed in. Nothing fills itself in from a schedule; what the app
   // contributes is what an airport code already implies, coordinates and a
   // zone, which is enough to work out that a 22:20 departure lands the next
-  // afternoon. Reading a boarding pass from a picture arrives in phase 4.
+  // afternoon. Or it starts from a boarding pass: the barcode in a screenshot
+  // or a photo carries everything but the clock times.
   import { findAirport, searchAirports, type Airport } from '../../catalog/airports';
   import { DAY_OFFSETS, legDayOffset, legMinutes } from '../../domain/leg-times';
   import { displayName, initials } from '../../domain/model';
   import { systemZone, todayIn } from '../../domain/time';
   import { dayOffsetSuffix, duration } from '../../domain/time-text';
   import { readBookingText } from '../../share/booking-text';
+  import { readCode } from '../../share/read-code';
   import {
     canSave,
     defaultFlightDate,
     entryLeg,
     flightOf,
+    fromBoardingPass,
     newFlightEntry,
     prefill,
     stationHint,
@@ -101,6 +104,29 @@
         : '');
   }
 
+  // A picture, not the camera: no permission to ask for, and a screenshot of
+  // a mobile pass is the common case.
+  let picker = $state<HTMLInputElement | null>(null);
+  let reading = $state(false);
+  async function readPass(file: File | undefined) {
+    if (!file) return;
+    reading = true;
+    const code = await readCode(file);
+    reading = false;
+    if (code.kind === 'unsupported') {
+      notice =
+        'This browser cannot read barcodes. The Android app can; here, paste the email or type the flight in.';
+      return;
+    }
+    const read = code.kind === 'read' ? fromBoardingPass(entry, code.text, today) : null;
+    if (!read) {
+      notice = 'No boarding pass code could be read in that picture.';
+      return;
+    }
+    entry = read.entry;
+    notice = read.notice;
+  }
+
   function toggle(id: string) {
     set({
       selectedTravelers: entry.selectedTravelers.includes(id)
@@ -165,7 +191,28 @@
     <h1 class="t-card-title" id="add-flight-title">Add flight</h1>
   </header>
 
-  <div class="chip-row">
+  <div class="chip-row wrap">
+    <button
+      type="button"
+      class="chip with-mark"
+      aria-pressed="false"
+      disabled={reading}
+      onclick={() => picker?.click()}
+    >
+      <Icon name="scan" />
+      {reading ? 'Reading the pass…' : 'From a boarding pass'}
+    </button>
+    <input
+      bind:this={picker}
+      type="file"
+      accept="image/*"
+      hidden
+      onchange={(ev) => {
+        const input = ev.currentTarget;
+        void readPass(input.files?.[0]);
+        input.value = '';
+      }}
+    />
     <button type="button" class="chip with-mark" aria-pressed="false" onclick={pasteEmail}>
       <Icon name="ticket" /> Paste an email
     </button>

@@ -41,7 +41,12 @@
   <People />
 {:else if ui.screen.name === 'trip'}
   {#key ui.screen.tripId}
-    <TripRoute tripId={ui.screen.tripId} segmentId={ui.screen.segmentId} adding={ui.screen.adding} />
+    <TripRoute
+      tripId={ui.screen.tripId}
+      segmentId={ui.screen.segmentId}
+      adding={ui.screen.adding}
+      view={ui.screen.view}
+    />
   {/key}
 {:else}
   <Shelf />

@@ -460,6 +460,13 @@ an emulator image installed:
 ./gradlew :baselineprofile:pixel6Api34BenchmarkReleaseAndroidTest
 ```
 
+The Kotlin app's cold start, recorded on 1 November 2026 by the run on
+`0d9e682` (Pixel 6, API 34 emulator on the CI runner, time to initial display,
+median of 10): 1754 ms with the profile (1602 to 1972), 1748 ms interpreted,
+1725 ms fully compiled, and 1693 ms straight into a trip. It is the baseline
+the Svelte rewrite is measured against on the same emulator; the absolute
+numbers are the emulator's, not a phone's.
+
 Style is checked by ktlint and detekt, run in CI as their command-line jars
 against `.editorconfig` and `config/detekt.yml`; the same two commands work
 locally with the jars from Maven Central (versions in `build.yml`).

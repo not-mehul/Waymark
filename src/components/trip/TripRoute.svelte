@@ -3,7 +3,12 @@
   // share one model, as the Kotlin screens shared one view model.
   import { onDestroy } from 'svelte';
   import { TripModel } from '../../state/trip.svelte';
-  import { ui } from '../../state/ui.svelte';
+  import { ui, type TripView } from '../../state/ui.svelte';
+  import MapScreen from '../map/MapScreen.svelte';
+  import TripCode from '../share/TripCode.svelte';
+  import { shareTripFile } from '../../state/exports';
+  import NumbersScreen from '../numbers/NumbersScreen.svelte';
+  import NotesScreen from '../notes/NotesScreen.svelte';
   import AddFlight from '../segment/AddFlight.svelte';
   import SegmentScreen from '../segment/SegmentScreen.svelte';
   import Modal from '../ui/Modal.svelte';
@@ -25,7 +30,12 @@
   import TripMenu from './TripMenu.svelte';
   import TripScreen from './TripScreen.svelte';
 
-  let { tripId, segmentId, adding }: { tripId: string; segmentId?: string; adding?: 'flight' } = $props();
+  let {
+    tripId,
+    segmentId,
+    adding,
+    view
+  }: { tripId: string; segmentId?: string; adding?: 'flight'; view?: TripView } = $props();
 
   // svelte-ignore state_referenced_locally
   const model = new TripModel(tripId);
@@ -55,6 +65,12 @@
 
 {#if adding === 'flight'}
   <AddFlight />
+{:else if view === 'map'}
+  <MapScreen />
+{:else if view === 'numbers'}
+  <NumbersScreen />
+{:else if view === 'notes'}
+  <NotesScreen />
 {:else if segmentId}
   {#key segmentId}
     <SegmentScreen {segmentId} />
@@ -83,6 +99,13 @@
         <RateSheet currency={current.currency} />
       {:else if current.name === 'settleCurrency'}
         <CurrencySheet />
+      {:else if current.name === 'tripCode'}
+        <TripCode
+          onsendfile={() => {
+            close();
+            void shareTripFile(model);
+          }}
+        />
       {:else if current.name === 'addIdea'}
         <AddIdea />
       {:else if current.name === 'scheduleIdea'}

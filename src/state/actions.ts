@@ -1,7 +1,8 @@
 // What the shelf's buttons do, kept out of the components so each is one call.
 
 import { encodeArchive, archiveOf, MIME } from '../share/trip-archive';
-import { backupFileName, readTripFile, saveFile } from '../share/files';
+import { backupFileName, readTripCode, readTripFile, saveFile, type Incoming } from '../share/files';
+import { readCode } from '../share/read-code';
 import { seedSample } from '../db/seed';
 import type { TripBundle } from '../share/trip-archive';
 import { trips } from './app';
@@ -21,13 +22,33 @@ export async function backUpEveryTrip(): Promise<void> {
 
 /** A backup or a shared trip, picked from the device: shown before anything changes. */
 export async function openTripFile(file: File): Promise<void> {
-  const incoming = await readTripFile(file);
+  const incoming = file.type.startsWith('image/') ? await readCodePicture(file) : await readTripFile(file);
   if (incoming.kind === 'problem') {
     ui.open({ name: 'problem', title: incoming.title, detail: incoming.detail });
     return;
   }
   const existing = await trips.existingTripIds(incoming.bundles.map((b) => b.trip.id));
   ui.open({ name: 'import', bundles: incoming.bundles, existing });
+}
+
+/** A picture of a trip code: a screenshot of one, or a photo of a printout. */
+async function readCodePicture(file: File): Promise<Incoming> {
+  const code = await readCode(file);
+  if (code.kind === 'unsupported') {
+    return {
+      kind: 'problem',
+      title: 'This browser cannot read the code',
+      detail: 'Scan it with the phone’s camera instead, or ask for the trip as a file.'
+    };
+  }
+  if (code.kind === 'none') {
+    return {
+      kind: 'problem',
+      title: 'No trip code in that picture',
+      detail: 'Try a sharper picture, with the whole code in it.'
+    };
+  }
+  return readTripCode(code.text);
 }
 
 /**
