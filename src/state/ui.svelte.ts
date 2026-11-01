@@ -6,7 +6,19 @@ import type { TripBundle } from '../share/trip-archive';
 import type { Traveler } from '../domain/model';
 import { pushBackHandler } from '../platform/native';
 
-export type Screen = { name: 'shelf' } | { name: 'people' } | { name: 'trip'; tripId: string };
+export type Screen =
+  | { name: 'shelf' }
+  | { name: 'people' }
+  /** A trip, and optionally one of its bookings open over it. */
+  | { name: 'trip'; tripId: string; segmentId?: string; adding?: 'flight' };
+
+/** Where Back goes from a screen: a booking returns to its trip, anything else to the shelf. */
+export function parentOf(screen: Screen): Screen | null {
+  if (screen.name === 'shelf') return null;
+  if (screen.name === 'trip' && (screen.segmentId || screen.adding))
+    return { name: 'trip', tripId: screen.tripId };
+  return { name: 'shelf' };
+}
 
 export type Modal =
   | { name: 'newTrip' }
@@ -14,8 +26,7 @@ export type Modal =
   | { name: 'about' }
   | { name: 'import'; bundles: TripBundle[]; existing: Set<string> }
   | { name: 'problem'; title: string; detail: string }
-  | { name: 'traveler'; traveler: Traveler }
-  | { name: 'deleteTrip'; tripId: string };
+  | { name: 'traveler'; traveler: Traveler };
 
 class Ui {
   screen = $state<Screen>({ name: 'shelf' });
@@ -28,12 +39,18 @@ class Ui {
 
   private releaseBack: (() => void) | null = null;
 
-  /** Off the shelf, Back returns to it. */
+  /** Off the shelf, Back climbs one level. */
   go(screen: Screen): void {
     this.screen = screen;
     this.releaseBack?.();
-    this.releaseBack = screen.name === 'shelf' ? null : pushBackHandler(() => this.go({ name: 'shelf' }));
+    const parent = parentOf(screen);
+    this.releaseBack = parent ? pushBackHandler(() => this.go(parent)) : null;
     window.scrollTo({ top: 0 });
+  }
+
+  back(): void {
+    const parent = parentOf(this.screen);
+    if (parent) this.go(parent);
   }
 
   open(modal: Modal): void {

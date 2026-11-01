@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { loadCatalog } from '../catalog/load';
   import { NO_HANDOVER, runHandover } from '../share/handover';
   import { openTripFile } from '../state/actions';
   import { trips } from '../state/app';
@@ -12,14 +13,16 @@
   import Problem from './shelf/Problem.svelte';
   import Shelf from './shelf/Shelf.svelte';
   import ShelfMenu from './shelf/ShelfMenu.svelte';
-  import DeleteTrip from './trip/DeleteTrip.svelte';
-  import TripPlaceholder from './trip/TripPlaceholder.svelte';
+  import TripRoute from './trip/TripRoute.svelte';
   import Modal from './ui/Modal.svelte';
 
   // Any type: file managers and mail apps disagree about what a .json is.
   let filePicker: HTMLInputElement;
 
   onMount(() => {
+    // Every station and city, for reading places typed into a booking. Fetched
+    // once, beside the page; nothing on the shelf waits for it.
+    loadCatalog().catch((err: unknown) => console.error('Catalog', err));
     void (async () => {
       await trips.repair();
       // The native source (the Kotlin app's last copy of every trip) comes with the shell in phase 5.
@@ -38,7 +41,7 @@
   <People />
 {:else if ui.screen.name === 'trip'}
   {#key ui.screen.tripId}
-    <TripPlaceholder tripId={ui.screen.tripId} />
+    <TripRoute tripId={ui.screen.tripId} segmentId={ui.screen.segmentId} adding={ui.screen.adding} />
   {/key}
 {:else}
   <Shelf />
@@ -60,8 +63,6 @@
         <Problem title={modal.title} detail={modal.detail} />
       {:else if modal.name === 'traveler'}
         <TravelerProfile traveler={modal.traveler} />
-      {:else if modal.name === 'deleteTrip'}
-        <DeleteTrip tripId={modal.tripId} />
       {/if}
     {/key}
   </Modal>

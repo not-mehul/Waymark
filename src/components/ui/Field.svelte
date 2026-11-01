@@ -9,6 +9,7 @@
     mono?: boolean;
     inputmode?: 'text' | 'tel' | 'numeric' | 'decimal';
     autofocus?: boolean;
+    hint?: string;
   }
 
   let {
@@ -19,7 +20,8 @@
     rows,
     mono = false,
     inputmode,
-    autofocus = false
+    autofocus = false,
+    hint
   }: Props = $props();
 
   let control = $state<HTMLInputElement | HTMLTextAreaElement>();
@@ -55,4 +57,5 @@
       spellcheck={mono ? false : undefined}
     />
   {/if}
+  {#if hint}<span class="field-hint">{hint}</span>{/if}
 </div>

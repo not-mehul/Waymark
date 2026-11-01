@@ -1,36 +1,36 @@
 <script lang="ts">
-  import { liveQuery } from 'dexie';
   import { tripEndDate, tripStartDate } from '../../domain/model';
   import { dateRange } from '../../domain/time-text';
-  import { trips } from '../../state/app';
   import { ui } from '../../state/ui.svelte';
   import Field from '../ui/Field.svelte';
   import Icon from '../ui/Icon.svelte';
   import ModalHead from '../ui/ModalHead.svelte';
+  import { useTrip } from './context';
 
-  let { tripId }: { tripId: string } = $props();
-  const dossier = liveQuery(() => trips.dossier(tripId));
+  const { model, close } = useTrip();
   let typed = $state('');
+  const dossier = $derived(model.dossier);
   const matches = $derived(
-    $dossier ? typed.trim().toLowerCase() === $dossier.trip.name.trim().toLowerCase() : false
+    dossier ? typed.trim().toLowerCase() === dossier.trip.name.trim().toLowerCase() : false
   );
 
   async function remove() {
     if (!matches) return;
-    await trips.deleteTrip(tripId);
-    ui.close();
+    close();
     ui.go({ name: 'shelf' });
+    await model.deleteTrip();
   }
 
   async function putAway() {
-    await trips.setArchived(tripId, true);
-    ui.close();
+    close();
+    ui.go({ name: 'shelf' });
+    await model.setArchived(true);
   }
 </script>
 
 <ModalHead eyebrow="No undo" title="Delete this trip" />
-{#if $dossier}
-  {@const { trip, segments } = $dossier}
+{#if dossier}
+  {@const { trip, segments } = dossier}
   <p class="t-body-small">{trip.name} · {dateRange(tripStartDate(trip), tripEndDate(trip))}</p>
   <p class="t-hint">
     {segments.length}
@@ -50,7 +50,7 @@
     </button>
   {/if}
   <div class="btn-row">
-    <button type="button" class="btn btn-muted" onclick={() => ui.close()}>Keep it</button>
+    <button type="button" class="btn btn-muted" onclick={close}>Keep it</button>
     <button type="button" class="btn btn-danger" disabled={!matches} onclick={remove}>
       <Icon name="trash" /> Delete
     </button>
