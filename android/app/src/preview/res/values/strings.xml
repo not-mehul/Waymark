@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- The preview build's names, so it is told apart from the app beside it. -->
-<resources>
-    <string name="app_name">Waymark preview</string>
-    <string name="title_activity_main">Waymark preview</string>
-    <string name="share_add_to_trip">Add to a Waymark preview trip</string>
-    <string name="share_open_trip">Open in Waymark preview</string>
-    <string name="widget_name">Waymark preview · Next up</string>
-</resources>

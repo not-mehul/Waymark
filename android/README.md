@@ -46,13 +46,6 @@ Then open this folder (`android/`) in Android Studio, or from the command line
 ./gradlew assembleRelease        # R8-minified release APK
 ```
 
-`./gradlew :app:assemblePreview` builds **Waymark preview**: the release build
-under its own id (`com.waymark.preview`), signed with the debug key, so it
-installs beside the Kotlin app on a phone rather than over it. It starts empty;
-restore a backup into it to compare the two. CI uploads one with every run (the
-`waymark-preview` artifact); each run's debug key is new, so uninstall the
-previous preview before installing the next.
-
 A release is signed with the Kotlin app's key, read from the same places:
 `keystore.properties` at the repository root, or the `WAYMARK_KEYSTORE…`
 environment variables (see `RELEASING.md`). Without them the release APK is
