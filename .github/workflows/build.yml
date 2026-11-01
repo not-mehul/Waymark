@@ -77,7 +77,7 @@ jobs:
 
       - name: Unit tests, lint, build
         working-directory: android
-        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug assembleDebug assembleRelease
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug assembleDebug assembleRelease :app:assemblePreview
 
       # R8 once stripped a Glance widget's UI from BookShelf's release builds
       # only (see proguard-rules.pro); fail if it, or the receiver and worker
@@ -117,6 +117,15 @@ jobs:
           name: shell-apks
           path: apks/
           retention-days: 7
+
+      # To try on a phone beside the Kotlin app: its own id ("Waymark
+      # preview"), the release build, signed with the runner's debug key.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: waymark-preview
+          path: android/app/build/outputs/apk/preview/app-preview.apk
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Upload reports on failure
         if: failure()

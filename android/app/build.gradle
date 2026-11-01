@@ -83,6 +83,17 @@ android {
                 signingConfig = signingConfigs.release
             }
         }
+        // "Waymark preview": the release build under its own id and the debug
+        // key, so it installs beside the Kotlin app on a phone instead of over
+        // it, for comparing the two before the switch-over. It starts empty;
+        // restore a backup into it. Its name comes from src/preview/res.
+        preview {
+            initWith release
+            applicationIdSuffix = '.preview'
+            versionNameSuffix = '-preview'
+            signingConfig = signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
     }
     lint {
         abortOnError = true
