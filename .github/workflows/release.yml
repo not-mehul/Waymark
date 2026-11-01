@@ -2,11 +2,12 @@ name: Release
 
 # Publishing is a tag push:
 #
-#     git tag v1.0.0 && git push origin v1.0.0
+#     git tag v2.0.0 && git push origin v2.0.0
 #
-# which runs the tests, builds the release APK, signs it if the repository has
-# a keystore in its secrets, and attaches it to a GitHub release as a draft for
-# you to write notes on and publish.
+# which runs the web app's checks and the Android unit tests, builds the
+# release APK (the Svelte app in its Capacitor shell), signs it if the
+# repository has a keystore in its secrets, and attaches it to a GitHub
+# release as a draft for you to write notes on and publish.
 on:
   push:
     tags: ["v*"]
@@ -23,17 +24,23 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
       - name: Set up JDK 21
         uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "21"
 
+      - uses: android-actions/setup-android@v4
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Unit tests
-        run: ./gradlew --no-daemon testDebugUnitTest
+      - run: npm ci
 
       # Written outside the workspace so a stray `git add -A` in a later step
       # can never stage it. The build signs only when all four secrets are
@@ -71,7 +78,25 @@ jobs:
           fi
           echo "name=$version" >> "$GITHUB_OUTPUT"
 
+      # The checks every push gets: tokens, formatting, lint, types, the unit
+      # suite and a production build.
+      - run: npm run check
+
+      # The page shows the same version as the APK (About, and the foot of
+      # the shelf): it reads package.json's, which is set from the tag here,
+      # before the build that ships.
+      - name: Set the web app's version
+        run: npm version --no-git-tag-version --allow-same-version "${{ steps.version.outputs.name }}"
+
+      - name: Build the page into the Android project
+        run: npm run sync
+
+      - name: Unit tests
+        working-directory: android
+        run: ./gradlew --no-daemon :app:testDebugUnitTest
+
       - name: Build the release APK
+        working-directory: android
         env:
           WAYMARK_KEYSTORE: ${{ runner.temp }}/waymark.jks
           WAYMARK_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -85,7 +110,7 @@ jobs:
           version="${{ steps.version.outputs.name }}"
           suffix=""
           [ "${{ steps.keystore.outputs.signed }}" = "true" ] || suffix="-unsigned"
-          source=$(find app/build/outputs/apk/release -name '*.apk' | head -n 1)
+          source=$(find android/app/build/outputs/apk/release -name '*.apk' | head -n 1)
           [ -n "$source" ] || { echo "No APK was produced"; exit 1; }
           target="waymark-${version}${suffix}.apk"
           cp "$source" "$target"

@@ -1,4 +1,4 @@
-// Generated from the Kotlin catalog by scripts/port-catalog-tables.py. Do not edit.
+// Ported from the Kotlin catalog (the tables it kept by hand); this is the source now.
 
 /** [code, name, currency code, currency name, plugs, volts, hertz, emergency, drives on left]. */
 export const COUNTRY_ROWS: readonly (readonly [

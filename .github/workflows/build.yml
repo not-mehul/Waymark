@@ -1,10 +1,11 @@
 name: Build
 
-# Every push gets the checks the release gets: style, the unit suite, Android
-# lint and a debug APK that actually assembles. A pull request from a branch
-# of this repository is already covered by the push that updated it, so only
-# a pull request from a fork runs here a second time. The release APK is built
-# by release.yml, from a tag.
+# Every push gets the checks the release gets: the web app's checks and
+# tests, the Android shell's unit tests, lint and builds, Kotlin style, and on
+# an emulator the upgrade from the Kotlin app and the cold start. A pull
+# request from a branch of this repository is already covered by the push that
+# updated it, so only a pull request from a fork runs here a second time. The
+# release APK is built by release.yml, from a tag.
 on:
   push:
     branches: ["**"]
@@ -19,14 +20,17 @@ permissions:
   contents: read
 
 env:
+  # The last commit with the Kotlin app (app/, core/, feature/), which phones
+  # are upgrading from. CI builds it to install the new app over.
+  KOTLIN_APP_COMMIT: c019bcb903d12410639091b1405bfe5136a9d6df
   KTLINT_VERSION: "1.8.0"
   KTLINT_SHA256: 369ad2b789f95a011f807e1fcb690ccef80bd7cd014fd139e73ae82dcc0baeab
   DETEKT_VERSION: "1.23.8"
   DETEKT_SHA256: 3afe89a11120303c73c9bdda3d8fe558dd9070a6937d27819ddc04b275381245
 
 jobs:
-  # The web app that replaces the Kotlin one, phase by phase: tokens and
-  # contrast, formatting, lint, types, the unit suite and a production build.
+  # The web app: tokens and contrast, formatting, lint, types, the unit suite
+  # and a production build.
   web:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
@@ -45,9 +49,9 @@ jobs:
 
   # The Android shell the web app ships in (android/): its unit tests, Android
   # lint (of the app only; Capacitor's own module is not ours to lint), a debug
-  # and a minified release build. The Kotlin app is built beside
-  # it, in the same job so the two share the runner's debug key, for the
-  # upgrade test that follows.
+  # and a minified release build. The Kotlin app it replaces is built beside
+  # it, from KOTLIN_APP_COMMIT, in the same job so the two share the runner's
+  # debug key, for the upgrade test that follows.
   shell:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
@@ -100,9 +104,14 @@ jobs:
             --out android/app/build/outputs/apk/release/app-release-ci.apk \
             android/app/build/outputs/apk/release/app-release-unsigned.apk
 
-      # Release-like, with its baseline profile, signed with the debug key:
-      # what the baseline profile workflow measures.
+      - name: Check out the Kotlin app to upgrade from
+        run: |
+          git fetch --no-tags --depth=1 origin "$KOTLIN_APP_COMMIT"
+          git worktree add --detach "$RUNNER_TEMP/kotlin-app" FETCH_HEAD
+
+      # Release-like, with its baseline profile, signed with the debug key.
       - name: Build the Kotlin app to upgrade from
+        working-directory: ${{ runner.temp }}/kotlin-app
         run: ./gradlew --no-daemon :app:assembleBenchmarkRelease
 
       - name: Collect APKs
@@ -110,7 +119,7 @@ jobs:
           mkdir -p apks/debug apks/release apks/kotlin
           cp android/app/build/outputs/apk/debug/app-debug.apk apks/debug/
           cp android/app/build/outputs/apk/release/app-release-ci.apk apks/release/
-          cp app/build/outputs/apk/benchmarkRelease/app-benchmarkRelease.apk apks/kotlin/
+          cp "$RUNNER_TEMP/kotlin-app/app/build/outputs/apk/benchmarkRelease/app-benchmarkRelease.apk" apks/kotlin/
 
       - uses: actions/upload-artifact@v7
         with:
@@ -157,7 +166,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      # API 34, as the baseline profile workflow's Pixel 6 is.
+      # API 34, as the Kotlin app's baseline profile was recorded on.
       - uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -174,6 +183,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none
           script: scripts/android-shell-tests.sh apks
 
+  # The Android shell's Kotlin: ktlint and detekt.
   style:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
@@ -199,77 +209,9 @@ jobs:
           echo "$DETEKT_SHA256  detekt.jar" | sha256sum -c -
 
       - name: ktlint
-        run: java -jar ktlint.jar "**/src/**/*.kt" "**/*.kts" "!**/build/**" --relative
+        run: java -jar ktlint.jar "android/app/src/**/*.kt" "!**/build/**" --relative
 
       - name: detekt
         run: |
-          sources=$(find . -path ./build-logic -prune -o -type d \( -path '*/src/main/java' -o -path '*/src/test/java' \) -print | paste -sd, -)
+          sources=$(find android/app -path '*/build' -prune -o -type d \( -path '*/src/main/java' -o -path '*/src/test/java' \) -print | paste -sd, -)
           java -jar detekt.jar --input "$sources" --config config/detekt.yml --build-upon-default-config
-
-  check:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: "21"
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-
-      - name: Unit tests
-        run: ./gradlew --no-daemon testDebugUnitTest
-
-      - name: Assemble debug
-        run: ./gradlew --no-daemon assembleDebug
-
-      # The benchmark module only builds against a release-like app, which
-      # nothing above compiles; this keeps it compiling between profile runs.
-      - name: Build the benchmarks
-        run: ./gradlew --no-daemon :baselineprofile:assembleBenchmarkRelease
-
-      # Room writes the schema of the current database version on every
-      # build. A schema the build changed, or one it wrote that is not
-      # committed, is a database change nobody has reviewed — and the next
-      # version's migration test will need it.
-      - name: Room schema is committed
-        if: ${{ !contains(github.event.head_commit.message, '[record schema]') }}
-        run: |
-          if [ -n "$(git status --porcelain core/data/schemas)" ]; then
-            git status --porcelain core/data/schemas
-            echo "::error::The Room schema changed. Build locally and commit core/data/schemas, or push a commit whose message contains [record schema]."
-            exit 1
-          fi
-
-      # Every screenshot test is compared with the reference committed beside
-      # it; screenshots.yml records new references after an intended change,
-      # and this push is not the one to check them against.
-      - name: Screenshots match
-        if: ${{ !contains(github.event.head_commit.message, '[record screenshots]') }}
-        run: ./gradlew --no-daemon verifyRoborazziDebug
-
-      - name: Android lint
-        run: ./gradlew --no-daemon lintDebug
-
-      # Warnings do not fail the build, so they are printed where they will
-      # be seen rather than left in a report nobody downloads.
-      - name: Lint findings
-        if: always()
-        run: cat app/build/reports/lint-results-debug.txt 2>/dev/null || echo "No lint report."
-
-      - name: Upload reports on failure
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: reports
-          path: |
-            **/build/reports/tests/
-            **/build/outputs/roborazzi/
-            app/build/reports/lint-results-debug.html
-          retention-days: 7

@@ -11,19 +11,20 @@ if ((findProperty('android.builtInKotlin') ?: '').toString().trim().equalsIgnore
         "Remove that line from gradle.properties (this project's, or ~/.gradle/gradle.properties) and sync again.")
 }
 
-// The version, from the release tag, exactly as the Kotlin app derives it
-// (app/build.gradle.kts): `-PwaymarkVersion=1.4.2` gives a code of 10402, so
-// this app installs over the Kotlin one at the same number or above. Without
-// the property it is 0.0.0, with a code of 1.
+// The version, from the release tag (release.yml), derived as the Kotlin app
+// derived it: `-PwaymarkVersion=2.0.0` gives a code of 20000. Keeping the
+// formula keeps the codes rising across the switch from the Kotlin app, which
+// Android needs to install an update. Without the property it is 0.0.0, with
+// a code of 1.
 def waymarkVersion = (findProperty('waymarkVersion') ?: '').toString().replaceFirst(/^v/, '')
 if (!(waymarkVersion ==~ /\d+\.\d+\.\d+/)) waymarkVersion = '0.0.0'
 def waymarkVersionCode = Math.max(1, waymarkVersion.tokenize('.').collect { it as int }
     .with { it[0] * 10000 + it[1] * 100 + it[2] })
 
-// The release key is the Kotlin app's, from the same places (RELEASING.md): a
-// keystore.properties at the repository root, or the WAYMARK_KEYSTORE…
-// environment. It has to be: Android installs an update only over an app
-// signed with the same key.
+// The release key, the one every Waymark release has been signed with, read
+// from a keystore.properties at the repository root or the WAYMARK_KEYSTORE…
+// environment (RELEASING.md). It has to be: Android installs an update only
+// over an app signed with the same key.
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('../keystore.properties')
 if (keystorePropertiesFile.exists()) {
@@ -43,7 +44,8 @@ android {
     namespace = "com.waymark"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        // The Kotlin app's id, so this installs as an update over it.
+        // Waymark's id since its first release; the Kotlin app had it too, so
+        // this installed as an update over it.
         applicationId = "com.waymark"
         minSdk = rootProject.ext.minSdkVersion
         targetSdk = rootProject.ext.targetSdkVersion
@@ -63,7 +65,7 @@ android {
     signingConfigs {
         release {
             if (canSign) {
-                // Relative to the repository root, as for the Kotlin app.
+                // Relative to the repository root.
                 storeFile = new File(releaseStoreFile).isAbsolute() ?
                     new File(releaseStoreFile) : rootProject.file("../${releaseStoreFile}")
                 storePassword = releaseStorePassword
@@ -89,10 +91,6 @@ android {
         // AGP is pinned to the newest version Android Studio supports;
         // upgrade it together with Android Studio (the Upgrade Assistant flags it).
         disable += 'AndroidGradlePluginVersion'
-        // Lint finds the Kotlin app's version catalog at the repository root
-        // and asks for it here; this project keeps Capacitor's own layout
-        // (variables.gradle) until the Kotlin app is gone.
-        disable += 'UseTomlInstead'
     }
 }
 

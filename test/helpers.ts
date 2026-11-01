@@ -34,9 +34,9 @@ export const dossierOf = (bundle: SampleBundle, segments: Segment[] = bundle.seg
 export const flightsIn = (segments: readonly Segment[]): Flight[] =>
   segments.filter((s): s is Flight => s.kind === 'FLIGHT');
 
-/** Where the bundled catalog files live until the Kotlin tree is retired; vite.config.ts ships the same folder. */
-export const CATALOG_SOURCE = 'core/catalog/src/main/resources/com/waymark/data/catalog';
+/** Where the bundled catalog files live; vite.config.ts ships the same folder. */
+export const CATALOG_SOURCE = 'data/catalog';
 
-/** A bundled catalog file, read off disk the way the Kotlin tests read it from the source tree. */
+/** A bundled catalog file, read off disk. */
 export const bundledLines = (name: string): string[] =>
   readFileSync(new URL(`../${CATALOG_SOURCE}/${name}`, import.meta.url), 'utf8').split('\n');

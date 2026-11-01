@@ -1,4 +1,4 @@
-// Generated from the Kotlin catalog by scripts/port-catalog-tables.py. Do not edit.
+// Ported from the Kotlin catalog (the tables it kept by hand); this is the source now.
 
 /** Closed rings, largest landmass first, as "lon lat" pairs separated by commas. */
 export const COASTLINE_RINGS: readonly string[] = [

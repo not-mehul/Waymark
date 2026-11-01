@@ -3,7 +3,8 @@ import type { CapacitorConfig } from '@capacitor/cli';
 // The Android shell (android/): Capacitor's WebView host for the page, and
 // the Waymark plugin for what has to run with the app closed.
 const config: CapacitorConfig = {
-  // The Kotlin app's id, so the new APK installs as an update over it.
+  // Waymark's id since its first release, which the Kotlin app had too, so
+  // this app installed as an update over it.
   appId: 'com.waymark',
   appName: 'Waymark',
   webDir: 'dist',

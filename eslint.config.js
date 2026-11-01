@@ -6,20 +6,7 @@ import svelteConfig from './svelte.config.js';
 
 export default tseslint.config(
   {
-    ignores: [
-      'dist/',
-      'android/',
-      'node_modules/',
-      'test-results/',
-      'playwright-report/',
-      // The Kotlin app, until the switch-over.
-      'app/',
-      'baselineprofile/',
-      'build-logic/',
-      'core/',
-      'feature/',
-      'build/'
-    ]
+    ignores: ['dist/', 'android/', 'node_modules/', 'test-results/', 'playwright-report/', 'build/']
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

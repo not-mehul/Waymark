@@ -1,4 +1,4 @@
-// Generated from the Kotlin catalog by scripts/port-catalog-tables.py. Do not edit.
+// Ported from the Kotlin catalog (the tables it kept by hand); this is the source now.
 
 /** [IATA designator, name], in the Kotlin table's order (a later duplicate wins). */
 export const AIRLINE_ROWS: readonly (readonly [string, string])[] = [

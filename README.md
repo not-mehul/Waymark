@@ -4,11 +4,17 @@ An Android travel-logistics app: every flight, stay, transfer and booking for a
 trip — for one traveler or a party that splits up — on one timeline, one vector
 chart. It works with the radio off.
 
-Kotlin 2.4, Jetpack Compose, Navigation 3, Hilt, Room, WorkManager, DataStore
-and Glance, built with Android Gradle Plugin 9.5 on Gradle 9.8 and targeting
-Android 17. Beyond AndroidX and Hilt the only runtime libraries are
-kotlinx.serialization, for trip files and the saved back stack, and ZXing's
-core, for reading and drawing barcodes.
+Svelte 5 and TypeScript in a Capacitor 8 shell, the stack Ledger and
+BookShelf share, with IndexedDB (through Dexie) for storage. The page's
+runtime libraries are Dexie, fflate for trip codes, a QR encoder and the
+Temporal polyfill. What has to happen with the app closed (reminders, the
+journey under way, the home-screen widget) and reading barcodes are a small
+Kotlin plugin in the Android project, with WorkManager, Glance and ZXing's
+core. It targets Android 17 and runs on Android 8 and later.
+
+Until version 2.0 Waymark was a Kotlin and Jetpack Compose app. The rewrite
+kept its id, its signing key and its features, and moves a phone's trips
+across the first time the new version opens.
 
 ---
 
@@ -180,31 +186,29 @@ Qatar, which is what taking the last arrival used to make of it.
 
 ## Design: "Editorial Dusk & Dawn"
 
-The app implements the supplied style reference as a Compose token system.
+The style reference is shared with Ledger and BookShelf as one source,
+`design/tokens.json`, which `design/build-tokens.mjs` turns into
+`src/styles/tokens.css` (and checks, with the contrast of every text pair, in
+`npm run check`).
 
-Every colour in the app comes from `WaymarkColors` — one data class of
-**semantic** tokens (`textHeading`, `panel`, `accentAmber`), defined twice, once
-for Dusk and once for Dawn. No composable names a colour. A token added to one
-theme only is a bug, exactly as a raw hex outside the `:root` block would be in
-the original CSS.
+Every colour in the app is a **semantic** CSS custom property (`--text-heading`,
+`--panel-bg`, `--accent-amber`), defined twice, once for Dusk and once for Dawn.
+No component names a colour. A token added to one theme only is a bug, exactly
+as a raw hex outside the token blocks would be.
 
 | Style reference | Implementation |
 | --- | --- |
-| `:root` / `[data-theme="light"]` token blocks | `DuskColors` / `DawnColors` in `ui/theme/Tokens.kt` |
-| `var(--token)` in every rule | `Waymark.colors.*` via `CompositionLocal` |
-| RGB triples for composable alpha | `colors.amber(0.25f)`, `colors.sage(…)`, `colors.cream(…)` |
-| Three-stop fixed gradient + three blurred glows | `WaymarkBackdrop` (`ui/components/Atmosphere.kt`) |
-| Serif display / system sans / system mono | `FontFamily.Serif` / `SansSerif` / `Monospace` — no web fonts, nothing downloaded |
-| All-caps tracked mono labels | `SectionLabel` (11sp / 0.25em), `FieldLabel` (10sp / 0.2em) |
-| 2px corners everywhere | `WaymarkShapes.corner = 2.dp`; no pills |
-| Translucent panels, four surface weights | `Panel(faint =)`, `input`, `modal` |
-| Bright-accent active fill, never `textStrong` as a background | `SegmentedToggle` |
-| Modal: amber hairline, corner brackets, fade + settle | `WaymarkModal`, `Modifier.cornerBrackets` |
-| Theme switch with sliding amber knob, `role="switch"` | `ThemeToggle`, 220 ms eased |
-| Warm-brown shadows in Dawn, softened | `shadow` + `shadowStrength = 0.4f` |
-| Voice: restrained, no marketing, italic asides | `Footnote`, and every string in the app |
-| Segmented control for a real choice, quiet rail for navigation | `SegmentedToggle` vs `TabRail` |
-| Motion is responsiveness, not decoration — 150–260 ms, eased out | `Motion`, and nothing outside it |
+| `:root` / `[data-theme="light"]` token blocks | Generated into `src/styles/tokens.css` from `design/tokens.json` |
+| `var(--token)` in every rule | The same, in `src/styles/app.css` and the components |
+| RGB triples for alpha | `rgba(var(--cream-rgb), 0.03)`, and the same for the shadow and danger colours |
+| Three-stop fixed gradient + three blurred glows | The page background and its glow layers in `app.css` |
+| Serif display / system sans / system mono | Fraunces (bundled, nothing downloaded) / `system-ui` / `ui-monospace` |
+| All-caps tracked mono labels | `SectionHeader`, and the field labels in `Field` |
+| 2px corners everywhere | `--radius: 2px`; no pills |
+| Modal: amber hairline, corner brackets, fade + settle | `Modal` |
+| Theme switch with sliding amber knob, `role="switch"` | `ThemeToggle` |
+| Segmented control for a real choice, quiet rail for navigation | `OptionChips` vs `TabRail` |
+| Motion is responsiveness, not decoration | The `--dur-*` and `--ease-*` tokens, and nothing outside them |
 
 ### The mark
 
@@ -220,16 +224,11 @@ halves of the logo never met.
 
 ### Motion
 
-Every animation in the app comes from one file, `ui/components/Motion.kt`, and
-there are three of them: content settles in on a screen's first composition,
-list rows stagger down the column once — not again each time a row scrolls
-back into view — and a value animates to its target rather than jumping.
-Buttons give 3% under a finger. Nothing bounces, nothing spins, nothing animates
-that the reader is waiting for.
-
-Compose scales every one of them by the system's animator duration scale, so a
-device with animations turned off in accessibility settings — or in battery
-saver — gets the final state immediately.
+Every transition takes its duration and easing from the tokens: content
+settles in, list rows stagger down the column once, and a value animates to
+its target rather than jumping. Nothing bounces, nothing spins, nothing
+animates that the reader is waiting for. With reduced motion asked for in the
+system's accessibility settings, every one of them is cut to the final state.
 
 ### Dates and times
 
@@ -253,17 +252,6 @@ Fields that open a picker are shaped *exactly* like fields that accept typing �
 same corner, same border, same 11dp of vertical padding — so a date sitting
 beside a flight number is the same height as it.
 
-### Two deliberate departures
-
-Both documented at the call site:
-
-- **Backdrop blur.** Compose has no cheap backdrop blur below API 31, so panel
-  translucency carries the recession instead of a per-frame render effect. The
-  reading-zone effect is preserved; the cost is not.
-- **Glows.** Drawn as wide radial gradients with long transparent tails rather
-  than blurred layers — already soft, one draw call, and works on every
-  supported API level.
-
 Both themes share one type ramp; only colour changes. First launch follows the
 system setting; the toggle overrides it.
 
@@ -285,62 +273,65 @@ own value; legend text wears a text token, never the series colour.
 
 ## Architecture
 
-Thirteen modules, each built by a convention plugin from `build-logic`, so a
-module's own build file says only what is particular to it:
+One page, built by Vite into a single `index.html` with the catalog files
+beside it, which `cap sync` copies into the Android project:
 
 ```
-app                 The activity, Navigation 3 back stack, Hilt graph, reminders,
-                    the Live Update and the widget
-feature/
-├── shelf           The trip shelf, About, backups
-├── trip            A trip: timeline, bookings, party, ideas, costs, map, numbers, insights
-├── flight          Adding a flight
-├── people          Everyone on every trip
-└── share           Importing and exporting: files, codes, emails, barcodes
-core/
-├── domain          Plain Kotlin. Trip, Traveler, Segment (sealed), Idea, and the
-│                   logic: TimelineBuilder, ConnectionRisk, PartySplitAnalyzer,
-│                   ReminderPlanner, LiveJourney, CostSplitter, WeatherPlan,
-│                   TripAnalytics, exports, Geo…
-├── catalog         Plain Kotlin. Stations, cities, airlines, country facts,
-│                   coastline, the worked example — large tables as resources
-├── share           Plain Kotlin. Trip files, backups, QR payloads, emails,
-│                   boarding passes
-├── data            Room, the settings DataStore, the repositories
-├── designsystem    Tokens, type, shapes, the component kit, charts
-├── notifications   Whether the app may notify, and asking once
-└── online          The only network code: weather and exchange rates, opt-in
-baselineprofile     Macrobenchmarks and the baseline-profile generator
+src/
+├── domain      Plain TypeScript, no DOM: the model and the logic (timeline,
+│               connection risk, party splits, reminders, the journey under
+│               way, cost splits, weather plan, analytics, exports, geometry)
+├── catalog     Stations, cities, airlines, country facts, coastline, the
+│               worked example
+├── db          The Dexie (IndexedDB) schema and the repositories
+├── share       Trip files, backups, trip codes, emails, boarding passes, and
+│               the handover from the Kotlin app
+├── online      The only network code: weather and exchange rates, opt-in
+├── state       Svelte rune modules: the open trip, settings, the screen and
+│               modal in view, and what is sent to the Android shell
+├── platform    The bridge to the Waymark plugin (callNative, onNativeEvent)
+├── components  The screens and the component kit
+└── styles      The tokens (generated) and the app's stylesheet
+data/catalog    airports.txt and cities.txt, fetched once at start
+android/        The Capacitor project and the Waymark plugin (android/README.md)
+design/         The shared Dusk & Dawn tokens and the style reference
 ```
 
-**Dependency injection is Hilt.** The core modules are plain classes with
-plain constructors — their tests build them by hand — and the app module
-provides them. View models are `@HiltViewModel`; the two that need a trip
-(and, for adding a flight, a flight read from an email) take it through
-assisted injection. What Android constructs itself — the reminder worker, the
-alarm receiver, the widget — reaches the graph through one entry point.
+**State is Svelte runes.** Each concern is a module of `$state` and
+`$derived` values with the functions that change them: the trip that is open,
+the settings, which screen and which modal are showing. Lists read IndexedDB
+through Dexie's `liveQuery`, so a change made anywhere (an import, a reminder
+tapped, another screen) shows everywhere without a refresh. Back is the
+system's back gesture, which the shell hands to the page only while it has a
+modal to close or a screen to leave, so the predictive back-to-home animation
+still works.
 
-**Navigation is Navigation 3.** The back stack is a list of `@Serializable`
-`Screen` keys that the app owns and edits directly, so "open this booking from
-a notification" is two `add`s rather than a deep-link graph, and the list
-survives the process being stopped. Each screen gets its own view-model store;
-the screens of one trip share the trip's view model through a store kept for
-as long as any of them is on the stack, so the timeline, a booking, the map
-and the numbers read the same dossier rather than each subscribing again. The
-derived state — timeline, splits, ideas board, numbers — is worked out off the
-main thread. Back is the system's predictive back, between screens and out of
-every sheet.
+**The domain layer is plain TypeScript.** No DOM, no Svelte, no Dexie, which
+is why the interesting logic is unit-tested in Node and most of the tests
+below run in milliseconds. It was ported from the Kotlin app's domain module
+together with its tests, which became the specification.
 
-**The domain layer is plain Kotlin.** No Android imports, no Compose, no Room —
-which is why the interesting logic is unit-testable on the JVM and why most of
-the tests below run in a fraction of a second.
+**Persistence.** One IndexedDB database. Bookings live in one store with a
+`kind` discriminator, as they did in the Kotlin app's single table. Backups and
+trip files keep the `waymark` archive format the Kotlin app wrote, so every
+file it made still opens, including ones from people on a trip who have not
+updated yet.
 
-**Persistence.** One Room database. Segments live in a single table with a
-`kind` discriminator; the alternative — a table per kind — buys nothing and
-costs four joins on the busiest read in the app. Composite values (places,
-traveler sets, seat and ticket maps) go through explicit codecs. Every schema
-the app has ever written migrates forward, never destructively, and each one
-is opened by the real migrations in the tests.
+**What runs with the app closed is Kotlin.** A page cannot keep time while the
+app is closed, so the page works out every reminder still worth posting, the
+journeys to draw and the next dozen bookings, and sends them to the Waymark
+plugin whenever a trip or a setting changes. The plugin keeps one alarm for
+the next thing due, with a 15-minute WorkManager check underneath, posts the
+notifications, draws the Live Update and the widget, and reads barcodes with
+ZXing. Its receiver, worker, widget and channel names are the Kotlin app's, so
+alarms, placed widgets and notification settings carried over the upgrade.
+
+**Moving from the Kotlin app.** The last Kotlin versions kept a full backup in
+the app's private storage whenever a trip changed. On its first launch the new
+app reads that file through the plugin, imports it, checks every trip reads
+back whole, and only then deletes it. If the old app's database is there but
+the file is not, it says so and points to restoring a backup instead of
+opening on an empty shelf.
 
 **Nothing is encrypted, deliberately.** There was an AES-256-GCM vault under an
 Android Keystore key, with a `BiometricPrompt` in front of the moment a code
@@ -352,7 +343,7 @@ is the device's own lock screen, as it does for everything else on it.
 
 **Flight data comes from the traveler, and only from the traveler.** There is
 no provider interface and no status subsystem. The one network client in the
-app, `core/online`, fetches the weather and the day's exchange rates, and only
+app, `src/online`, fetches the weather and the day's exchange rates, and only
 after the traveler turns on online extras; it sends a place to about a
 kilometre and the dates, or a request for today's rates, and never a booking,
 a name or a trip. A booking holds the times it was given, and changing them means
@@ -369,25 +360,24 @@ departure and announce an impossible connection on a correct itinerary.
 **Deleting.** Removing a booking releases any idea that was promoted onto it,
 so the idea returns to the list rather than vanishing with the segment.
 Removing a traveler takes the bookings only they were on and their name off
-the rest, and removes their profile if they are on no other trip. Removing a
-whole trip cascades through the database and sweeps the alert table, which sits
-outside the graph on purpose. A sweep on start-up repairs anything a previous
+the rest, and removes their profile if they are on no other trip. Removing a whole trip removes everything under it in one transaction, with the
+reminders raised for it. A sweep on start-up repairs anything a previous
 version orphaned. Trip deletion asks for the trip's name to be typed: it is the only
 irreversible thing the app can do, and the only friction of its kind.
 
-**The station directory.** `core/catalog`'s `airports.txt` holds 8,831 IATA stations —
+**The station directory.** `data/catalog/airports.txt` holds 8,831 IATA stations —
 the supplied table, with the 259 closed fields dropped and 26 duplicate codes
 resolved in favour of the larger, better-described row. **Time zones were
 resolved from each station's coordinates when the file was generated**, against
 real boundary data, so the app carries an exact IANA zone per airport and
 applies no heuristic of its own; a wrong zone moves a flight to the wrong day,
-not merely the wrong hour. `AirportDirectory.parse` is pure Kotlin over a line
-sequence, so the whole file is checked by the JVM tests. The hand-curated core
+not merely the wrong hour. `parseAirportDirectory` is a plain function over the
+file's lines, so the whole file is checked by the unit tests. The hand-curated core
 list survives alongside it and wins any collision, because it carries terminal
 designators and the names travelers actually use ("Heathrow", not "London
 Heathrow Airport").
 
-**The basemap.** `Coastline` holds Natural Earth's public-domain 1:110m land
+**The basemap.** `src/catalog/coastline-data.ts` holds Natural Earth's public-domain 1:110m land
 polygons, reduced by Ramer–Douglas–Peucker to 1,403 vertices across 50 rings —
 roughly one point per fifty kilometres of coast. Rings that crossed the
 antimeridian were clipped into separate closed pieces at generation time, which
@@ -398,100 +388,65 @@ seam. It parses lazily, so a trip that never opens the map never pays for it.
 
 ## Building
 
-Needs a JDK 21 (the code compiles to Java 17 bytecode) and an Android SDK
-with API 37. Gradle finds the SDK through
-`local.properties` or `ANDROID_HOME` — neither is in the repository, because
-both are specific to the machine.
-
-**With Android Studio installed** (the SDK usually sits in `~/Android/Sdk` on
-Linux, `~/Library/Android/sdk` on macOS):
+The page needs Node 24 (`.nvmrc`); nothing else.
 
 ```bash
-echo "sdk.dir=$HOME/Android/Sdk" > local.properties
+npm ci
+npm run dev        # the app in a browser, at http://localhost:5173
+npm run check      # tokens and contrast, formatting, lint, types, tests, build
+npm test           # the unit suite alone
 ```
 
-**Without Android Studio**, install the command-line tools once:
+In a browser the app is the whole app except what Android does for it:
+reminders, the widget, reading a barcode from a picture where the browser has
+no `BarcodeDetector`, and shares from other apps. Data lives in the browser's
+IndexedDB, so the browser build is also where to try a backup safely.
+
+**The Android app** needs a JDK 21 and an Android SDK with API 37, found through
+`android/local.properties` or `ANDROID_HOME`:
 
 ```bash
-# Linux; see developer.android.com/studio#command-line-tools-only for the
-# current archive and the macOS equivalent.
-mkdir -p ~/Android/Sdk/cmdline-tools && cd ~/Android/Sdk/cmdline-tools
-curl -O https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-unzip commandlinetools-linux-*.zip && mv cmdline-tools latest
-
-export ANDROID_HOME=$HOME/Android/Sdk
-export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
-
-sdkmanager --licenses
-sdkmanager "platform-tools" "platforms;android-37"
+npm run sync                       # build the page and copy it into android/
+cd android
+./gradlew assembleDebug            # app/build/outputs/apk/debug/app-debug.apk
+./gradlew :app:testDebugUnitTest   # the plugin's unit tests
+./gradlew :app:lintDebug           # Android lint
+./gradlew assembleRelease          # the R8-minified release APK
 ```
 
-Then:
+or open `android/` in Android Studio after `npm run sync`.
+[android/README.md](android/README.md) describes the shell and the plugin.
 
-```bash
-./gradlew testDebugUnitTest         # the unit suite, every module, Robolectric included
-./gradlew verifyRoborazziDebug      # the screenshot tests, against the committed references
-./gradlew assembleDebug             # the APK
-./gradlew lintDebug                 # Android lint, the libraries included
-```
+The plugin's Kotlin style is checked by ktlint and detekt, run in CI as their
+command-line jars against `.editorconfig` and `config/detekt.yml`; the same two
+commands work locally with the jars from Maven Central (versions in
+`build.yml`).
 
-The unit and screenshot tests need no emulator and no device. There is
-nothing else to configure: no API key, no account, no service.
-
-**Screenshots.** The component kit and the edit-booking screen are drawn in
-both themes by Robolectric and compared with the PNGs under each module's
-`src/test/screenshots`. The references are drawn on CI's Linux runner, where
-they are checked, so a font difference between machines never reads as a
-change: after an intended visual change, push a commit whose message contains
-`[record screenshots]`, and `screenshots.yml` records and commits them.
-
-**Baseline profile and benchmarks.** `:baselineprofile` drives the release
-build on a Gradle-managed emulator: it opens the app, loads the worked
-example, opens the trip and reads down it, and records what ran as the
-baseline profile the release build compiles in. A commit message containing
-`[baseline profile]` runs `baseline-profile.yml`, which records the profile
-into `app/src/release/generated/baselineProfiles`, commits it, and measures
-cold start uncompiled, with the profile and fully compiled. The profile is
-the one the app ships; there is no hand-written one beside it. Locally, with
-an emulator image installed:
-
-```bash
-./gradlew :app:generateBaselineProfile
-./gradlew :baselineprofile:pixel6Api34BenchmarkReleaseAndroidTest
-```
-
-The Kotlin app's cold start, recorded on 1 November 2026 by the run on
-`0d9e682` (Pixel 6, API 34 emulator on the CI runner, time to initial display,
-median of 10): 1754 ms with the profile (1602 to 1972), 1748 ms interpreted,
-1725 ms fully compiled, and 1693 ms straight into a trip. It is the baseline
-the Svelte rewrite is measured against on the same emulator; the absolute
-numbers are the emulator's, not a phone's.
-
-Style is checked by ktlint and detekt, run in CI as their command-line jars
-against `.editorconfig` and `config/detekt.yml`; the same two commands work
-locally with the jars from Maven Central (versions in `build.yml`).
-
-The build writes the Room schema to `core/data/schemas`. A change to the database
-shows up there and must be committed with a migration; CI fails a build whose
-schema differs from the committed one.
+**On an emulator, in CI.** Every push installs the last Kotlin version with
+the worked example in it, installs the new app over it as a phone would get
+the update, and checks the trip, its twelve bookings and two travelers came
+across and the handover file is gone. Then it times the cold start of both,
+ten launches each. On 1 November 2026 (API 34 emulator, median of 10, empty
+shelf) the Kotlin app drew its shelf in 513 ms and the new app in 429 ms.
 
 ### Releasing
 
-Waymark ships as a sideloaded APK — there is no store listing. Publishing is
-a tag push:
+Waymark ships as a sideloaded APK; there is no store listing. Publishing is a
+tag push:
 
 ```bash
-git tag v1.0.0 && git push origin v1.0.0
+git tag v2.0.0 && git push origin v2.0.0
 ```
 
-The version comes from the tag — `v1.4.2` builds version name `1.4.2` and code
-`10402` — so there is no number in the source to remember to bump.
-`.github/workflows/release.yml` runs the unit suite, builds the release APK,
-signs it with the keystore held in the repository's secrets, and opens a draft
-GitHub release with the APK attached. **[RELEASING.md](RELEASING.md)** covers
-making the signing key, the four secrets, building signed on your own machine,
-and the short list of things worth checking on a real phone before tagging —
-the parts of an app that unit tests cannot reach.
+The version comes from the tag: `v2.0.0` builds version name `2.0.0` and code
+`20000`, for the APK and the page alike, so there is no number in the source
+to remember to bump. `.github/workflows/release.yml` runs the checks, builds
+the release APK, signs it with the keystore held in the repository's secrets
+(the same key the Kotlin versions were signed with, which is what lets it
+install as an update) and opens a draft GitHub release with the APK attached.
+**[RELEASING.md](RELEASING.md)** covers the signing key, the four secrets,
+building signed on your own machine, and what to check on a real phone before
+tagging.
 
 Release builds run R8 with resource shrinking. Without a keystore the build
 still completes and says so, and the artifact is named `-unsigned` so it cannot
@@ -501,107 +456,113 @@ be mistaken for a shippable one.
 
 ## Tests
 
-Unit tests over every layer. Most are plain JVM tests of the domain, catalog
-and share code; the database, the repository, a view model and a Compose screen
-run under Robolectric against a real SQLite and a real composition, and the
-screenshot tests draw the component kit and a whole screen in both themes.
+317 unit tests in Vitest, run in Node with the time zone pinned to UTC and
+IndexedDB faked in memory. The domain, catalog and share suites were ported
+one for one from the Kotlin app's, which is how the TypeScript port was held
+to the same behaviour. The Waymark plugin's own logic (the schedule it keeps,
+the widget's choice of booking, the time spans it writes) has JVM tests under
+`android/app/src/test`, and CI checks the upgrade from the Kotlin app on an
+emulator.
 
-- `CostSplitterTest` — an even split, the odd cent, a split among some, no
+- `cost-splitter` — an even split, the odd cent, a split among some, no
   more settling payments than people less one, a foreign expense converted
   once, an expense with no rate listed rather than counted, a payer who has
   left the party still owed, and amounts read the way people type them
-- `WeatherPlanTest`, `ParsingTest`, `WeatherRepositoryTest` — where the trip is
+- `weather-plan`, `weather`, `rates` — where the trip is
   on each day still to come, forecast within two weeks and last year beyond,
   both services' replies read and refused, and **nothing fetched at all while
   online extras are off**
-- `ItineraryDocumentTest` — every booking once under its day, every reference,
+- `itinerary-document` — every booking once under its day, every reference,
   the day's weather, and who pays whom
-- `LiveJourneyTest` — the journey under way: nothing long before departure, a
+- `live-journey` — the journey under way: nothing long before departure, a
   countdown from three hours out, a bar that fills to landing, gone on arrival,
   quiet when flight reminders are off, and woken exactly when it next changes
-- `ComponentsScreenshotTest`, `EditSegmentScreenshotTest` — the kit and the
-  edit screen, Dusk and Dawn, pixel for pixel
-
-- `MigrationTest` — **every schema an earlier build could have left on a
-  phone** — three version 1 builds, version 2, early and late version 3 —
-  opened through the real migrations and checked by Room against today's
-  entities, with the trip, its traveler, booking, idea and reminder coming
-  through, and foreign keys still cascading afterwards
-- `TripRepositoryTest` — import replaces rather than duplicates, everyone
-  ticked is stored as everyone, a booking widens its trip, removing a traveler
+- `trip-repository` — an import reads back whole and replaces rather than
+  duplicates, everyone ticked is stored as everyone, deleting a trip removes
+  everything on it, removing a traveler
   takes their own bookings and keeps the shared ones, a profile on another trip
   survives, an archived trip stays quiet, the widget reads the next few
   bookings soonest first
-- `MappersTest` — every kind of row round-trips, an unknown kind is skipped
-  rather than a crash, legacy `0,0` coordinates read as unknown
-- `ShareViewModelTest`, `EditSegmentScreenTest` — an email offers its flights,
-  a trip code is shown before it is written, and the edit screen says why it
-  will not save
-- `TripArchiveTest` — trip files and QR payloads round-trip, a code fits by
+- `rows` — every kind of booking in the worked example round-trips, an
+  unknown kind is skipped rather than a crash, a place without coordinates
+  stays without them
+- `trip-archive` — trip files and QR payloads round-trip, a code fits by
   leaving out what it says it left out, a damaged or newer file is refused
-- `ParsingTest` — flights read out of a confirmation email (dates either side
+- `parsing` — flights read out of a confirmation email (dates either side
   of the flight number, 12-hour times, a European date not mistaken for a
   time, "Room 215" not mistaken for a flight) and out of an IATA boarding-pass
   barcode, one leg or several
-- `SegmentFormTest` — editing a booking: a new airport moves it into that
+- `segment-form` — editing a booking: a new airport moves it into that
   airport's zone, an end a little before the start runs past midnight, seats
   are kept only for the people on the flight
-- `LegTimesTest`, `LodgingNightsTest` — an arrival's day inferred from two
+- `leg-times`, `lodging-nights` — an arrival's day inferred from two
   clocks, and nights counted as calendar nights in the hotel's zone
-- `PlacesTest`, `WhereaboutsTest` — typed places resolved exactly, nearest
+- `places`, `whereabouts` — typed places resolved exactly, nearest
   first, never by substring; where the trip is at a given moment
-- `IcsExportTest` — one event per booking, UTC times, escaping and folding
-- `AirlinesTest` — the carrier table's codes well formed and unique
-- `FlightDesignatorTest` — parsing `BA286`, `ba 286`, `BAW286`, `3U8888`, `U2 1234`
-- `GeoTest` — great-circle distances against published figures, arc symmetry,
+- `ics-export` — one event per booking, UTC times, escaping and folding
+- `airlines` — the carrier table's codes well formed and unique
+- `flight-designator` — parsing `BA286`, `ba 286`, `BAW286`, `3U8888`, `U2 1234`
+- `geo` — great-circle distances against published figures, arc symmetry,
   Mercator round-trip, antimeridian detection
-- `ConnectionRiskTest` — minimum connection times, terminal changes,
+- `connection-risk` — minimum connection times, terminal changes,
   immigration, inter-carrier bag re-check, a delay eating a connection
-- `TimelineBuilderTest` — ordering, one entry per segment (two for lodging),
+- `timeline-builder` — ordering, one entry per segment (two for lodging),
   day breaks, traveler filtering, the now marker, and **two travelers on
   parallel flights not being read as one broken connection**
-- `PartySplitAnalyzerTest` — the split window and per-traveler coverage
-- `ReminderPlannerTest` — that every category can raise one rather than only
+- `party-split-analyzer` — the split window and per-traveler coverage
+- `reminder-planner` — that every category can raise one rather than only
   flights, that a category switched off raises nothing, the window boundaries at
   both ends, and **that the signature is stable as the clock closes in** so a
   booking is announced once rather than at every check — but changes when the
   booking moves, because the time did
-- `TransitAndTimeTest` — estimates, mode selection, duration and zone-shift text
-- `IdeaBoardTest` — section ordering, per-traveler filtering, and promotion to
+- `transit-and-time` — estimates, mode selection, duration and zone-shift text
+- `idea-board` — section ordering, per-traveler filtering, and promotion to
   a timeline segment
-- `CountriesTest` — every row well formed and unique, and the one that decides
+- `countries` — every row well formed and unique, and the one that decides
   whether the feature works at all: **every country in the bundled station
   directory has notes**, so there is no airport you can enter and get a blank
   screen for
-- `TimeAtPlaceTest` — that the worked example resolves to London then Paris,
+- `time-at-place` — that the worked example resolves to London then Paris,
   that a two-hour connection is not a destination, and that a trip with one
   movement has nowhere to have stayed
-- `TripAnalyticsTest` — distance splits that add up, day loads that cannot
+- `trip-analytics` — distance splits that add up, day loads that cannot
   exceed a day, carbon against the published factors
-- `GlobeProjectionTest` — orthographic projection inside the unit disc, the
+- `globe-projection` — orthographic projection inside the unit disc, the
   horizon as the culling boundary, and a centroid that survives the antimeridian
-- `DurationTextTest` — how a span reads at every scale: hours and minutes under
+- `duration-text` — how a span reads at every scale: hours and minutes under
   a day, then days, then weeks and days, then months, weeks and days; zero terms
   dropped; and a property that the leading unit only ever coarsens as the span
   grows
-- `AirportDirectoryTest` — the generated format, interned zones, a station with
+- `airport-directory` — the generated format, interned zones, a station with
   no municipality falling back to its own name, and a malformed line being
   skipped rather than taking the directory down with it
-- `AirportAssetTest` — the shipped file itself: every zone one the platform
+- `airport-asset` — the shipped file itself: every zone one the platform
   knows, every coordinate in range, no duplicate codes, the stations a traveler
   is most likely to type, the half-hour and three-quarter-hour zones that a
   lazy country-to-zone table gets wrong, and **a check that each station's UTC
   offset agrees with its longitude**, which is what catches a transposed
   latitude and longitude
-- `MarkdownExportTest` — sections, chronology, checkbox states, a filename safe
+- `markdown-export` — sections, chronology, checkbox states, a filename safe
   on any filesystem, and that **every booking reference in the fixture appears
   in the exported document**
-- `LabelPlacerTest` — no two labels overlapping, no label covering a foreign
+- `label-placer` — no two labels overlapping, no label covering a foreign
   mark, everything inside the viewport, priority winning a contested slot, and
   forty marks in one cluster yielding some labels rather than all or none
-- `CoastlineTest` — closed rings, real coordinates, no seam crossing from
+- `coastline` — closed rings, real coordinates, no seam crossing from
   interior longitudes, and a point-in-polygon check that Paris is on land and
   the mid-Pacific is not
+- `handover` — moving the Kotlin app's trips: no file means nothing to do, a
+  file that cannot be read is kept for the next launch, and running it twice
+  changes nothing the second time
+- `files` — a backup's trips found, a file too large to be a trip turned away
+  unread, and a trip code's link opened as well as its bare payload
+- `shell-data` — what the page sends the Android shell: every reminder still
+  to come, soonest first and worded as at the moment it falls due, nothing
+  with reminders off, a journey window per flight, and each widget booking
+  named with its trip, day, clock and place
+- `add-flight` — an evening departure that lands the next morning, a chosen
+  part of the party, and a boarding pass filling in everything it carries but
+  the clock times
 
 ---
 
@@ -662,7 +623,7 @@ the IATA table supplied with the project, deduplicated and cleaned, with time
 zones resolved from coordinates at generation time, and ISO country codes
 expanded to names by the bundled country table. The city gazetteer is
 [GeoNames](https://www.geonames.org) `cities15000` (CC BY 4.0), built into
-`core/catalog`'s `cities.txt` by `tools/build_cities.py`; the airline names are
+`data/catalog/cities.txt` by `tools/build_cities.py`; the airline names are
 hand-compiled. That table — currency, socket
 type, mains voltage, emergency number and driving side for 240 countries and
 territories — is hand-compiled. Everything else in the app was entered by

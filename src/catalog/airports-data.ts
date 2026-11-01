@@ -1,4 +1,4 @@
-// Generated from the Kotlin catalog by scripts/port-catalog-tables.py. Do not edit.
+// Ported from the Kotlin catalog (the tables it kept by hand); this is the source now.
 
 /** The hand-checked core stations: [code, name, city, country, lat, lon, zone, terminals]. */
 export const CORE_AIRPORT_ROWS: readonly (readonly [

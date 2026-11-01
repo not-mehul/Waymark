@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build core/catalog/src/main/resources/com/waymark/data/catalog/cities.txt, the bundled city gazetteer.
+"""Build data/catalog/cities.txt, the bundled city gazetteer.
 
 Source: GeoNames "cities15000" (every populated place of 15,000 people or more,
 CC BY 4.0, https://www.geonames.org/), as packaged in the geonamescache Python
@@ -9,7 +9,7 @@ distribution, which carries each city's IANA time zone alongside it:
     unzip geonamescache-3.0.2-py3-none-any.whl 'geonamescache/data/cities15000.json'
     python3 tools/build_cities.py geonamescache/data/cities15000.json
 
-Output shape, parsed by CityDirectory.kt:
+Output shape, parsed by parseCityDirectory (src/catalog/cities.ts):
 
     Europe/Paris                 <- zone table, one per line
     ...
@@ -73,7 +73,7 @@ def main(source: str) -> None:
             )
         )
 
-    target = Path(__file__).resolve().parent.parent / "core/catalog/src/main/resources/com/waymark/data/catalog/cities.txt"
+    target = Path(__file__).resolve().parent.parent / "data/catalog/cities.txt"
     target.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"{len(cities)} cities, {len(zones)} zones -> {target}")
 
