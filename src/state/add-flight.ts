@@ -9,6 +9,7 @@ import { flightLeg, type Leg } from '../domain/leg-times';
 import { flight, tripEndDate, tripStartDate, type Flight, type Trip } from '../domain/model';
 import { compareDates, zoneOrUtc, type LocalDate, type LocalTime } from '../domain/time';
 import { newId } from '../db/trips';
+import { parseBoardingPass } from '../share/bcbp';
 
 export interface FlightEntry {
   designator: string;
@@ -173,3 +174,31 @@ export function flightOf(entry: FlightEntry, tripId: string, party: readonly str
 
 /** "San Francisco · San Francisco International", for the hint under a station field. */
 export const stationHint = (a: Airport) => `${a.city} · ${a.name}`;
+
+/**
+ * A flight from the text in a boarding pass's barcode, with the line to show
+ * above the form; null when the text is not a pass.
+ */
+export function fromBoardingPass(
+  entry: FlightEntry,
+  text: string,
+  today: LocalDate
+): { entry: FlightEntry; notice: string } | null {
+  const legs = parseBoardingPass(text, today);
+  const leg = legs[0];
+  if (!leg) return null;
+  return {
+    entry: prefill(entry, {
+      designator: leg.designator,
+      date: leg.date,
+      origin: leg.origin,
+      destination: leg.destination,
+      confirmationCode: leg.reference,
+      cabin: leg.cabin,
+      seat: leg.seat
+    }),
+    notice:
+      'Read from the pass. Add the departure and arrival times; a pass does not carry them.' +
+      (legs.length > 1 ? ` It has ${legs.length} flights; this is the first.` : '')
+  };
+}

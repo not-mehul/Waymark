@@ -5,6 +5,7 @@ import {
   canSave,
   entryLeg,
   flightOf,
+  fromBoardingPass,
   newFlightEntry,
   prefill,
   timeProblem
@@ -45,5 +46,35 @@ describe('adding a flight', () => {
   it('takes a seat from a pass only when one person is flying', () => {
     expect(prefill(entry, { seat: '21A' }).seats).toEqual({});
     expect(prefill({ ...entry, selectedTravelers: ['a'] }, { seat: '21A' }).seats).toEqual({ a: '21A' });
+  });
+});
+
+describe('fromBoardingPass', () => {
+  const pass = 'M1DESMARAIS/LUC       EABC123 YULFRAAC 0834 326J001A0025 100';
+  const today = localDate(2026, 11, 1);
+
+  it('fills in everything a pass carries, and leaves the clock times', () => {
+    const solo = newFlightEntry(today, ['a']);
+    const read = fromBoardingPass(solo, pass, today)!;
+    expect(read.entry).toMatchObject({
+      designator: 'AC834',
+      date: localDate(2026, 11, 22),
+      origin: 'YUL',
+      destination: 'FRA',
+      confirmationCode: 'ABC123',
+      seats: { a: '1A' },
+      departTime: null,
+      arriveTime: null
+    });
+    expect(read.notice).toContain('Add the departure and arrival times');
+  });
+
+  it('puts the seat on no one when the flight has more than one traveller', () => {
+    const read = fromBoardingPass(newFlightEntry(today, ['a', 'b']), pass, today)!;
+    expect(read.entry.seats).toEqual({});
+  });
+
+  it('is null for text that is not a pass', () => {
+    expect(fromBoardingPass(entry, 'waymark://import?d=abc', today)).toBeNull();
   });
 });

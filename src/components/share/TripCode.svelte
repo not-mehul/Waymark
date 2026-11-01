@@ -3,6 +3,7 @@
   // carries as much of the trip as fits, everything if it can, then without
   // the ideas, then without long notes, and says what it left out. Too big
   // even for that, it says to send the file instead.
+  import { TRIP_CODE_PREFIX } from '../../share/files';
   import { qrDrawing } from '../../share/qr';
   import { archiveOf, CODE_DETAIL_OMITS, toCode } from '../../share/trip-archive';
   import { useTrip } from '../trip/context';
@@ -11,9 +12,6 @@
 
   let { onsendfile }: { onsendfile: () => void } = $props();
   const { model, close } = useTrip();
-
-  /** What a trip code says: a link the phone's camera hands to Waymark. */
-  const CODE_PREFIX = 'waymark://import?d=';
 
   const code = $derived.by(() => {
     const d = model.dossier;
@@ -24,7 +22,7 @@
       ])
     );
   });
-  const drawing = $derived(code ? qrDrawing(CODE_PREFIX + code.payload) : null);
+  const drawing = $derived(code ? qrDrawing(TRIP_CODE_PREFIX + code.payload) : null);
   const omits = $derived(code ? CODE_DETAIL_OMITS[code.detail] : null);
 </script>
 
