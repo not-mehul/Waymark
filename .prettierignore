@@ -1,5 +1,5 @@
-# Only the web app is formatted by Prettier. The Kotlin tree, the shared design
-# sources (generated and checked by design/build-tokens.mjs), Room's schemas,
+# Only the web app is formatted by Prettier. The Android shell, the shared design
+# sources (generated and checked by design/build-tokens.mjs), the catalog data,
 # the docs and the workflows keep the formatting they were written in.
 dist/
 node_modules/
@@ -9,15 +9,10 @@ playwright-report/
 package-lock.json
 src/styles/tokens.css
 src/catalog/*-data.ts
-app/
-baselineprofile/
-build-logic/
-core/
-feature/
 build/
 config/
 tools/
-gradle/
+data/
 design/
 .github/
 *.md

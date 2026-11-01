@@ -7,16 +7,17 @@ run with the app closed lives in one plugin,
 [`WaymarkPlugin.kt`](app/src/main/java/com/waymark/WaymarkPlugin.kt), whose web
 side is `src/platform/native.ts` and `src/state/shell.svelte.ts`.
 
-It has the Kotlin app's id (`com.waymark`) and, for a release, its key and its
-version numbering, so it installs over the Kotlin app as an update. Until the
-switch-over (phase 6 of the rewrite) the Kotlin app in `app/`, `core/` and
-`feature/` stays the one that ships.
+It has Waymark's id (`com.waymark`), release key and version numbering, the
+ones the Kotlin app had before it, so it installed over the Kotlin app as an
+update. The Kotlin app itself was removed from the repository at the
+switch-over; CI still builds its last commit (`KOTLIN_APP_COMMIT` in
+`.github/workflows/build.yml`) to check that upgrade on an emulator.
 
 ## What the shell does
 
 | | Where |
 |---|---|
-| Moves the Kotlin app's trips across on the first launch: hands the page the backup the Kotlin app kept (`HandoverSnapshot.kt`), and removes it once the page has read every trip back | `Handover.kt` |
+| Moves the Kotlin app's trips across on the first launch: hands the page the backup the Kotlin app kept (its `HandoverSnapshot.kt`), and removes it once the page has read every trip back | `Handover.kt` |
 | Posts reminders on time and draws the journey under way (a Live Update on Android 16+). The page works both out and sends them whenever a trip or a reminder setting changes; the shell keeps one alarm for the next, with a 15-minute WorkManager check underneath | `alerts/` |
 | The Next up widget, from the next dozen bookings the page sends | `widget/` |
 | Reads a boarding pass or a trip code from a picture, with ZXing | `share/Barcodes.kt` |
@@ -46,7 +47,7 @@ Then open this folder (`android/`) in Android Studio, or from the command line
 ./gradlew assembleRelease        # R8-minified release APK
 ```
 
-A release is signed with the Kotlin app's key, read from the same places:
+A release is signed with Waymark's release key, read from
 `keystore.properties` at the repository root, or the `WAYMARK_KEYSTORE…`
 environment variables (see `RELEASING.md`). Without them the release APK is
 unsigned.

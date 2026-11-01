@@ -6,10 +6,10 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 /**
  * The station directory and the gazetteer are 2 MB of text, too much to
  * inline into the page, so they ship beside it as `catalog/<name>` and are
- * fetched once at start (src/catalog/load.ts). They stay where the Kotlin app
- * keeps them until that tree is retired; test/helpers.ts reads the same folder.
+ * fetched once at start (src/catalog/load.ts). They live in data/catalog;
+ * test/helpers.ts reads the same folder.
  */
-const CATALOG_SOURCE = 'core/catalog/src/main/resources/com/waymark/data/catalog';
+const CATALOG_SOURCE = 'data/catalog';
 const CATALOG_FILES = ['airports.txt', 'cities.txt'];
 
 function catalog(): Plugin {

@@ -4,7 +4,15 @@ Waymark ships as an APK you sideload — there is no Play listing. Publishing is
 
 ---
 
-## Once, before the first release: make a signing key
+## The signing key
+
+Waymark has been signed with one key since its first release, and version 2.0
+(the Svelte app) is signed with the same one: that is what lets it install as
+an update over the Kotlin versions, and keep a phone's trips. **Use the key you
+already have; do not make a new one.** The four repository secrets below
+already hold it if earlier releases came out of CI.
+
+### Only for a brand-new install base: make a key
 
 An Android APK must be signed to install, and every later version must be
 signed by **the same key** or the phone will refuse the upgrade. Losing this
@@ -28,7 +36,7 @@ take them out.
 
 ## Building on your own machine
 
-Put a `keystore.properties` in the repository root — beside `settings.gradle.kts`,
+Put a `keystore.properties` in the repository root, beside `package.json`,
 never committed:
 
 ```properties
@@ -42,9 +50,18 @@ keyPassword=…
 works too. Then:
 
 ```bash
-./gradlew testDebugUnitTest      # the unit suite
-./gradlew assembleRelease        # app/build/outputs/apk/release/app-release.apk
+npm ci
+npm run check                                # the web app's checks and unit suite
+npm run sync                                 # build the page into android/
+cd android
+./gradlew :app:testDebugUnitTest             # the plugin's unit tests
+./gradlew -PwaymarkVersion=2.0.0 assembleRelease
+# app/build/outputs/apk/release/app-release.apk
 ```
+
+For the page to show the same version as the APK, set it before `npm run
+sync` with `npm version --no-git-tag-version 2.0.0` (and leave that change
+uncommitted); the release workflow does this from the tag.
 
 Without a `keystore.properties` the release build still runs and prints a
 warning, but produces an **unsigned** APK that no phone will install. That is
@@ -73,8 +90,8 @@ keytool -list -v -keystore waymark.jks -alias waymark
 ```
 
 If that prints the certificate, the keystore and the store password are right
-and the problem is in `keystore.properties`. `./gradlew signingReport` shows
-what the build actually resolved.
+and the problem is in `keystore.properties`. `./gradlew signingReport`, run in
+`android/`, shows what the build actually resolved.
 
 ---
 
@@ -93,12 +110,12 @@ Actions**:
 Then tag and push:
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v2.0.0
+git push origin v2.0.0
 ```
 
-`.github/workflows/release.yml` runs the unit suite, builds the release APK,
-signs it, uploads it as a build artifact, and opens a **draft** GitHub release
+`.github/workflows/release.yml` runs the web app's checks and the plugin's
+unit tests, builds the page and the release APK around it, signs it, uploads it as a build artifact, and opens a **draft** GitHub release
 with the APK attached. Write the notes and press publish.
 
 If any of the four secrets is missing, the workflow still finishes — it warns,
@@ -114,18 +131,27 @@ it no longer is.
 Both come from the tag; there is nothing in the source to bump.
 
 - `versionName` is what a person reads — it appears in the About sheet and at
-  the foot of the trip shelf. A `v1.4.2` tag builds `1.4.2`.
+  the foot of the trip shelf, where the page reads it from `package.json`,
+  which the workflow sets from the tag. A `v2.0.0` tag builds `2.0.0`.
 - `versionCode` is what Android compares, and it must **increase** with every
   release or the upgrade is refused. It is worked out from the name —
   major × 10 000 + minor × 100 + patch, so `1.4.2` is `10402` — which keeps it
-  increasing as long as minor and patch stay under 100.
+    increasing as long as minor and patch stay under 100. The Svelte app keeps
+  the Kotlin app's formula, so its codes carry on from where the Kotlin
+  versions stopped.
+
+**The first release of the Svelte app is `v2.0.0`.** Its code, 20000, is above
+any 1.x the Kotlin app had, so it installs as an update over whichever one a
+phone has. The Kotlin app's last versions keep the backup the new app moves
+the trips from; a phone with an older Kotlin version than that should take the
+last Kotlin release first, or restore a backup after updating.
 
 Tags must be `vMAJOR.MINOR.PATCH`. Anything else builds as `0.0.0` with a
 warning, and so does a build with no tag at all — a local build, or CI on a
 branch. To build a numbered release by hand:
 
 ```bash
-./gradlew -PwaymarkVersion=1.4.2 assembleRelease
+cd android && ./gradlew -PwaymarkVersion=2.0.0 assembleRelease
 ```
 
 ---
@@ -134,9 +160,10 @@ branch. To build a numbered release by hand:
 
 The unit suite covers the parts of the app that can be tested without a device
 — all the date arithmetic, the timeline builder, the country table, the label
-placer, the exports and parsers, the airport and coastline assets, and, under
-Robolectric, the database migrations, the repository and one Compose screen.
-It does not cover layout, notifications or the widget. Before a release, on a
+placer, the exports and parsers, the airport and coastline assets, the
+repository over IndexedDB, and what the page sends the Android shell. CI's
+emulator run covers the upgrade from the Kotlin app and a cold start. Nothing
+automated covers layout, notifications firing or the widget drawing. Before a release, on a
 real phone:
 
 - **A first launch is empty.** The shelf offers "New itinerary" and, quieter,
@@ -158,8 +185,7 @@ real phone:
   landing. On Android 16 and later it is a Live Update, with a status-bar chip.
 - **Predictive back** — start a back swipe on a sheet and on a screen and let
   go: both follow the finger and come back.
-- **The baseline profile** — run `baseline-profile.yml` before a release that
-  changed start-up or the trip screen, so the profile compiled in is current.
+
 - **Sharing** — share a confirmation email to Waymark and check the flights it
   offers; share a trip file to another phone and open it; show a trip's code
   and scan it with the other phone's camera.
@@ -173,5 +199,8 @@ real phone:
 - **Both themes**, checked on one screen with a chart on it.
 - **Delete a trip**, and confirm nothing of it is left on the shelf.
 - **An upgrade over an older install** still opens and keeps the itinerary.
-  `MigrationTest` covers every earlier schema; a real install is the check
-  that nothing outside the database was forgotten.
+  For 2.0, install it over the Kotlin version on the phone and check every trip
+  is on the shelf, with its bookings, people, ideas and costs, and that a
+  reminder set before the update still arrives after the app has been opened
+  once. CI checks the same move with the worked example; a real phone is the
+  check with real trips.
