@@ -41,8 +41,8 @@ Then open this folder (`android/`) in Android Studio, or from the command line
 
 ```bash
 ./gradlew assembleDebug          # app/build/outputs/apk/debug/app-debug.apk
-./gradlew testDebugUnitTest      # JVM unit tests
-./gradlew lintDebug              # Android Lint
+./gradlew :app:testDebugUnitTest # JVM unit tests
+./gradlew :app:lintDebug         # Android Lint, of the app module
 ./gradlew assembleRelease        # R8-minified release APK
 ```
 

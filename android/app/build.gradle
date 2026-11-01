@@ -89,6 +89,10 @@ android {
         // AGP is pinned to the newest version Android Studio supports;
         // upgrade it together with Android Studio (the Upgrade Assistant flags it).
         disable += 'AndroidGradlePluginVersion'
+        // Lint finds the Kotlin app's version catalog at the repository root
+        // and asks for it here; this project keeps Capacitor's own layout
+        // (variables.gradle) until the Kotlin app is gone.
+        disable += 'UseTomlInstead'
     }
 }
 

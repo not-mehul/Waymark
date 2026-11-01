@@ -44,7 +44,8 @@ jobs:
       - run: npm run check
 
   # The Android shell the web app ships in (android/): its unit tests, Android
-  # lint, a debug and a minified release build. The Kotlin app is built beside
+  # lint (of the app only; Capacitor's own module is not ours to lint), a debug
+  # and a minified release build. The Kotlin app is built beside
   # it, in the same job so the two share the runner's debug key, for the
   # upgrade test that follows.
   shell:
@@ -76,7 +77,7 @@ jobs:
 
       - name: Unit tests, lint, build
         working-directory: android
-        run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug assembleRelease
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug assembleDebug assembleRelease
 
       # R8 once stripped a Glance widget's UI from BookShelf's release builds
       # only (see proguard-rules.pro); fail if it, or the receiver and worker
