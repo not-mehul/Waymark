@@ -6,6 +6,7 @@
   import { ui, type TripView } from '../../state/ui.svelte';
   import MapScreen from '../map/MapScreen.svelte';
   import NumbersScreen from '../numbers/NumbersScreen.svelte';
+  import NotesScreen from '../notes/NotesScreen.svelte';
   import AddFlight from '../segment/AddFlight.svelte';
   import SegmentScreen from '../segment/SegmentScreen.svelte';
   import Modal from '../ui/Modal.svelte';
@@ -66,6 +67,8 @@
   <MapScreen />
 {:else if view === 'numbers'}
   <NumbersScreen />
+{:else if view === 'notes'}
+  <NotesScreen />
 {:else if segmentId}
   {#key segmentId}
     <SegmentScreen {segmentId} />

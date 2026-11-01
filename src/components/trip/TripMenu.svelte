@@ -32,7 +32,13 @@
       detail: 'Every leg, on a chart or a globe, or as a list',
       act: goes('map')
     },
-    { icon: 'chart', title: 'The numbers', detail: 'Distance, days, legs, carbon', act: goes('numbers') }
+    { icon: 'chart', title: 'The numbers', detail: 'Distance, days, legs, carbon', act: goes('numbers') },
+    {
+      icon: 'compass',
+      title: 'Destination notes',
+      detail: 'Money, plugs, emergency numbers',
+      act: goes('notes')
+    }
   ];
 
   const settingsRows: Row[] = $derived([
