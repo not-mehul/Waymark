@@ -22,6 +22,50 @@ const TRIP = 'London & Paris';
 const log = (msg) => console.log(`==> ${msg}`);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Native screens are read with uiautomator over adb rather than Playwright's
+// own tap and wait, which need a driver APK installed on the device first.
+// Only the WebView is driven through Playwright, over its DevTools socket.
+
+/** Where a node whose text (or description) is, or contains, [text] is drawn. */
+async function find(text, { contains = false } = {}) {
+  const dump = String(await device.shell('uiautomator dump /sdcard/ui.xml >/dev/null && cat /sdcard/ui.xml'));
+  const unescape = (value) =>
+    value
+      .replaceAll('&quot;', '"')
+      .replaceAll('&apos;', "'")
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&amp;', '&');
+  for (const [node] of dump.matchAll(/<node [^>]*>/g)) {
+    const labels = [...node.matchAll(/ (?:text|content-desc)="([^"]*)"/g)].map(([, value]) =>
+      unescape(value)
+    );
+    if (!labels.some((label) => (contains ? label.includes(text) : label === text))) continue;
+    const bounds = node.match(/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);
+    if (!bounds) continue;
+    const [x1, y1, x2, y2] = bounds.slice(1).map(Number);
+    return { x: Math.round((x1 + x2) / 2), y: Math.round((y1 + y2) / 2) };
+  }
+  return null;
+}
+
+/** Waits for [text] to be on screen, scrolling down now and then in case it is below the fold. */
+async function waitFor(text, options = {}, timeoutMs = 60_000) {
+  const until = Date.now() + timeoutMs;
+  for (let attempt = 1; Date.now() < until; attempt++) {
+    const at = await find(text, options);
+    if (at) return at;
+    if (attempt % 3 === 0) await device.shell('input swipe 160 500 160 200 300');
+    await sleep(1_000);
+  }
+  throw new Error(`"${text}" never appeared on screen`);
+}
+
+async function tap(text) {
+  const { x, y } = await waitFor(text);
+  await device.shell(`input tap ${x} ${y}`);
+}
+
 const [device] = await android.devices();
 if (!device) throw new Error('No Android device or emulator connected');
 device.setDefaultTimeout(120_000);
@@ -33,8 +77,8 @@ try {
   await device.shell(`am start -W -n ${PKG}/.MainActivity`);
 
   log('Loading its worked example');
-  await device.tap({ text: 'Load the worked example' });
-  await device.wait({ textContains: TRIP });
+  await tap('Load the worked example');
+  await waitFor(TRIP, { contains: true });
   // The Kotlin app rewrites the handover file a second after the last change.
   await sleep(8_000);
   await device.shell(`am force-stop ${PKG}`);
