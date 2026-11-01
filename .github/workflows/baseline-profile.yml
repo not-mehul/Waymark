@@ -63,6 +63,20 @@ jobs:
           -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
           -Pandroid.testInstrumentationRunnerArguments.class=com.waymark.baselineprofile.StartupBenchmark
 
+      # The numbers, in the log, so they can be read without downloading the
+      # artifact.
+      - name: Print cold start
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob, json
+          for path in glob.glob('baselineprofile/build/outputs/**/*benchmarkData.json', recursive=True):
+              for bench in json.load(open(path))['benchmarks']:
+                  for metric, m in bench['metrics'].items():
+                      print(f"{bench['name']}: {metric} median {m['median']:.0f} ms"
+                            f" (min {m['minimum']:.0f}, max {m['maximum']:.0f}, {len(m['runs'])} runs)")
+          PY
+
       - name: Upload the results
         if: always()
         uses: actions/upload-artifact@v7

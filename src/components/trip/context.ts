@@ -1,0 +1,34 @@
+// What every screen and dialog inside an open trip shares: the trip itself,
+// and the one dialog slot over it.
+
+import { getContext, setContext } from 'svelte';
+import type { Expense, Idea, Segment, Traveler } from '../../domain/model';
+import type { TripModel } from '../../state/trip.svelte';
+
+export type TripSheet =
+  | { name: 'menu' }
+  | { name: 'edit' }
+  | { name: 'reminders' }
+  | { name: 'online' }
+  | { name: 'delete' }
+  | { name: 'removeSegment'; segment: Segment }
+  | { name: 'addPlan' }
+  | { name: 'addTraveler' }
+  | { name: 'addIdea' }
+  | { name: 'expense'; expense: Expense | null }
+  | { name: 'rate'; currency: string }
+  | { name: 'settleCurrency' }
+  | { name: 'scheduleIdea'; idea: Idea }
+  | { name: 'editTraveler'; traveler: Traveler }
+  | { name: 'removeTraveler'; traveler: Traveler };
+
+export interface TripContext {
+  model: TripModel;
+  open(sheet: TripSheet): void;
+  close(): void;
+}
+
+const KEY = Symbol('trip');
+
+export const provideTrip = (context: TripContext) => setContext(KEY, context);
+export const useTrip = () => getContext<TripContext>(KEY);
