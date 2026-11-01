@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 11 and earlier, where allowBackup="false" turns system backup and
+    transfer off together. Nothing leaves the device this way; a trip is
+    carried to another phone as a backup file saved from the shelf.
+-->
+<full-backup-content>
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+</full-backup-content>

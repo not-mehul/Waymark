@@ -1,0 +1,128 @@
+apply plugin: 'com.android.application'
+// AGP 9 compiles the Kotlin sources itself; this adds the Compose compiler
+// for the Jetpack Glance home-screen widget.
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
+
+// With built-in Kotlin turned off (Android Studio's AGP Upgrade Assistant adds
+// `android.builtInKotlin=false` to gradle.properties) the .kt sources are
+// silently skipped and the APK crashes on launch with ClassNotFoundException.
+if ((findProperty('android.builtInKotlin') ?: '').toString().trim().equalsIgnoreCase('false')) {
+    throw new GradleException("android.builtInKotlin=false would leave the app's Kotlin code out of the APK. " +
+        "Remove that line from gradle.properties (this project's, or ~/.gradle/gradle.properties) and sync again.")
+}
+
+// The version, from the release tag, exactly as the Kotlin app derives it
+// (app/build.gradle.kts): `-PwaymarkVersion=1.4.2` gives a code of 10402, so
+// this app installs over the Kotlin one at the same number or above. Without
+// the property it is 0.0.0, with a code of 1.
+def waymarkVersion = (findProperty('waymarkVersion') ?: '').toString().replaceFirst(/^v/, '')
+if (!(waymarkVersion ==~ /\d+\.\d+\.\d+/)) waymarkVersion = '0.0.0'
+def waymarkVersionCode = Math.max(1, waymarkVersion.tokenize('.').collect { it as int }
+    .with { it[0] * 10000 + it[1] * 100 + it[2] })
+
+// The release key is the Kotlin app's, from the same places (RELEASING.md): a
+// keystore.properties at the repository root, or the WAYMARK_KEYSTORE…
+// environment. It has to be: Android installs an update only over an app
+// signed with the same key.
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('../keystore.properties')
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+def signingValue = { String key, String env ->
+    def value = keystoreProperties.getProperty(key) ?: System.getenv(env)
+    value?.trim() ?: null
+}
+def releaseStoreFile = signingValue('storeFile', 'WAYMARK_KEYSTORE')
+def releaseStorePassword = signingValue('storePassword', 'WAYMARK_KEYSTORE_PASSWORD')
+def releaseKeyAlias = signingValue('keyAlias', 'WAYMARK_KEY_ALIAS')
+def releaseKeyPassword = signingValue('keyPassword', 'WAYMARK_KEY_PASSWORD')
+def canSign = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { it != null }
+
+android {
+    namespace = "com.waymark"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        // The Kotlin app's id, so this installs as an update over it.
+        applicationId = "com.waymark"
+        minSdk = rootProject.ext.minSdkVersion
+        targetSdk = rootProject.ext.targetSdkVersion
+        versionCode = waymarkVersionCode
+        versionName = waymarkVersion
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+    androidResources {
+        // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+        // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+        ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+    }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+    signingConfigs {
+        release {
+            if (canSign) {
+                // Relative to the repository root, as for the Kotlin app.
+                storeFile = new File(releaseStoreFile).isAbsolute() ?
+                    new File(releaseStoreFile) : rootProject.file("../${releaseStoreFile}")
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+    buildTypes {
+        release {
+            // R8: shrinks and optimises code, then drops unused resources.
+            // Capacitor and its plugins ship the keep rules the bridge needs.
+            minifyEnabled = true
+            shrinkResources = true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (canSign) {
+                signingConfig = signingConfigs.release
+            }
+        }
+    }
+    lint {
+        abortOnError = true
+        // AGP is pinned to the newest version Android Studio supports;
+        // upgrade it together with Android Studio (the Upgrade Assistant flags it).
+        disable += 'AndroidGradlePluginVersion'
+    }
+}
+
+repositories {
+    flatDir {
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    def versions = rootProject.ext
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:${versions.androidxAppCompatVersion}"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:${versions.androidxCoordinatorLayoutVersion}"
+    implementation "androidx.core:core-splashscreen:${versions.coreSplashScreenVersion}"
+    implementation "androidx.core:core-ktx:${versions.androidxCoreVersion}"
+    implementation "androidx.fragment:fragment:${versions.androidxFragmentVersion}"
+    implementation "androidx.glance:glance-appwidget:${versions.androidxGlanceVersion}"
+    implementation "androidx.lifecycle:lifecycle-runtime:${versions.androidxLifecycleVersion}"
+    implementation "androidx.work:work-runtime:${versions.androidxWorkVersion}"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:${versions.kotlinxCoroutinesVersion}"
+    // Reads boarding passes and trip codes from a picture, as the Kotlin app did:
+    // no camera permission, no network, no Play services.
+    implementation "com.google.zxing:core:${versions.zxingVersion}"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:${versions.junitVersion}"
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit:${rootProject.ext.kotlin_version}"
+    // Real org.json for JVM unit tests (android.jar only ships stubs).
+    testImplementation "org.json:json:${versions.orgJsonVersion}"
+    androidTestImplementation "androidx.test.ext:junit:${versions.androidxJunitVersion}"
+    androidTestImplementation "androidx.test.espresso:espresso-core:${versions.androidxEspressoCoreVersion}"
+    androidTestImplementation "androidx.test:core:${versions.androidxTestVersion}"
+    androidTestImplementation "androidx.test:runner:${versions.androidxTestVersion}"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'

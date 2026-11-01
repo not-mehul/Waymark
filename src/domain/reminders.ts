@@ -188,19 +188,47 @@ export function dueReminders(
 ): DueReminder[] {
   return plans(itinerary, preferences)
     .filter((p) => nowMillis >= p.fireAtMillis && nowMillis < p.usefulUntilMillis)
-    .map((p) => {
-      const moment = REMINDER_CATEGORY[p.category].moment;
-      return {
-        segmentId: p.segment.id,
-        tripId: p.segment.tripId,
-        moment,
-        label: labelOf(p.segment),
-        signature: reminderSignature(moment, p.segment),
-        headline: reminderHeadline(p.segment, moment, nowMillis, itinerary),
-        detail: detail(p.segment, moment, itinerary),
-        startEpochMillis: p.segment.startEpochMillis
-      };
-    });
+    .map((p) => reminderOf(p, nowMillis, itinerary));
+}
+
+function reminderOf(p: Plan, atMillis: number, itinerary: readonly Segment[]): DueReminder {
+  const moment = REMINDER_CATEGORY[p.category].moment;
+  return {
+    segmentId: p.segment.id,
+    tripId: p.segment.tripId,
+    moment,
+    label: labelOf(p.segment),
+    signature: reminderSignature(moment, p.segment),
+    headline: reminderHeadline(p.segment, moment, atMillis, itinerary),
+    detail: detail(p.segment, moment, itinerary),
+    startEpochMillis: p.segment.startEpochMillis
+  };
+}
+
+/** A reminder as the Android shell keeps it: when to post it, and until when it is worth posting. */
+export interface ScheduledReminder extends DueReminder {
+  fireAtMillis: number;
+  usefulUntilMillis: number;
+}
+
+/**
+ * Every reminder still worth posting after [nowMillis], soonest first, with
+ * its words as of the moment it falls due. The shell posts them while the
+ * app is closed: the page works them out, the shell keeps time.
+ */
+export function scheduledReminders(
+  itinerary: readonly Segment[],
+  preferences: ReminderPreferences,
+  nowMillis: number
+): ScheduledReminder[] {
+  return plans(itinerary, preferences)
+    .filter((p) => p.usefulUntilMillis > nowMillis && p.fireAtMillis < p.usefulUntilMillis)
+    .map((p) => ({
+      ...reminderOf(p, Math.max(p.fireAtMillis, nowMillis), itinerary),
+      fireAtMillis: p.fireAtMillis,
+      usefulUntilMillis: p.usefulUntilMillis
+    }))
+    .sort((a, b) => a.fireAtMillis - b.fireAtMillis);
 }
 
 /** When the next reminder falls due after [nowMillis], or null if none ever will. */

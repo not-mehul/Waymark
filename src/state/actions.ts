@@ -1,6 +1,9 @@
 // What the shelf's buttons do, kept out of the components so each is one call.
 
 import { encodeArchive, archiveOf, MIME } from '../share/trip-archive';
+import { systemZone, todayIn, type LocalDate } from '../domain/time';
+import { newId } from '../db/trips';
+import { readBookingText, toSegment, type BookingReading } from '../share/booking-text';
 import { backupFileName, readTripCode, readTripFile, saveFile, type Incoming } from '../share/files';
 import { readCode } from '../share/read-code';
 import { seedSample } from '../db/seed';
@@ -22,7 +25,11 @@ export async function backUpEveryTrip(): Promise<void> {
 
 /** A backup or a shared trip, picked from the device: shown before anything changes. */
 export async function openTripFile(file: File): Promise<void> {
-  const incoming = file.type.startsWith('image/') ? await readCodePicture(file) : await readTripFile(file);
+  await showIncoming(file.type.startsWith('image/') ? await readCodePicture(file) : await readTripFile(file));
+}
+
+/** Trips from anywhere (a file, a code, a link): shown before anything changes. */
+export async function showIncoming(incoming: Incoming): Promise<void> {
   if (incoming.kind === 'problem') {
     ui.open({ name: 'problem', title: incoming.title, detail: incoming.detail });
     return;
@@ -64,4 +71,39 @@ export async function importTrips(bundles: TripBundle[]): Promise<void> {
 
 export async function loadExample(): Promise<void> {
   ui.go({ name: 'trip', tripId: await seedSample(trips) });
+}
+
+/**
+ * Text shared into the app from another one: a trip code's link, or a
+ * confirmation email to read the flights out of.
+ */
+export async function openSharedText(text: string, today: LocalDate = todayIn(systemZone())): Promise<void> {
+  const link = TRIP_CODE_LINK.exec(text);
+  if (link) {
+    await showIncoming(readTripCode(link[0]));
+    return;
+  }
+  const reading = readBookingText(text, today);
+  if (reading.flights.length === 0) {
+    ui.open({
+      name: 'problem',
+      title: 'No flights found in that',
+      detail: 'Waymark looks for a flight number with airport codes beside it: “BA 286 SFO to LHR”.'
+    });
+    return;
+  }
+  ui.open({ name: 'sharedFlights', reading });
+}
+
+const TRIP_CODE_LINK = /waymark:\/\/import\?d=[A-Za-z0-9_-]+/;
+
+/** Saves every complete flight in [reading] to a trip, and opens it. */
+export async function addSharedFlights(reading: BookingReading, tripId: string): Promise<number> {
+  const flights = reading.flights
+    .map((found) => toSegment(found, tripId, newId('seg'), reading.reference))
+    .filter((f) => f !== null);
+  await trips.saveSegments(flights);
+  ui.close();
+  ui.go({ name: 'trip', tripId });
+  return flights.length;
 }

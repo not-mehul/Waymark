@@ -2,7 +2,7 @@
 // Live Update on Android 16+) shows from a little before departure until
 // arrival. Shown only for kinds with departure reminders on.
 
-import { durationMillis, type Segment, type SegmentKind } from './model';
+import { durationMillis, segmentTitle, type Segment, type SegmentKind } from './model';
 import { isOn, REMINDER_CATEGORIES, REMINDER_CATEGORY, type ReminderPreferences } from './reminders';
 import { duration } from './time-text';
 
@@ -107,4 +107,36 @@ export function nextJourneyChangeAt(
     : null;
   const all = [opening, turning].filter((t): t is number => t !== null);
   return all.length === 0 ? null : Math.min(...all);
+}
+
+/** A journey as the Android shell keeps it, to draw the notification while the app is closed. */
+export interface JourneyWindow {
+  tripId: string;
+  segmentId: string;
+  title: string;
+  kind: 'FLIGHT' | 'GROUND';
+  /** When the notification first shows: three hours before a flight, half an hour before the rest. */
+  showFromMillis: number;
+  startMillis: number;
+  endMillis: number;
+}
+
+/** Every journey that will show, or is showing, after [nowMillis]. */
+export function journeyWindows(
+  itinerary: readonly Segment[],
+  preferences: ReminderPreferences,
+  nowMillis: number
+): JourneyWindow[] {
+  return itinerary
+    .filter((s) => shown(s, preferences) && s.endEpochMillis > nowMillis)
+    .map((s) => ({
+      tripId: s.tripId,
+      segmentId: s.id,
+      title: segmentTitle(s),
+      kind: s.kind === 'FLIGHT' ? ('FLIGHT' as const) : ('GROUND' as const),
+      showFromMillis: windowOf(s)[0],
+      startMillis: s.startEpochMillis,
+      endMillis: s.endEpochMillis
+    }))
+    .sort((a, b) => a.startMillis - b.startMillis);
 }

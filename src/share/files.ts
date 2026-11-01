@@ -1,6 +1,7 @@
 // Opening and writing trip files: a backup of every trip, or one somebody sent.
 
 import { todayIn, systemZone, type LocalDate } from '../domain/time';
+import { callNative, isNativeShell } from '../platform/native';
 import { InvalidArchive, bundlesOf, decodeArchive, fromCode, type TripBundle } from './trip-archive';
 
 /** Larger than any real archive by far; a file this size is something else. */
@@ -57,8 +58,12 @@ export function backupFileName(today: LocalDate = todayIn(systemZone())): string
   return `waymark-backup-${today.toString()}.json`;
 }
 
-/** Hands the browser a file to save. The Android shell's share sheet replaces this in phase 5. */
+/** Hands the browser a file to save; in the Android app, the share sheet, where Files is one choice. */
 export function saveFile(name: string, text: string, type: string): void {
+  if (isNativeShell()) {
+    void shareFile(name, text, type, name);
+    return;
+  }
   const url = URL.createObjectURL(new Blob([text], { type }));
   const link = document.createElement('a');
   link.href = url;
@@ -80,6 +85,10 @@ export async function shareFile(
   type: string,
   title: string
 ): Promise<'shared' | 'saved' | 'cancelled'> {
+  if (isNativeShell()) {
+    await callNative('shareFile', { name, text, type, title });
+    return 'shared';
+  }
   const file = new File([text], name, { type });
   if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
     try {
