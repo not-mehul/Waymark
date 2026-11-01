@@ -34,7 +34,12 @@ function catalog(): Plugin {
 
 // One self-contained index.html, as in BookShelf: the Android app gets the
 // same file from `cap sync`, and a service worker can precache just that.
+const { version } = JSON.parse(readFileSync(new URL('package.json', import.meta.url), 'utf8')) as {
+  version: string;
+};
+
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(version) },
   plugins: [svelte(), viteSingleFile(), catalog()],
   build: {
     // Keep in sync with android.minWebViewVersion in capacitor.config.ts.

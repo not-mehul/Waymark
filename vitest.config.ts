@@ -1,6 +1,9 @@
+import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // Compiles the runes in src/**/*.svelte.ts; no component is rendered.
+  plugins: [svelte()],
   test: {
     environment: 'node',
     include: ['test/**/*.test.ts'],

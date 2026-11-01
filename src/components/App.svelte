@@ -1,31 +1,79 @@
 <script lang="ts">
-  import { SAMPLE_TRIP_NAME } from '../catalog/sample-itinerary';
+  import { onMount } from 'svelte';
+  import { NO_HANDOVER, runHandover } from '../share/handover';
+  import { openTripFile } from '../state/actions';
+  import { trips } from '../state/app';
+  import { ui } from '../state/ui.svelte';
+  import People from './people/People.svelte';
+  import TravelerProfile from './people/TravelerProfile.svelte';
+  import About from './shelf/About.svelte';
+  import ImportPreview from './shelf/ImportPreview.svelte';
+  import NewTrip from './shelf/NewTrip.svelte';
+  import Problem from './shelf/Problem.svelte';
+  import Shelf from './shelf/Shelf.svelte';
+  import ShelfMenu from './shelf/ShelfMenu.svelte';
+  import DeleteTrip from './trip/DeleteTrip.svelte';
+  import TripPlaceholder from './trip/TripPlaceholder.svelte';
+  import Modal from './ui/Modal.svelte';
+
+  // Any type: file managers and mail apps disagree about what a .json is.
+  let filePicker: HTMLInputElement;
+
+  onMount(() => {
+    void (async () => {
+      await trips.repair();
+      // The native source (the Kotlin app's last copy of every trip) comes with the shell in phase 5.
+      const handover = await runHandover(NO_HANDOVER, trips);
+      if (handover.outcome === 'imported') {
+        ui.tell(handover.trips === 1 ? 'One trip moved across.' : `${handover.trips} trips moved across.`);
+      } else if (handover.outcome === 'failed') {
+        console.error('Handover failed', handover.reason);
+        ui.tell('Some trips could not be moved across yet. They are safe, and the next start tries again.');
+      }
+    })();
+  });
 </script>
 
-<header>
-  <p class="eyebrow">Waymark</p>
-  <h1>Every trip, offline.</h1>
-</header>
-<p class="note">
-  This is the new Waymark, being rebuilt on the same stack as Ledger and BookShelf. The trip logic is in place
-  (try it against <em>{SAMPLE_TRIP_NAME}</em> in the tests); the screens follow in the next steps. Until then, the
-  Android app on your phone is still the Kotlin one.
-</p>
+{#if ui.screen.name === 'people'}
+  <People />
+{:else if ui.screen.name === 'trip'}
+  {#key ui.screen.tripId}
+    <TripPlaceholder tripId={ui.screen.tripId} />
+  {/key}
+{:else}
+  <Shelf />
+{/if}
 
-<style>
-  header {
-    margin-bottom: var(--space-5);
-  }
-  h1 {
-    font-family: var(--font-serif);
-    font-weight: 400;
-    font-size: 2.25rem;
-    line-height: 1.15;
-    color: var(--text-heading);
-    margin-top: var(--space-2);
-  }
-  .note {
-    max-width: 36rem;
-    color: var(--text-body);
-  }
-</style>
+{#if ui.modal}
+  {@const modal = ui.modal}
+  <Modal contentKey={ui.modalKey} onclose={() => ui.close()}>
+    {#key ui.modalKey}
+      {#if modal.name === 'newTrip'}
+        <NewTrip />
+      {:else if modal.name === 'shelfMenu'}
+        <ShelfMenu onpickfile={() => filePicker.click()} />
+      {:else if modal.name === 'about'}
+        <About />
+      {:else if modal.name === 'import'}
+        <ImportPreview bundles={modal.bundles} existing={modal.existing} />
+      {:else if modal.name === 'problem'}
+        <Problem title={modal.title} detail={modal.detail} />
+      {:else if modal.name === 'traveler'}
+        <TravelerProfile traveler={modal.traveler} />
+      {:else if modal.name === 'deleteTrip'}
+        <DeleteTrip tripId={modal.tripId} />
+      {/if}
+    {/key}
+  </Modal>
+{/if}
+
+<input
+  bind:this={filePicker}
+  type="file"
+  hidden
+  onchange={(ev) => {
+    const file = ev.currentTarget.files?.[0];
+    ev.currentTarget.value = '';
+    if (file) void openTripFile(file);
+  }}
+/>
