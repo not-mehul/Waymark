@@ -54,3 +54,27 @@ export function saveFile(name: string, text: string, type: string): void {
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
+
+/**
+ * Hand a file to whatever the traveler wants to keep it in: the system share
+ * sheet where there is one, a download otherwise. Nothing is uploaded by
+ * Waymark itself. Returns how it went, so the caller can say so.
+ */
+export async function shareFile(
+  name: string,
+  text: string,
+  type: string,
+  title: string
+): Promise<'shared' | 'saved' | 'cancelled'> {
+  const file = new File([text], name, { type });
+  if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title });
+      return 'shared';
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return 'cancelled';
+    }
+  }
+  saveFile(name, text, type);
+  return 'saved';
+}

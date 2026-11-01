@@ -2,6 +2,7 @@
   // Everything that is not one of the tabs, named, one tap further away: the
   // right distance for things reached for once a trip rather than once a minute.
   import { settings } from '../../state/app';
+  import { printItinerary, shareCalendar, shareMarkdown, shareTripFile } from '../../state/exports';
   import { ui } from '../../state/ui.svelte';
   import type { IconName } from '../../util/icons';
   import Icon from '../ui/Icon.svelte';
@@ -38,6 +39,43 @@
       title: 'Destination notes',
       detail: 'Money, plugs, emergency numbers',
       act: goes('notes')
+    }
+  ];
+
+  const exports = (act: () => unknown) => () => {
+    close();
+    void act();
+  };
+  const shareRows: Row[] = [
+    {
+      icon: 'share',
+      title: 'Send the trip',
+      detail: 'A file the party can open in Waymark',
+      act: exports(() => shareTripFile(model))
+    },
+    {
+      icon: 'qr',
+      title: 'Show as a code',
+      detail: 'For a phone in the same room to scan',
+      act: opens({ name: 'tripCode' })
+    },
+    {
+      icon: 'calendar',
+      title: 'Add to a calendar',
+      detail: 'Every booking, as calendar events',
+      act: exports(() => shareCalendar(model))
+    },
+    {
+      icon: 'printer',
+      title: 'Print the itinerary',
+      detail: 'Every booking by day, with the references and costs; or save it as a PDF',
+      act: exports(() => printItinerary(model))
+    },
+    {
+      icon: 'fileText',
+      title: 'Export as markdown',
+      detail: 'The whole trip, as text to keep or edit',
+      act: exports(() => shareMarkdown(model))
     }
   ];
 
@@ -104,6 +142,8 @@
 
 <ModalHead title="This trip" />
 {@render rows(viewRows)}
+<hr class="hairline" />
+{@render rows(shareRows)}
 <hr class="hairline" />
 {@render rows(settingsRows)}
 <div class="menu-item static">

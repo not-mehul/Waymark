@@ -15,6 +15,7 @@ export type TripSheet =
   | { name: 'addPlan' }
   | { name: 'addTraveler' }
   | { name: 'addIdea' }
+  | { name: 'tripCode' }
   | { name: 'expense'; expense: Expense | null }
   | { name: 'rate'; currency: string }
   | { name: 'settleCurrency' }

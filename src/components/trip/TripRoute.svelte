@@ -5,6 +5,8 @@
   import { TripModel } from '../../state/trip.svelte';
   import { ui, type TripView } from '../../state/ui.svelte';
   import MapScreen from '../map/MapScreen.svelte';
+  import TripCode from '../share/TripCode.svelte';
+  import { shareTripFile } from '../../state/exports';
   import NumbersScreen from '../numbers/NumbersScreen.svelte';
   import NotesScreen from '../notes/NotesScreen.svelte';
   import AddFlight from '../segment/AddFlight.svelte';
@@ -97,6 +99,13 @@
         <RateSheet currency={current.currency} />
       {:else if current.name === 'settleCurrency'}
         <CurrencySheet />
+      {:else if current.name === 'tripCode'}
+        <TripCode
+          onsendfile={() => {
+            close();
+            void shareTripFile(model);
+          }}
+        />
       {:else if current.name === 'addIdea'}
         <AddIdea />
       {:else if current.name === 'scheduleIdea'}
