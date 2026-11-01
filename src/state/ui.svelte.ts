@@ -10,12 +10,15 @@ export type Screen =
   | { name: 'shelf' }
   | { name: 'people' }
   /** A trip, and optionally one of its bookings open over it. */
-  | { name: 'trip'; tripId: string; segmentId?: string; adding?: 'flight' };
+  | { name: 'trip'; tripId: string; segmentId?: string; adding?: 'flight'; view?: TripView };
+
+/** The trip's own screens beyond its tabs, reached from its menu. */
+export type TripView = 'map' | 'numbers' | 'notes';
 
 /** Where Back goes from a screen: a booking returns to its trip, anything else to the shelf. */
 export function parentOf(screen: Screen): Screen | null {
   if (screen.name === 'shelf') return null;
-  if (screen.name === 'trip' && (screen.segmentId || screen.adding))
+  if (screen.name === 'trip' && (screen.segmentId || screen.adding || screen.view))
     return { name: 'trip', tripId: screen.tripId };
   return { name: 'shelf' };
 }

@@ -3,7 +3,8 @@
   // share one model, as the Kotlin screens shared one view model.
   import { onDestroy } from 'svelte';
   import { TripModel } from '../../state/trip.svelte';
-  import { ui } from '../../state/ui.svelte';
+  import { ui, type TripView } from '../../state/ui.svelte';
+  import MapScreen from '../map/MapScreen.svelte';
   import AddFlight from '../segment/AddFlight.svelte';
   import SegmentScreen from '../segment/SegmentScreen.svelte';
   import Modal from '../ui/Modal.svelte';
@@ -25,7 +26,12 @@
   import TripMenu from './TripMenu.svelte';
   import TripScreen from './TripScreen.svelte';
 
-  let { tripId, segmentId, adding }: { tripId: string; segmentId?: string; adding?: 'flight' } = $props();
+  let {
+    tripId,
+    segmentId,
+    adding,
+    view
+  }: { tripId: string; segmentId?: string; adding?: 'flight'; view?: TripView } = $props();
 
   // svelte-ignore state_referenced_locally
   const model = new TripModel(tripId);
@@ -55,6 +61,8 @@
 
 {#if adding === 'flight'}
   <AddFlight />
+{:else if view === 'map'}
+  <MapScreen />
 {:else if segmentId}
   {#key segmentId}
     <SegmentScreen {segmentId} />

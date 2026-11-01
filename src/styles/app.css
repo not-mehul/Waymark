@@ -1601,3 +1601,48 @@ input[type='time']::-webkit-calendar-picker-indicator {
 .t-hint.critical {
   color: var(--danger);
 }
+
+/* ─── Map ─────────────────────────────────────────────────── */
+
+.map-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  background: var(--map-water);
+}
+.world-map {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.world-map canvas {
+  display: block;
+  touch-action: none;
+  cursor: grab;
+}
+.map-top {
+  position: absolute;
+  top: calc(var(--space-2) + env(safe-area-inset-top));
+  left: var(--space-2);
+  right: var(--space-2);
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.map-button {
+  pointer-events: auto;
+  background: var(--modal-bg);
+  border: 1px solid var(--border-faint);
+}
+.map-projection {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: 180px;
+  display: flex;
+  background: var(--modal-bg);
+}
+.map-projection button {
+  flex: 1;
+}

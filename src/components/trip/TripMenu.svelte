@@ -1,7 +1,6 @@
 <script lang="ts">
   // Everything that is not one of the tabs, named, one tap further away: the
   // right distance for things reached for once a trip rather than once a minute.
-  // The map, the numbers, the notes and the exports join this list in phase 4.
   import { settings } from '../../state/app';
   import { ui } from '../../state/ui.svelte';
   import type { IconName } from '../../util/icons';
@@ -21,6 +20,19 @@
     act: () => void;
   }
   const opens = (sheet: TripSheet) => () => open(sheet);
+
+  const goes = (view: 'map' | 'numbers' | 'notes') => () => {
+    close();
+    ui.go({ name: 'trip', tripId: model.tripId, view });
+  };
+  const viewRows: Row[] = [
+    {
+      icon: 'map',
+      title: 'The map',
+      detail: 'Every leg, on a chart or a globe, or as a list',
+      act: goes('map')
+    }
+  ];
 
   const settingsRows: Row[] = $derived([
     {
@@ -84,6 +96,8 @@
 {/snippet}
 
 <ModalHead title="This trip" />
+{@render rows(viewRows)}
+<hr class="hairline" />
 {@render rows(settingsRows)}
 <div class="menu-item static">
   <span class="menu-text"><span class="t-body-small">Appearance</span></span>
