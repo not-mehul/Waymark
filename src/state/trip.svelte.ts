@@ -5,6 +5,7 @@
 // line and the countdowns.
 
 import { askForReminders } from './shell.svelte';
+import { ui } from './ui.svelte';
 import { liveQuery, type Subscription } from 'dexie';
 import { partyWarnings, splitWindows } from '../domain/party-split';
 import {
@@ -26,16 +27,14 @@ import { alerts, ideas, settings, trips } from './app';
 import { editedTrip, freeTimeIdeas, reminderBanner } from './trip-logic';
 
 export type TripTab = 'TIMELINE' | 'IDEAS' | 'PARTY' | 'COSTS';
-export const TRIP_TABS: readonly { tab: TripTab; label: string }[] = [
-  { tab: 'TIMELINE', label: 'Timeline' },
-  { tab: 'IDEAS', label: 'Ideas' },
-  { tab: 'PARTY', label: 'Party' },
-  { tab: 'COSTS', label: 'Costs' }
+export const TRIP_TABS: readonly { id: TripTab; label: string; domId: string; controls: string }[] = [
+  { id: 'TIMELINE', label: 'Timeline', domId: 'trip-tab-timeline', controls: 'trip-tab-panel' },
+  { id: 'IDEAS', label: 'Ideas', domId: 'trip-tab-ideas', controls: 'trip-tab-panel' },
+  { id: 'PARTY', label: 'Party', domId: 'trip-tab-party', controls: 'trip-tab-panel' },
+  { id: 'COSTS', label: 'Costs', domId: 'trip-tab-costs', controls: 'trip-tab-panel' }
 ];
 
 const MINUTE = 60_000;
-/** How long a removed idea is offered back. */
-const UNDO_MILLIS = 6_000;
 
 export class TripModel {
   /** Undefined while reading; null once the trip turns out not to exist. */
@@ -48,8 +47,6 @@ export class TripModel {
   tab = $state<TripTab>('TIMELINE');
   travelerFilter = $state<string | null>(null);
   showDismissed = $state(false);
-  /** The idea just removed, while it can still be brought back. */
-  removedIdea = $state.raw<Idea | null>(null);
 
   readonly timeline = $derived(
     this.dossier
@@ -87,7 +84,6 @@ export class TripModel {
   /** The Costs tab's half, read as long as the trip is open. */
   readonly costs: CostsModel;
 
-  private undoTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly subscriptions: Subscription[];
   private readonly ticker: ReturnType<typeof setInterval>;
 
@@ -105,7 +101,6 @@ export class TripModel {
   destroy(): void {
     for (const s of this.subscriptions) s.unsubscribe();
     clearInterval(this.ticker);
-    if (this.undoTimer) clearTimeout(this.undoTimer);
     this.costs.destroy();
   }
 
@@ -180,17 +175,7 @@ export class TripModel {
   async deleteIdea(ideaId: string): Promise<void> {
     const removed = await ideas.delete(ideaId);
     if (!removed) return;
-    this.removedIdea = removed;
-    if (this.undoTimer) clearTimeout(this.undoTimer);
-    this.undoTimer = setTimeout(() => (this.removedIdea = null), UNDO_MILLIS);
-  }
-
-  async undoDelete(): Promise<void> {
-    const idea = this.removedIdea;
-    if (!idea) return;
-    this.removedIdea = null;
-    if (this.undoTimer) clearTimeout(this.undoTimer);
-    await ideas.save(idea);
+    ui.notify(`Removed “${removed.title}”.`, 'info', { label: 'Undo', run: () => void ideas.save(removed) });
   }
 
   /** Put an idea on the timeline, on the clock of the place it happens. */

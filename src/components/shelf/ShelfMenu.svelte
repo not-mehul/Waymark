@@ -4,6 +4,7 @@
   import type { IconName } from '../../util/icons';
   import Icon from '../ui/Icon.svelte';
   import ModalHead from '../ui/ModalHead.svelte';
+  import ThemeSetting from '../ui/ThemeSetting.svelte';
 
   /** The file picker lives in App, so it outlasts this dialog. */
   let { onpickfile }: { onpickfile: () => void } = $props();
@@ -47,6 +48,9 @@
     </li>
   {/each}
 </ul>
+<hr class="hairline" />
+<ThemeSetting />
+<hr class="hairline" />
 <p class="t-hint">
   A backup is one file with every trip in it. Keep it wherever you keep things; open it on a new phone to
   bring everything across.

@@ -1,10 +1,11 @@
 <script lang="ts">
-  // A date, shown as the Kotlin PickerField shows it, opening a month calendar
-  // in place: Monday first, today ringed, the chosen day lit. A tap on a day
-  // chooses it and folds the calendar away.
+  // A date: a field shaped like a text input that opens a month calendar in a
+  // picker modal. Monday first, today ringed, the chosen day lit. Nothing
+  // changes until Choose.
   import { dayCompact } from '../../domain/time-text';
   import { compareDates, systemZone, todayIn, type LocalDate } from '../../domain/time';
   import Icon from './Icon.svelte';
+  import PickerModal from './PickerModal.svelte';
 
   interface Props {
     label: string;
@@ -34,7 +35,9 @@
   const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
   let open = $state(false);
-  // The month on show: the chosen day's, until the arrows move it.
+  // svelte-ignore state_referenced_locally
+  let draft = $state(value);
+  // The month on show: the draft's, until the arrows move it.
   // svelte-ignore state_referenced_locally
   let shown = $state(value.toPlainYearMonth());
   const today = todayIn(systemZone());
@@ -47,14 +50,17 @@
     return days;
   });
 
-  function toggle() {
+  const tooEarly = (date: LocalDate) => min !== undefined && compareDates(date, min) < 0;
+
+  function start() {
+    draft = value;
     shown = value.toPlainYearMonth();
-    open = !open;
+    open = true;
   }
 
-  function choose(date: LocalDate) {
+  function choose() {
     open = false;
-    onchange?.(date);
+    if (!draft.equals(value)) onchange?.(draft);
   }
 </script>
 
@@ -63,17 +69,28 @@
   <button
     type="button"
     class="picker-field"
+    {id}
     aria-labelledby="{id}-label {id}-value"
+    aria-haspopup="dialog"
     aria-expanded={open}
-    aria-controls="{id}-calendar"
-    onclick={toggle}
+    onclick={start}
   >
     <Icon name="calendar" />
     <span class="t-data" id="{id}-value">{dayCompact(value)}</span>
     <span class="t-data-small">{value.year}</span>
   </button>
-  {#if open}
-    <div class="calendar" id="{id}-calendar" style:margin-top="var(--space-2)">
+</div>
+
+{#if open}
+  <PickerModal
+    {id}
+    eyebrow={label}
+    title={dayCompact(draft)}
+    canChoose={!tooEarly(draft)}
+    oncancel={() => (open = false)}
+    onchoose={choose}
+  >
+    <div class="calendar">
       <div class="calendar-head">
         <button
           type="button"
@@ -99,10 +116,10 @@
               type="button"
               class="day-cell"
               class:today={date.equals(today)}
-              aria-pressed={date.equals(value)}
+              aria-pressed={date.equals(draft)}
               aria-label={dayCompact(date)}
-              disabled={min !== undefined && compareDates(date, min) < 0}
-              onclick={() => choose(date)}>{date.day}</button
+              disabled={tooEarly(date)}
+              onclick={() => (draft = date)}>{date.day}</button
             >
           {:else}
             <span></span>
@@ -110,5 +127,5 @@
         {/each}
       </div>
     </div>
-  {/if}
-</div>
+  </PickerModal>
+{/if}

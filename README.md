@@ -199,14 +199,16 @@ as a raw hex outside the token blocks would be.
 | Style reference | Implementation |
 | --- | --- |
 | `:root` / `[data-theme="light"]` token blocks | Generated into `src/styles/tokens.css` from `design/tokens.json` |
+| Shared components | `src/styles/components.css` and `ui/TabRail`, `ui/ThemeToggle`, `ui/Toast`, identical in Waymark, BookShelf and Ledger |
 | `var(--token)` in every rule | The same, in `src/styles/app.css` and the components |
 | RGB triples for alpha | `rgba(var(--cream-rgb), 0.03)`, and the same for the shadow and danger colours |
-| Three-stop fixed gradient + three blurred glows | The page background and its glow layers in `app.css` |
+| Three-stop fixed gradient + three soft glows | The page background and its glow layers in `components.css` |
 | Serif display / system sans / system mono | Fraunces (bundled, nothing downloaded) / `system-ui` / `ui-monospace` |
 | All-caps tracked mono labels | `SectionHeader`, and the field labels in `Field` |
 | 2px corners everywhere | `--radius: 2px`; no pills |
 | Modal: amber hairline, corner brackets, fade + settle | `Modal` |
-| Theme switch with sliding amber knob, `role="switch"` | `ThemeToggle` |
+| Theme switch with sliding amber knob, `role="switch"` | `ThemeToggle`, with System / Dusk / Dawn in both menus (`ThemeSetting`) |
+| Undo instead of asking, one toast at a time | `Toast`, through `ui.notify` |
 | Segmented control for a real choice, quiet rail for navigation | `OptionChips` vs `TabRail` |
 | Motion is responsiveness, not decoration | The `--dur-*` and `--ease-*` tokens, and nothing outside them |
 
@@ -246,14 +248,17 @@ all for the times nobody publishes on the hour. Minutes are laid out in fives,
 because departures are mostly published in fives, with a row of +1 to +4 beneath
 for the ones that are not — 08:31, 19:04 — and an existing time is never
 rounded to fit. The running time is the modal's own title, so the body is
-nothing but choices.
+nothing but choices. Both pickers open in their own modal and change nothing
+until Choose.
 
 Fields that open a picker are shaped *exactly* like fields that accept typing —
 same corner, same border, same 11dp of vertical padding — so a date sitting
 beside a flight number is the same height as it.
 
 Both themes share one type ramp; only colour changes. First launch follows the
-system setting; the toggle overrides it.
+system setting; the toggle overrides it, and System in the menu hands it back.
+An inline script in `index.html` puts the page on the saved side before the
+first paint.
 
 ### Charts: one hue, by measurement
 

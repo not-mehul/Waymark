@@ -7,7 +7,19 @@
     <meta name="description" content="Offline-first trip planner." />
     <title>Waymark</title>
     <link rel="stylesheet" href="/src/styles/tokens.css" />
+    <link rel="stylesheet" href="/src/styles/components.css" />
     <link rel="stylesheet" href="/src/styles/app.css" />
+    <script>
+      // Put the page on the saved side before the first paint (style.md §14).
+      try {
+        const saved = localStorage.getItem('waymark.theme');
+        const dark =
+          saved === 'DUSK' || (saved !== 'DAWN' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      } catch {
+        // Storage blocked: main.ts applies the system side.
+      }
+    </script>
   </head>
   <body>
     <div class="glow-layer" aria-hidden="true">

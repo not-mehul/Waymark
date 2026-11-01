@@ -44,7 +44,7 @@
     if (!chosen || busy) return;
     busy = true;
     const saved = await addSharedFlights(reading, chosen);
-    ui.tell(saved === 1 ? 'One flight added.' : `${saved} flights added.`);
+    ui.notify(saved === 1 ? 'One flight added.' : `${saved} flights added.`, 'success');
   }
 </script>
 
