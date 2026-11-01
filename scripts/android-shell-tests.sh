@@ -33,6 +33,9 @@ log "Upgrade test"
 timeout 600 node "$(dirname "$0")/android-upgrade-test.mjs" "$DIR/kotlin/app-benchmarkRelease.apk" "$DIR/debug/app-debug.apk" || {
   echo "---- crash buffer ----" >&2
   adb logcat -d -b crash 2>/dev/null | tail -150 >&2 || true
+  echo "---- the app, the WebView and the activity manager ----" >&2
+  adb logcat -d 2>/dev/null |
+    grep -E "com\.waymark|Capacitor|chromium|cr_|AndroidRuntime|Waymark|WebView" | tail -200 >&2 || true
   exit 1
 }
 

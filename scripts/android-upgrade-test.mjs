@@ -66,6 +66,26 @@ async function tap(text) {
   await device.shell(`input tap ${x} ${y}`);
 }
 
+/**
+ * The shell's page once it shows the shelf. If the WebView goes away first
+ * (the shell rebuilds its activity when the renderer dies), attach to the new
+ * one, and say so: once is survivable, every time is a failure.
+ */
+async function openShelf() {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const webview = await device.webView({ pkg: PKG });
+      const page = await webview.page();
+      await page.waitForSelector('#shelf-title', { timeout: 60_000 });
+      return page;
+    } catch (error) {
+      if (attempt >= 3 || !/closed/.test(String(error))) throw error;
+      log(`The WebView went away before the shelf showed (${String(error).split('\n')[0]}); attaching again`);
+      await sleep(2_000);
+    }
+  }
+}
+
 const [device] = await android.devices();
 if (!device) throw new Error('No Android device or emulator connected');
 device.setDefaultTimeout(120_000);
@@ -86,9 +106,7 @@ try {
   log('Installing the shell over it');
   await device.installApk(shellApk); // -r: replace, keeping app data
   await device.shell(`am start -W -n ${PKG}/.MainActivity`);
-  const webview = await device.webView({ pkg: PKG });
-  const page = await webview.page();
-  await page.waitForSelector('#shelf-title', { timeout: 60_000 });
+  const page = await openShelf();
 
   const failures = [];
   const listed = await page
