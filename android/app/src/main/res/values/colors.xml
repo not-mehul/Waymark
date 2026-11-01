@@ -3,7 +3,7 @@
     <!--
         The window behind the WebView until the page paints, Dawn here and
         Dusk in values-night, so neither theme opens on the other's colour.
-        They match the web app's --bg-grad-mid in each theme.
+        They match the middle stop of the web app's background gradient (bg-grad-mid) in each theme.
     -->
     <color name="window_dusk">#0F0D0B</color>
     <color name="window_dawn">#EFE6D8</color>
