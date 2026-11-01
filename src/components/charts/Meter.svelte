@@ -3,7 +3,7 @@
   let { fraction, label, value }: { fraction: number; label: string; value: string } = $props();
 </script>
 
-<div class="meter">
+<div class="meter-figure">
   <div class="bar-head">
     <span class="t-body-small muted">{label}</span>
     <span class="t-data-small dim">{value}</span>

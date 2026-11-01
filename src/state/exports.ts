@@ -87,7 +87,7 @@ export async function printItinerary(model: TripModel): Promise<void> {
     // laid out for print, to Android's, and answers once the job is spooled.
     await callNative('print', { name: d.trip.name }).catch((err: unknown) => {
       console.error('Print', err);
-      ui.tell('The itinerary could not be printed.');
+      ui.notify('The itinerary could not be printed.', 'error');
     });
     done();
     return;

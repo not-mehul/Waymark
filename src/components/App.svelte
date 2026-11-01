@@ -18,6 +18,7 @@
   import ShelfMenu from './shelf/ShelfMenu.svelte';
   import TripRoute from './trip/TripRoute.svelte';
   import Modal from './ui/Modal.svelte';
+  import Toast from './ui/Toast.svelte';
 
   // Any type: file managers and mail apps disagree about what a .json is.
   let filePicker: HTMLInputElement;
@@ -35,10 +36,16 @@
         (err: unknown) => ({ outcome: 'failed' as const, reason: String(err) })
       );
       if (handover.outcome === 'imported') {
-        ui.tell(handover.trips === 1 ? 'One trip moved across.' : `${handover.trips} trips moved across.`);
+        ui.notify(
+          handover.trips === 1 ? 'One trip moved across.' : `${handover.trips} trips moved across.`,
+          'success'
+        );
       } else if (handover.outcome === 'failed') {
         console.error('Handover failed', handover.reason);
-        ui.tell('Some trips could not be moved across yet. They are safe, and the next start tries again.');
+        ui.notify(
+          'Some trips could not be moved across yet. They are safe, and the next start tries again.',
+          'error'
+        );
       } else if (handover.outcome === 'stranded') {
         ui.open({
           name: 'problem',
@@ -91,6 +98,13 @@
     {/key}
   </Modal>
 {/if}
+
+<Toast
+  toast={ui.toast}
+  onpause={() => ui.pauseToast()}
+  onresume={() => ui.resumeToast()}
+  onaction={() => ui.actOnToast()}
+/>
 
 <input
   bind:this={filePicker}

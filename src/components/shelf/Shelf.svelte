@@ -1,11 +1,10 @@
 <script lang="ts">
   import { liveQuery } from 'dexie';
-  import { APP_VERSION, trips } from '../../state/app';
+  import { APP_VERSION, settings, trips } from '../../state/app';
   import { loadExample } from '../../state/actions';
   import { arrangeShelf } from '../../state/shelf';
   import { ui } from '../../state/ui.svelte';
   import Icon from '../ui/Icon.svelte';
-  import NoticeBanner from '../ui/NoticeBanner.svelte';
   import SectionHeader from '../ui/SectionHeader.svelte';
   import ThemeToggle from '../ui/ThemeToggle.svelte';
   import TripCard from './TripCard.svelte';
@@ -29,7 +28,11 @@
       <p class="t-tagline">Your whole trip, offline.</p>
     </div>
     <div class="masthead-controls">
-      <ThemeToggle />
+      <ThemeToggle
+        dawn={settings.mode === 'light'}
+        label="Dawn theme"
+        ontoggle={() => settings.toggleTheme()}
+      />
       <button
         type="button"
         class="btn-icon"
@@ -40,10 +43,6 @@
       </button>
     </div>
   </header>
-
-  {#if ui.notice}
-    <NoticeBanner headline={ui.notice} ondismiss={() => (ui.notice = null)} />
-  {/if}
 
   {#if shelf}
     {#if shelf.active.length > 0}

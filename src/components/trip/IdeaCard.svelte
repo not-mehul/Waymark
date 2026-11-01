@@ -115,7 +115,7 @@
           </button>
         {/if}
       {/if}
-      <!-- Removed at once, with an undo along the foot of the screen. -->
+      <!-- Removed at once, with Undo in the toast. -->
       <button
         type="button"
         class="btn-icon"

@@ -16,10 +16,10 @@ export async function backUpEveryTrip(): Promise<void> {
   try {
     const bundles = await trips.bundles();
     saveFile(backupFileName(), encodeArchive(archiveOf(bundles)), MIME);
-    ui.tell(bundles.length === 1 ? 'One trip backed up.' : `${bundles.length} trips backed up.`);
+    ui.notify(bundles.length === 1 ? 'One trip backed up.' : `${bundles.length} trips backed up.`, 'success');
   } catch (error) {
     console.error('Backup failed', error);
-    ui.tell('The backup could not be written there.');
+    ui.notify('The backup could not be written there.', 'error');
   }
 }
 
@@ -66,7 +66,7 @@ export async function importTrips(bundles: TripBundle[]): Promise<void> {
   await trips.importBundles(bundles);
   ui.close();
   if (bundles.length === 1) ui.go({ name: 'trip', tripId: bundles[0]!.trip.id });
-  else ui.tell(`${bundles.length} trips opened.`);
+  else ui.notify(`${bundles.length} trips opened.`, 'success');
 }
 
 export async function loadExample(): Promise<void> {

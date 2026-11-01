@@ -1,14 +1,7 @@
-/* Editorial Dusk & Dawn — Waymark's component styles. */
+/* Editorial Dusk & Dawn: Waymark's own styles. The shared components
+   (buttons, fields, chips, tab rail, modal, toast and the rest) live in
+   components.css, which is identical in all three apps. */
 /* All colours via var(--token). Literal colours outside tokens.css are a bug. */
-
-/* Device safe areas. Browsers fill these from env(); in the Android app,
-   Capacitor's SystemBars sets --safe-area-inset-* with the real insets. */
-:root {
-  --inset-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
-  --inset-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
-  --inset-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
-  --inset-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
-}
 
 *,
 *::before,
@@ -16,77 +9,6 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-}
-
-html,
-body {
-  min-height: 100%;
-  background: linear-gradient(180deg, var(--bg-grad-top) 0%, var(--bg-grad-mid) 50%, var(--bg-grad-bot) 100%);
-  background-attachment: fixed;
-  color: var(--text-body);
-  font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 1.65;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  overflow-x: hidden;
-}
-
-button {
-  font: inherit;
-  color: inherit;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* ─── Glow atmosphere ─────────────────────────────────────────── */
-
-.glow-layer {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 0;
-}
-.glow {
-  position: absolute;
-  border-radius: 50%;
-}
-.glow-1 {
-  top: -20%;
-  right: -15%;
-  width: 900px;
-  height: 900px;
-  background: radial-gradient(
-    circle,
-    rgba(var(--accent-amber-rgb), 0.1) 0%,
-    rgba(var(--accent-amber-rgb), 0.03) 30%,
-    transparent 60%
-  );
-  filter: blur(40px);
-}
-.glow-2 {
-  bottom: -30%;
-  left: -20%;
-  width: 1000px;
-  height: 1000px;
-  background: radial-gradient(
-    circle,
-    rgba(var(--accent-sage-rgb), 0.08) 0%,
-    rgba(var(--accent-sage-rgb), 0.02) 35%,
-    transparent 65%
-  );
-  filter: blur(50px);
-}
-.glow-3 {
-  top: 40%;
-  left: 30%;
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(var(--cream-rgb), 0.03) 0%, transparent 60%);
-  filter: blur(60px);
 }
 
 /* ─── App shell ───────────────────────────────────────────────── */
@@ -99,76 +21,17 @@ button {
     calc(var(--inset-bottom) + var(--space-6)) calc(var(--inset-left) + var(--space-5));
 }
 
-.eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
+/* ─── Type: Waymark's additions to the shared scale ──────────── */
 
-/* ─── Type ─────────────────────────────────────────────────────
-   The Kotlin app's type scale (Type.kt), one class per style. */
-
-.t-page-title {
-  font-family: var(--font-serif);
-  font-size: 2.75rem;
-  font-weight: 400;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  color: var(--text-heading);
-}
-.t-tagline {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 1.125rem;
-  color: var(--text-dim);
-}
-.t-card-title {
-  font-family: var(--font-serif);
-  font-size: 1.25rem;
-  font-weight: 400;
-  line-height: 1.25;
-  color: var(--text-heading);
-}
-.t-body-small {
-  font-size: 0.875rem;
-  line-height: 1.5;
-  color: var(--text-body);
-}
-.t-hint {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  color: var(--text-dim);
-}
-.t-data {
-  font-family: var(--font-mono);
-  font-size: 0.875rem;
-  color: var(--text-strong);
-}
-.t-data-small {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-.t-section-label,
+/* A label over a read-only value keeps a step of air; inside a .field the
+   field's gap does that instead. */
 .t-field-label {
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
-.t-section-label {
-  font-size: 0.6875rem;
-  letter-spacing: 0.25em;
-}
-.t-field-label {
-  font-size: 0.625rem;
-  letter-spacing: 0.2em;
-  display: block;
   margin-bottom: var(--space-2);
 }
+.field > .t-field-label {
+  margin-bottom: 0;
+}
+
 .ellipsis {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -251,145 +114,6 @@ button {
   border: 0;
 }
 
-/* ─── Theme toggle ─────────────────────────────────────────── */
-
-.theme-toggle {
-  position: relative;
-  width: 60px;
-  height: 32px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--input-bg);
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 9px;
-  transition: border-color var(--dur-hover);
-}
-.theme-toggle:hover {
-  border-color: var(--text-dim);
-}
-.theme-toggle:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-.theme-toggle svg {
-  position: relative;
-  z-index: 1;
-  color: var(--text-faint);
-  transition: color var(--dur-hover);
-}
-:root:not([data-theme='light']) .theme-toggle .icon-moon,
-[data-theme='light'] .theme-toggle .icon-sun {
-  color: var(--on-accent);
-}
-.theme-toggle .icon-moon,
-.theme-toggle .icon-sun {
-  display: inline-flex;
-}
-.theme-toggle .knob {
-  position: absolute;
-  top: 50%;
-  left: 3px;
-  width: 26px;
-  height: 26px;
-  background: var(--accent-amber);
-  border-radius: var(--radius);
-  transform: translateY(-50%);
-  transition: transform var(--dur-toggle) var(--ease-standard);
-}
-[data-theme='light'] .theme-toggle .knob {
-  transform: translate(28px, -50%);
-}
-
-/* ─── Buttons ─────────────────────────────────────────────── */
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  padding: 0.75rem 1.25rem;
-  border-radius: var(--radius);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  white-space: nowrap;
-  transition:
-    background var(--dur-hover),
-    color var(--dur-hover),
-    border-color var(--dur-hover),
-    box-shadow var(--dur-hover);
-}
-.btn:focus-visible,
-.btn-icon:focus-visible,
-.link-button:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-.btn-primary {
-  background: var(--accent-bright);
-  color: var(--on-accent);
-  box-shadow: 0 0 32px rgba(var(--accent-amber-rgb), 0.25);
-}
-.btn-primary:hover:not(:disabled) {
-  background: var(--accent-bright-hover);
-  box-shadow: 0 0 48px rgba(var(--accent-amber-rgb), 0.35);
-}
-.btn-primary:disabled {
-  background: var(--disabled-bg);
-  color: var(--text-faint);
-  box-shadow: none;
-  cursor: not-allowed;
-}
-.btn-muted {
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-}
-.btn-muted:hover {
-  color: var(--text-heading);
-  border-color: var(--text-dim);
-}
-.btn-danger {
-  border: 1px solid var(--danger);
-  color: var(--danger);
-}
-.btn-danger:hover {
-  background: var(--danger);
-  color: var(--on-danger);
-}
-.btn-block {
-  width: 100%;
-}
-.btn-row {
-  display: flex;
-  gap: var(--space-2);
-}
-.btn-row > .btn {
-  flex: 1;
-}
-.btn-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius);
-  color: var(--text-dim);
-  flex-shrink: 0;
-  transition:
-    color var(--dur-hover),
-    background var(--dur-hover);
-}
-.btn-icon:hover {
-  color: var(--text-heading);
-  background: var(--hover-bg);
-}
-.btn-icon svg {
-  width: 18px;
-  height: 18px;
-}
 /* A quiet text action: "Load the worked example", "Put away (2)". */
 .link-button {
   align-self: flex-start;
@@ -407,86 +131,19 @@ button {
   color: var(--accent-amber);
 }
 
-/* ─── Chips ───────────────────────────────────────────────── */
-
-.chip-row {
-  display: flex;
-  gap: var(--space-1);
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.chip {
-  padding: 0.4rem 0.75rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--chip-bg);
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-.chip:hover {
-  background: var(--chip-bg-hover);
-}
-.chip[aria-pressed='true'] {
-  background: var(--accent-bright);
-  border-color: var(--accent-bright);
-  color: var(--on-accent);
-}
-
-/* ─── Segmented control ───────────────────────────────────── */
-
-.segmented {
-  display: inline-flex;
-  background: var(--panel-bg-faint);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 3px;
-  gap: 2px;
-}
-.segmented button {
-  padding: 0.45rem 0.9rem;
-  border-radius: var(--radius);
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-.segmented button:hover {
-  background: var(--hover-bg);
-  color: var(--text-heading);
-}
-.segmented button[aria-checked='true'] {
-  background: var(--accent-bright);
-  color: var(--on-accent);
-  font-weight: 500;
-}
-
 /* ─── Panels and cards ────────────────────────────────────── */
 
+/* Waymark's panels are often whole buttons (a trip, a booking). */
 .panel {
   display: block;
   width: 100%;
   text-align: left;
-  background: var(--panel-bg);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius);
-  padding: var(--space-4);
 }
 button.panel {
   transition: border-color var(--dur-hover);
 }
 button.panel:hover {
   border-color: var(--border);
-}
-button.panel:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
 }
 .trip-card-top,
 .trip-card-foot {
@@ -543,41 +200,6 @@ button.panel:focus-visible {
   color: var(--accent-amber);
 }
 
-/* ─── Notice banner ───────────────────────────────────────── */
-
-.notice {
-  display: flex;
-  gap: var(--space-3);
-  align-items: flex-start;
-  padding: var(--space-3);
-  border-radius: var(--radius);
-  background: var(--notice-bg);
-  border: 1px solid rgba(var(--accent-amber-rgb), 0.35);
-}
-.notice > svg {
-  color: var(--accent-bright);
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-.notice-text {
-  text-align: left;
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.notice .t-body-small {
-  color: var(--text-heading);
-}
-.notice.critical {
-  background: var(--error-bg);
-  border-color: rgba(var(--danger-rgb), 0.4);
-}
-.notice.critical > svg,
-.notice.critical .t-body-small {
-  color: var(--danger);
-}
 .notice .btn-icon {
   width: 28px;
   height: 28px;
@@ -586,10 +208,6 @@ button.panel:focus-visible {
 
 /* ─── Inputs ──────────────────────────────────────────────── */
 
-.field {
-  display: flex;
-  flex-direction: column;
-}
 .field-row {
   display: flex;
   gap: var(--space-2);
@@ -598,52 +216,21 @@ button.panel:focus-visible {
   flex: 1;
   min-width: 0;
 }
-.input,
-.textarea {
-  display: block;
-  width: 100%;
-  padding: 0.75rem 0.9rem;
-  background: var(--input-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text-strong);
-  font: inherit;
-  font-size: 0.9375rem;
-  transition: border-color var(--dur-hover);
-  -webkit-appearance: none;
-}
-.input:focus,
-.textarea:focus {
-  outline: none;
-  border-color: var(--text-dim);
-}
-.input::placeholder,
-.textarea::placeholder {
-  color: var(--text-faint);
-  font-style: italic;
-}
-.textarea {
-  min-height: 96px;
-  resize: vertical;
-  line-height: 1.55;
-}
 .input-mono {
   font-family: var(--font-mono);
   font-size: 0.875rem;
 }
+/* Waymark's pickers carry an icon and a trailing year. */
 .picker-field {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  width: 100%;
-  padding: 11px var(--space-3);
-  background: var(--input-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  text-align: left;
 }
-.picker-field[aria-expanded='true'] {
-  border-color: var(--text-dim);
+.picker-placeholder {
+  flex: 1;
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--text-faint);
 }
 .picker-field > svg {
   color: var(--text-dim);
@@ -656,8 +243,34 @@ button.panel:focus-visible {
   color: var(--text-dim);
 }
 
-/* ─── Calendar ────────────────────────────────────────────── */
+/* ─── Pickers: calendar and clock (§8.6) ─────────────────── */
 
+.picker-card {
+  max-width: 420px;
+}
+.modal-head.picker-head {
+  flex-direction: row;
+  align-items: center;
+  padding-right: 0;
+}
+.picker-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.picker-section > .t-field-label {
+  margin-bottom: 0;
+}
+/* Clocks share the six-wide grid; a month keeps its seven weekdays. */
+.picker-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
+}
+.picker-grid .day-cell {
+  aspect-ratio: auto;
+  min-height: 40px;
+}
 .calendar {
   display: flex;
   flex-direction: column;
@@ -698,7 +311,8 @@ button.panel:focus-visible {
 .day-cell.today {
   border: 1px solid rgba(var(--accent-amber-rgb), 0.55);
 }
-.day-cell[aria-pressed='true'] {
+.day-cell[aria-pressed='true'],
+.day-cell[aria-pressed='true']:hover:not(:disabled) {
   background: var(--accent-bright);
   color: var(--on-accent);
   border: 0;
@@ -740,125 +354,16 @@ button.panel:focus-visible {
 
 /* ─── Modal ───────────────────────────────────────────────── */
 
-.modal-dialog {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  max-width: none;
-  max-height: none;
-  border: 0;
-  color: inherit;
-  background: var(--modal-backdrop);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: calc(var(--space-4) + var(--inset-top)) calc(var(--space-4) + var(--inset-right))
-    calc(var(--space-4) + var(--inset-bottom)) calc(var(--space-4) + var(--inset-left));
-  animation: backdrop-in var(--dur-enter) ease-out;
-}
-.modal-dialog:not([open]) {
-  display: none;
-}
-.modal-dialog::backdrop {
-  background: transparent;
-}
-@media (min-height: 640px) {
-  .modal-dialog {
-    align-items: center;
-  }
-}
-body:has(.modal-dialog[open]) {
-  overflow: hidden;
-}
-@keyframes backdrop-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-.modal-card {
-  position: relative;
-  width: 100%;
-  max-width: 560px;
-  max-height: calc(100dvh - 2 * var(--space-4) - var(--inset-top) - var(--inset-bottom));
-  overflow-y: auto;
-  overflow-x: hidden;
-  background: var(--modal-bg);
-  border: 1px solid rgba(var(--accent-amber-rgb), 0.28);
-  border-radius: var(--radius);
-  padding: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  box-shadow:
-    0 32px 80px rgba(var(--shadow-rgb), calc(0.65 * var(--shadow-strength))),
-    0 0 80px rgba(var(--accent-amber-rgb), 0.15);
-  animation: modal-in var(--dur-enter) var(--ease-settle);
-}
-@keyframes modal-in {
-  from {
-    opacity: 0;
-    transform: translateY(20px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-/* Corner brackets, the style's signature. */
-.modal-card::before,
-.modal-card::after {
-  content: '';
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border: 0 solid rgba(var(--accent-amber-rgb), 0.45);
-  pointer-events: none;
-}
-.modal-card::before {
-  top: 10px;
-  left: 10px;
-  border-top-width: 1px;
-  border-left-width: 1px;
-}
-.modal-card::after {
-  bottom: 10px;
-  right: 10px;
-  border-bottom-width: 1px;
-  border-right-width: 1px;
-}
 .modal-close {
   position: absolute;
   top: var(--space-3);
   right: var(--space-3);
 }
+/* The close button sits in the corner, outside the head's flow. */
 .modal-head {
-  display: flex;
   flex-direction: column;
   gap: var(--space-1);
   padding-right: var(--space-6);
-}
-.modal-eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: var(--accent-amber);
-}
-.modal-title {
-  font-family: var(--font-serif);
-  font-weight: 400;
-  font-size: 1.75rem;
-  line-height: 1.1;
-  color: var(--text-heading);
-}
-.modal-title:focus {
-  outline: none;
 }
 .credit {
   display: flex;
@@ -873,14 +378,6 @@ body:has(.modal-dialog[open]) {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-/* Two dates side by side; the one whose calendar is open takes the row. */
-.field-row {
-  flex-wrap: wrap;
-}
-.field-row > .field:has(.calendar) {
-  flex-basis: 100%;
 }
 
 /* A dialog's form: its fields stacked, never wider than the card. */
@@ -914,6 +411,9 @@ body:has(.modal-dialog[open]) {
 }
 .menu-item.static {
   cursor: default;
+}
+.theme-setting {
+  flex-wrap: wrap;
 }
 .menu-item.static:hover {
   background: transparent;
@@ -954,58 +454,6 @@ body:has(.modal-dialog[open]) {
   cursor: pointer;
 }
 
-.tab-rail {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(var(--tabs), 1fr);
-  border-bottom: 1px solid var(--border-faint);
-}
-.tab-rail button {
-  padding: var(--space-2) 0;
-  font-size: 0.875rem;
-  color: var(--text-dim);
-  border-radius: var(--radius);
-}
-.tab-rail button[aria-selected='true'] {
-  color: var(--text-heading);
-  font-weight: 500;
-}
-.tab-rail button:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: -2px;
-}
-.tab-rule {
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: calc(100% / var(--tabs));
-  height: 2px;
-  transform: translateX(calc(100% * var(--index)));
-  transition: transform var(--dur-toggle) var(--ease-standard);
-}
-.tab-rule::after {
-  content: '';
-  display: block;
-  margin: 0 auto;
-  width: 55%;
-  height: 100%;
-  background: var(--accent-amber);
-}
-
-.t-section-heading {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 400;
-  font-size: 1.625rem;
-  line-height: 1.2;
-  color: var(--text-heading);
-}
-.t-stat {
-  font-family: var(--font-serif);
-  font-size: 1.875rem;
-  line-height: 1.15;
-  color: var(--text-heading);
-}
 .t-data-large {
   font-family: var(--font-mono);
   font-size: 1.125rem;
@@ -1281,20 +729,6 @@ body:has(.modal-dialog[open]) {
 .form-problem {
   color: var(--danger);
 }
-.field-hint {
-  margin-top: var(--space-1);
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 0.8125rem;
-  color: var(--text-dim);
-}
-input[type='time'].input {
-  min-height: 46px;
-}
-input[type='time']::-webkit-calendar-picker-indicator {
-  filter: var(--picker-icon-filter, none);
-  opacity: 0.6;
-}
 .chip[aria-pressed='true'] .party-mark {
   background: transparent;
   border-color: currentColor;
@@ -1520,30 +954,6 @@ input[type='time']::-webkit-calendar-picker-indicator {
   align-items: center;
 }
 
-/* ─── Undo bar ────────────────────────────────────────────── */
-
-.undo-bar {
-  position: fixed;
-  left: 50%;
-  bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
-  transform: translateX(-50%);
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  max-width: calc(100vw - 2 * var(--space-4));
-  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
-  background: var(--modal-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgba(var(--shadow-rgb), calc(0.3 * var(--shadow-strength)));
-}
-.undo-bar .t-body-small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* ─── Costs ───────────────────────────────────────────────── */
 
 .bars {
@@ -1650,7 +1060,7 @@ input[type='time']::-webkit-calendar-picker-indicator {
 /* ─── Charts ──────────────────────────────────────────────── */
 
 .bar-series,
-.meter,
+.meter-figure,
 .split-bar,
 .day-load {
   display: flex;

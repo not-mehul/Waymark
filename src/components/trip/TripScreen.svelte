@@ -48,9 +48,14 @@
     />
   {/if}
 
-  <TabRail tabs={TRIP_TABS} bind:value={model.tab} label="Views of this trip" />
+  <TabRail
+    tabs={TRIP_TABS}
+    value={model.tab}
+    label="Views of this trip"
+    onselect={(tab) => (model.tab = tab)}
+  />
 
-  <div role="tabpanel">
+  <div role="tabpanel" id="trip-tab-panel" aria-labelledby={TRIP_TABS.find((t) => t.id === model.tab)?.domId}>
     {#if model.tab === 'TIMELINE'}
       <Timeline
         onopen={openSegment}
@@ -64,14 +69,4 @@
       <CostsTab />
     {/if}
   </div>
-
-  {#if model.removedIdea}
-    {@const removed = model.removedIdea}
-    <div class="undo-bar" role="status">
-      <span class="t-body-small">Removed “{removed.title}”</span>
-      <button type="button" class="btn btn-secondary" onclick={() => model.undoDelete()}>
-        <Icon name="undo" /> Undo
-      </button>
-    </div>
-  {/if}
 </section>

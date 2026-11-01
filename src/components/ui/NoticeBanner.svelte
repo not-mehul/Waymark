@@ -14,17 +14,17 @@
   let { headline, detail, icon = 'info', critical = false, onclick, ondismiss }: Props = $props();
 </script>
 
-<div class="notice" class:critical role="status">
+<div class="notice" class:is-error={critical} role="status">
   <Icon name={icon} />
   {#if onclick}
     <button type="button" class="notice-text" {onclick}>
-      <span class="t-body-small">{headline}</span>
-      {#if detail}<span class="t-hint">{detail}</span>{/if}
+      <span class="notice-title">{headline}</span>
+      {#if detail}<span class="notice-detail">{detail}</span>{/if}
     </button>
   {:else}
     <div class="notice-text">
-      <span class="t-body-small">{headline}</span>
-      {#if detail}<span class="t-hint">{detail}</span>{/if}
+      <span class="notice-title">{headline}</span>
+      {#if detail}<span class="notice-detail">{detail}</span>{/if}
     </div>
   {/if}
   {#if ondismiss}

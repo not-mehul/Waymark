@@ -7,7 +7,7 @@
   import type { IconName } from '../../util/icons';
   import Icon from '../ui/Icon.svelte';
   import ModalHead from '../ui/ModalHead.svelte';
-  import ThemeToggle from '../ui/ThemeToggle.svelte';
+  import ThemeSetting from '../ui/ThemeSetting.svelte';
   import { useTrip, type TripSheet } from './context';
 
   const { model, open, close } = useTrip();
@@ -146,9 +146,6 @@
 {@render rows(shareRows)}
 <hr class="hairline" />
 {@render rows(settingsRows)}
-<div class="menu-item static">
-  <span class="menu-text"><span class="t-body-small">Appearance</span></span>
-  <ThemeToggle />
-</div>
+<ThemeSetting />
 <hr class="hairline" />
 {@render rows(tripRows)}
