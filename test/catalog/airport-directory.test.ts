@@ -15,13 +15,15 @@ const parsed = parseAirportDirectory(
 
     LHR|London Heathrow Airport|London|GB|51.4706|-0.4619|0
     SFO|San Francisco International Airport|San Francisco|US|37.6188|-122.3750|1
-    UTK|Utirik Airport||MH|11.2220|169.8520|2`)
+    UTK|Utirik Airport||MH|11.2220|169.8520|2
+    YUL|Montreal / Pierre Elliott Trudeau International Airport|Montréal|CA|45.4706|-73.7408|0
+    BOO|Bodø Airport|Bodø|NO|67.2692|14.3653|0`)
 );
 const byCode = (code: string) => parsed.find((a) => a.code === code)!;
 
 describe('AirportDirectory', () => {
   it('zones are interned and resolved by index', () => {
-    expect(parsed).toHaveLength(3);
+    expect(parsed).toHaveLength(5);
     expect(byCode('LHR').timeZoneId).toBe('Europe/London');
     expect(byCode('SFO').timeZoneId).toBe('America/Los_Angeles');
     expect(byCode('UTK').timeZoneId).toBe('Pacific/Majuro');
@@ -77,5 +79,12 @@ describe('AirportDirectory', () => {
     expect(searchAirports('utk')[0]!.code).toBe('UTK');
     expect(searchAirports('lhr')[0]!.code).toBe('LHR');
     expect(findAirport('ZZZ')).toBeNull();
+  });
+
+  it('search ignores accents both ways', () => {
+    installAirports(parsed);
+    expect(searchAirports('montreal')[0]!.code).toBe('YUL');
+    expect(searchAirports('Montréal')[0]!.code).toBe('YUL');
+    expect(searchAirports('bodo')[0]!.code).toBe('BOO');
   });
 });
