@@ -1,0 +1,295 @@
+// Generated from the Kotlin catalog by scripts/port-catalog-tables.py. Do not edit.
+
+/** The hand-checked core stations: [code, name, city, country, lat, lon, zone, terminals]. */
+export const CORE_AIRPORT_ROWS: readonly (readonly [
+  string,
+  string,
+  string,
+  string,
+  number,
+  number,
+  string,
+  readonly string[]
+])[] = [
+  [
+    'JFK',
+    'John F. Kennedy International',
+    'New York',
+    'United States',
+    40.6413,
+    -73.7781,
+    'America/New_York',
+    ['1', '4', '5', '7', '8']
+  ],
+  [
+    'EWR',
+    'Newark Liberty International',
+    'New York',
+    'United States',
+    40.6895,
+    -74.1745,
+    'America/New_York',
+    ['A', 'B', 'C']
+  ],
+  [
+    'LGA',
+    'LaGuardia',
+    'New York',
+    'United States',
+    40.7769,
+    -73.874,
+    'America/New_York',
+    ['A', 'B', 'C', 'D']
+  ],
+  [
+    'BOS',
+    'Logan International',
+    'Boston',
+    'United States',
+    42.3656,
+    -71.0096,
+    'America/New_York',
+    ['A', 'B', 'C', 'E']
+  ],
+  [
+    'IAD',
+    'Washington Dulles International',
+    'Washington',
+    'United States',
+    38.9531,
+    -77.4565,
+    'America/New_York',
+    ['Main']
+  ],
+  [
+    'ATL',
+    'Hartsfield–Jackson',
+    'Atlanta',
+    'United States',
+    33.6407,
+    -84.4277,
+    'America/New_York',
+    ['N', 'S', 'I']
+  ],
+  [
+    'MIA',
+    'Miami International',
+    'Miami',
+    'United States',
+    25.7959,
+    -80.287,
+    'America/New_York',
+    ['N', 'C', 'S']
+  ],
+  [
+    'ORD',
+    "O'Hare International",
+    'Chicago',
+    'United States',
+    41.9742,
+    -87.9073,
+    'America/Chicago',
+    ['1', '2', '3', '5']
+  ],
+  [
+    'DFW',
+    'Dallas/Fort Worth International',
+    'Dallas',
+    'United States',
+    32.8998,
+    -97.0403,
+    'America/Chicago',
+    ['A', 'B', 'C', 'D', 'E']
+  ],
+  [
+    'DEN',
+    'Denver International',
+    'Denver',
+    'United States',
+    39.8561,
+    -104.6737,
+    'America/Denver',
+    ['A', 'B', 'C']
+  ],
+  [
+    'LAX',
+    'Los Angeles International',
+    'Los Angeles',
+    'United States',
+    33.9416,
+    -118.4085,
+    'America/Los_Angeles',
+    ['1', '2', '3', '4', '5', '6', '7', 'B']
+  ],
+  [
+    'SFO',
+    'San Francisco International',
+    'San Francisco',
+    'United States',
+    37.6213,
+    -122.379,
+    'America/Los_Angeles',
+    ['1', '2', '3', 'I']
+  ],
+  [
+    'SEA',
+    'Seattle–Tacoma International',
+    'Seattle',
+    'United States',
+    47.4502,
+    -122.3088,
+    'America/Los_Angeles',
+    ['Main', 'S']
+  ],
+  [
+    'YVR',
+    'Vancouver International',
+    'Vancouver',
+    'Canada',
+    49.1967,
+    -123.1815,
+    'America/Vancouver',
+    ['D', 'E', 'M']
+  ],
+  [
+    'YYZ',
+    'Toronto Pearson International',
+    'Toronto',
+    'Canada',
+    43.6777,
+    -79.6248,
+    'America/Toronto',
+    ['1', '3']
+  ],
+  [
+    'MEX',
+    'Benito Juárez International',
+    'Mexico City',
+    'Mexico',
+    19.4363,
+    -99.0721,
+    'America/Mexico_City',
+    ['1', '2']
+  ],
+  [
+    'GRU',
+    'São Paulo–Guarulhos',
+    'São Paulo',
+    'Brazil',
+    -23.4356,
+    -46.4731,
+    'America/Sao_Paulo',
+    ['1', '2', '3']
+  ],
+  ['LIM', 'Jorge Chávez International', 'Lima', 'Peru', -12.0219, -77.1143, 'America/Lima', ['Main']],
+  [
+    'EZE',
+    'Ministro Pistarini',
+    'Buenos Aires',
+    'Argentina',
+    -34.8222,
+    -58.5358,
+    'America/Argentina/Buenos_Aires',
+    ['A', 'B', 'C']
+  ],
+  ['LHR', 'Heathrow', 'London', 'United Kingdom', 51.47, -0.4543, 'Europe/London', ['2', '3', '4', '5']],
+  ['LGW', 'Gatwick', 'London', 'United Kingdom', 51.1537, -0.1821, 'Europe/London', ['N', 'S']],
+  ['DUB', 'Dublin', 'Dublin', 'Ireland', 53.4264, -6.2499, 'Europe/Dublin', ['1', '2']],
+  [
+    'CDG',
+    'Charles de Gaulle',
+    'Paris',
+    'France',
+    49.0097,
+    2.5479,
+    'Europe/Paris',
+    ['1', '2A', '2E', '2F', '3']
+  ],
+  ['AMS', 'Schiphol', 'Amsterdam', 'Netherlands', 52.3105, 4.7683, 'Europe/Amsterdam', ['1', '2', '3']],
+  ['FRA', 'Frankfurt', 'Frankfurt', 'Germany', 50.0379, 8.5622, 'Europe/Berlin', ['1', '2']],
+  ['MUC', 'Munich', 'Munich', 'Germany', 48.3538, 11.7861, 'Europe/Berlin', ['1', '2']],
+  ['ZRH', 'Zurich', 'Zurich', 'Switzerland', 47.4647, 8.5492, 'Europe/Zurich', ['A', 'B', 'E']],
+  ['VIE', 'Vienna International', 'Vienna', 'Austria', 48.1103, 16.5697, 'Europe/Vienna', ['1', '2', '3']],
+  ['CPH', 'Copenhagen', 'Copenhagen', 'Denmark', 55.618, 12.656, 'Europe/Copenhagen', ['2', '3']],
+  ['OSL', 'Oslo Gardermoen', 'Oslo', 'Norway', 60.1939, 11.1004, 'Europe/Oslo', ['Main']],
+  ['ARN', 'Stockholm Arlanda', 'Stockholm', 'Sweden', 59.6519, 17.9186, 'Europe/Stockholm', ['2', '4', '5']],
+  ['KEF', 'Keflavík International', 'Reykjavík', 'Iceland', 63.985, -22.6056, 'Atlantic/Reykjavik', ['Main']],
+  [
+    'MAD',
+    'Adolfo Suárez Madrid–Barajas',
+    'Madrid',
+    'Spain',
+    40.4839,
+    -3.568,
+    'Europe/Madrid',
+    ['1', '2', '3', '4', '4S']
+  ],
+  [
+    'BCN',
+    'Josep Tarradellas Barcelona–El Prat',
+    'Barcelona',
+    'Spain',
+    41.2974,
+    2.0833,
+    'Europe/Madrid',
+    ['1', '2']
+  ],
+  ['LIS', 'Humberto Delgado', 'Lisbon', 'Portugal', 38.7742, -9.1342, 'Europe/Lisbon', ['1', '2']],
+  ['FCO', 'Leonardo da Vinci–Fiumicino', 'Rome', 'Italy', 41.8003, 12.2389, 'Europe/Rome', ['1', '3']],
+  [
+    'ATH',
+    'Athens International',
+    'Athens',
+    'Greece',
+    37.9364,
+    23.9445,
+    'Europe/Athens',
+    ['Main', 'Satellite']
+  ],
+  ['PRG', 'Václav Havel', 'Prague', 'Czechia', 50.1008, 14.26, 'Europe/Prague', ['1', '2']],
+  ['IST', 'Istanbul', 'Istanbul', 'Türkiye', 41.2753, 28.7519, 'Europe/Istanbul', ['Main']],
+  ['CAI', 'Cairo International', 'Cairo', 'Egypt', 30.1219, 31.4056, 'Africa/Cairo', ['1', '2', '3']],
+  [
+    'JNB',
+    'O. R. Tambo International',
+    'Johannesburg',
+    'South Africa',
+    -26.1392,
+    28.246,
+    'Africa/Johannesburg',
+    ['A', 'B']
+  ],
+  [
+    'DXB',
+    'Dubai International',
+    'Dubai',
+    'United Arab Emirates',
+    25.2532,
+    55.3657,
+    'Asia/Dubai',
+    ['1', '2', '3']
+  ],
+  ['DOH', 'Hamad International', 'Doha', 'Qatar', 25.2731, 51.6081, 'Asia/Qatar', ['Main']],
+  ['DEL', 'Indira Gandhi International', 'Delhi', 'India', 28.5562, 77.1, 'Asia/Kolkata', ['1', '2', '3']],
+  ['BOM', 'Chhatrapati Shivaji Maharaj', 'Mumbai', 'India', 19.0896, 72.8656, 'Asia/Kolkata', ['1', '2']],
+  ['BKK', 'Suvarnabhumi', 'Bangkok', 'Thailand', 13.69, 100.7501, 'Asia/Bangkok', ['Main']],
+  ['SIN', 'Changi', 'Singapore', 'Singapore', 1.3644, 103.9915, 'Asia/Singapore', ['1', '2', '3', '4']],
+  ['HKG', 'Hong Kong International', 'Hong Kong', 'Hong Kong', 22.308, 113.9185, 'Asia/Hong_Kong', ['1']],
+  ['TPE', 'Taoyuan International', 'Taipei', 'Taiwan', 25.0777, 121.2328, 'Asia/Taipei', ['1', '2']],
+  ['ICN', 'Incheon International', 'Seoul', 'South Korea', 37.4602, 126.4407, 'Asia/Seoul', ['1', '2']],
+  ['NRT', 'Narita International', 'Tokyo', 'Japan', 35.772, 140.3929, 'Asia/Tokyo', ['1', '2', '3']],
+  ['HND', 'Haneda', 'Tokyo', 'Japan', 35.5494, 139.7798, 'Asia/Tokyo', ['1', '2', '3']],
+  ['KIX', 'Kansai International', 'Osaka', 'Japan', 34.4347, 135.244, 'Asia/Tokyo', ['1', '2']],
+  ['SYD', 'Kingsford Smith', 'Sydney', 'Australia', -33.9399, 151.1753, 'Australia/Sydney', ['1', '2', '3']],
+  [
+    'MEL',
+    'Melbourne',
+    'Melbourne',
+    'Australia',
+    -37.669,
+    144.841,
+    'Australia/Melbourne',
+    ['1', '2', '3', '4']
+  ],
+  ['AKL', 'Auckland', 'Auckland', 'New Zealand', -37.0082, 174.785, 'Pacific/Auckland', ['I', 'D']]
+];
