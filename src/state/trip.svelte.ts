@@ -19,6 +19,7 @@ import { newId } from '../db/trips';
 import { buildTimeline } from '../domain/timeline';
 import { ideaSections, ideaTally, ideasByCity, ideasByDay } from '../domain/ideas';
 import type { LocalDate, LocalTime } from '../domain/time';
+import { CostsModel } from './costs.svelte';
 import { ideaFields, ideaZone, tripCities, tripDays, type IdeaDraft } from './idea-plan';
 import { alerts, ideas, settings, trips } from './app';
 import { editedTrip, freeTimeIdeas, reminderBanner } from './trip-logic';
@@ -82,6 +83,9 @@ export class TripModel {
     ideasByDay(this.ideas, { travelerFilter: this.travelerFilter, includeDismissed: this.showDismissed })
   );
 
+  /** The Costs tab's half, read as long as the trip is open. */
+  readonly costs: CostsModel;
+
   private undoTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly subscriptions: Subscription[];
   private readonly ticker: ReturnType<typeof setInterval>;
@@ -94,12 +98,14 @@ export class TripModel {
       liveQuery(() => trips.allTravelers()).subscribe((list) => (this.everyone = list))
     ];
     this.ticker = setInterval(() => (this.now = Date.now()), MINUTE);
+    this.costs = new CostsModel(tripId, () => this.dossier);
   }
 
   destroy(): void {
     for (const s of this.subscriptions) s.unsubscribe();
     clearInterval(this.ticker);
     if (this.undoTimer) clearTimeout(this.undoTimer);
+    this.costs.destroy();
   }
 
   segment(segmentId: string): Segment | null {

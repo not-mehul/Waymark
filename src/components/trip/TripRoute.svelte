@@ -11,6 +11,9 @@
   import TravelerProfile from '../people/TravelerProfile.svelte';
   import AddPlan from './AddPlan.svelte';
   import AddIdea from './AddIdea.svelte';
+  import CurrencySheet from './CurrencySheet.svelte';
+  import ExpenseSheet from './ExpenseSheet.svelte';
+  import RateSheet from './RateSheet.svelte';
   import AddTraveler from './AddTraveler.svelte';
   import ScheduleIdea from './ScheduleIdea.svelte';
   import RemoveTraveler from './RemoveTraveler.svelte';
@@ -29,12 +32,16 @@
   onDestroy(() => model.destroy());
 
   let sheet = $state.raw<TripSheet | null>(null);
+  // What the dialog shows. It outlives [sheet] by the length of the closing
+  // animation, so the content never reads a sheet that has gone.
+  let shown = $state.raw<TripSheet>({ name: 'menu' });
   let sheetKey = $state(0);
   const close = () => (sheet = null);
   provideTrip({
     model,
     open: (next) => {
       sheet = next;
+      shown = next;
       sheetKey++;
     },
     close
@@ -57,7 +64,7 @@
 {/if}
 
 {#if sheet}
-  {@const current = sheet}
+  {@const current = shown}
   <Modal contentKey={sheetKey} onclose={close}>
     {#key sheetKey}
       {#if current.name === 'menu'}
@@ -70,6 +77,12 @@
         <OnlineExtras />
       {:else if current.name === 'delete'}
         <DeleteTrip />
+      {:else if current.name === 'expense'}
+        <ExpenseSheet existing={current.expense} />
+      {:else if current.name === 'rate'}
+        <RateSheet currency={current.currency} />
+      {:else if current.name === 'settleCurrency'}
+        <CurrencySheet />
       {:else if current.name === 'addIdea'}
         <AddIdea />
       {:else if current.name === 'scheduleIdea'}

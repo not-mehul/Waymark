@@ -9,6 +9,7 @@
   import NoticeBanner from '../ui/NoticeBanner.svelte';
   import TabRail from '../ui/TabRail.svelte';
   import { useTrip } from './context';
+  import CostsTab from './CostsTab.svelte';
   import IdeasTab from './IdeasTab.svelte';
   import PartyTab from './PartyTab.svelte';
   import Timeline from './Timeline.svelte';
@@ -60,7 +61,7 @@
     {:else if model.tab === 'PARTY'}
       <PartyTab />
     {:else}
-      <p class="t-hint empty-line">This view arrives in the next part of the rewrite.</p>
+      <CostsTab />
     {/if}
   </div>
 

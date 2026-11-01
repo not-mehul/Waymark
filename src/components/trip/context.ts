@@ -2,7 +2,7 @@
 // and the one dialog slot over it.
 
 import { getContext, setContext } from 'svelte';
-import type { Idea, Segment, Traveler } from '../../domain/model';
+import type { Expense, Idea, Segment, Traveler } from '../../domain/model';
 import type { TripModel } from '../../state/trip.svelte';
 
 export type TripSheet =
@@ -15,6 +15,9 @@ export type TripSheet =
   | { name: 'addPlan' }
   | { name: 'addTraveler' }
   | { name: 'addIdea' }
+  | { name: 'expense'; expense: Expense | null }
+  | { name: 'rate'; currency: string }
+  | { name: 'settleCurrency' }
   | { name: 'scheduleIdea'; idea: Idea }
   | { name: 'editTraveler'; traveler: Traveler }
   | { name: 'removeTraveler'; traveler: Traveler };
