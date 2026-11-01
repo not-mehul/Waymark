@@ -1646,3 +1646,215 @@ input[type='time']::-webkit-calendar-picker-indicator {
 .map-projection button {
   flex: 1;
 }
+
+/* ─── Charts ──────────────────────────────────────────────── */
+
+.bar-series,
+.meter,
+.split-bar,
+.day-load {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.bar-series {
+  gap: var(--space-3);
+}
+.bar-measure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.bar-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+.bar-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dim {
+  color: var(--text-dim);
+}
+.chart-track {
+  display: block;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--border-faint);
+  overflow: hidden;
+}
+.chart-track.tall {
+  height: 10px;
+}
+.chart-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent-amber);
+  transition: width var(--motion-medium, 240ms) ease-out;
+}
+.chart-fill.soft {
+  background: rgba(var(--accent-amber-rgb), 0.45);
+}
+.chart-fill.sage {
+  background: var(--accent-sage);
+}
+.chart-part.full,
+.swatch.full {
+  background: var(--accent-amber);
+}
+.chart-part.half,
+.swatch.half {
+  background: rgba(var(--accent-amber-rgb), 0.45);
+}
+.chart-part.faint,
+.swatch.faint {
+  background: rgba(var(--accent-amber-rgb), 0.2);
+}
+.split-track {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+}
+.split-track .chart-part {
+  flex-basis: 0;
+  border-radius: 2px;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+}
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+}
+.day-columns {
+  display: flex;
+  align-items: stretch;
+  gap: 3px;
+  height: 128px;
+  border-bottom: 1px solid var(--border-soft);
+  background: linear-gradient(var(--border-faint), var(--border-faint)) 0 50% / 100% 1px no-repeat;
+}
+.day-column {
+  flex: 1;
+  min-width: 2px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0;
+  position: relative;
+}
+.day-column .chart-part {
+  border-radius: 2px;
+}
+.day-column.today::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--accent-bright);
+}
+.ring-figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+.ring {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+}
+.ring svg {
+  position: absolute;
+  inset: 0;
+}
+.ring-track {
+  stroke: var(--border-faint);
+}
+.ring-fill {
+  stroke: var(--accent-amber);
+}
+.ring-text {
+  position: relative;
+  max-width: 64px;
+  text-align: center;
+  color: var(--text-heading);
+  font-family: var(--font-mono);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+.ring-text.big {
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+}
+.ring-text.mid {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+}
+.ring-text.small {
+  font-size: 0.95rem;
+}
+.ring-text.tiny {
+  font-size: 0.8rem;
+}
+
+/* ─── The numbers ─────────────────────────────────────────── */
+
+.numbers-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+.numbers-stats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.numbers-stats > div {
+  display: flex;
+  flex-direction: column;
+}
+.stats.spread {
+  justify-content: space-between;
+}
+.leg-list {
+  display: flex;
+  flex-direction: column;
+}
+.leg-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) 0;
+}
+.leg-row + .leg-row {
+  border-top: 1px solid var(--border-faint);
+}
+.panel.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
