@@ -93,6 +93,16 @@ describe('AirportAsset', () => {
     expect(byCode.get('IKA')!.timeZoneId).toBe('Asia/Tehran');
   });
 
+  // The source table lost its accented letters to an encoding fault
+  // ("Montral"); tools/repair_airport_names.py put them back.
+  it('names keep their accented letters', () => {
+    expect(byCode.get('YUL')!.city).toBe('Montréal');
+    expect(byCode.get('GRU')!.name).toContain('André Franco Montoro');
+    expect(byCode.get('AGP')!.name).toBe('Málaga Airport');
+    expect(byCode.get('KIV')!.city).toBe('Chişinău');
+    expect(byCode.get('BJD')!.name).toBe('Bakkafjörður Airport');
+  });
+
   it('the core list and the directory agree on where the core stations are', () => {
     for (const curated of coreAirports()) {
       const row = byCode.get(curated.code);

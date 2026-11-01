@@ -16,10 +16,32 @@ export interface Airport {
   longitude: number;
   timeZoneId: string;
   terminals: readonly string[];
-  /** Lower-cased once, rather than for nine thousand rows on every keystroke. */
+  /** Folded once (see searchKey), rather than for nine thousand rows on every keystroke. */
   readonly codeKey: string;
   readonly cityKey: string;
   readonly nameKey: string;
+}
+
+// Letters that carry no combining mark to strip, spelled as travelers type them.
+const PLAIN_LETTERS: Record<string, string> = {
+  ø: 'o',
+  ł: 'l',
+  đ: 'd',
+  ð: 'd',
+  þ: 'th',
+  æ: 'ae',
+  œ: 'oe',
+  ß: 'ss',
+  ı: 'i'
+};
+
+/** Lower case without accents, so "sao paulo" finds São Paulo and "zurich" Zürich. */
+export function searchKey(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}+/gu, '')
+    .replace(/[øłđðþæœßı]/g, (c) => PLAIN_LETTERS[c] ?? c);
 }
 
 export function airport(
@@ -29,8 +51,8 @@ export function airport(
     terminals: [],
     ...fields,
     codeKey: fields.code.toLowerCase(),
-    cityKey: fields.city.toLowerCase(),
-    nameKey: fields.name.toLowerCase()
+    cityKey: searchKey(fields.city),
+    nameKey: searchKey(fields.name)
   };
 }
 
@@ -102,7 +124,7 @@ function score(a: Airport, needle: string): number {
  * rank, so typing "LON" surfaces Heathrow above a Kentucky airstrip.
  */
 export function searchAirports(query: string, limit = 8): Airport[] {
-  const needle = query.trim().toLowerCase();
+  const needle = searchKey(query.trim());
   if (needle === '') return [];
   const scored: [Airport, number][] = [];
   for (const a of everyAirport()) {

@@ -382,6 +382,13 @@ list survives alongside it and wins any collision, because it carries terminal
 designators and the names travelers actually use ("Heathrow", not "London
 Heathrow Airport").
 
+The supplied table had lost its accented letters to an encoding fault, so
+Montréal shipped as "Montral". `tools/repair_airport_names.py` restored them
+for 720 stations from OurAirports. It changes a name only where the file's text
+is exactly OurAirports' spelling with the non-ASCII letters taken out, so it
+adds letters back and touches nothing else. Search folds accents, so "sao paulo"
+still finds São Paulo.
+
 **The basemap.** `src/catalog/coastline-data.ts` holds Natural Earth's public-domain 1:110m land
 polygons, reduced by Ramer–Douglas–Peucker to 1,403 vertices across 50 rings —
 roughly one point per fifty kilometres of coast. Rings that crossed the
