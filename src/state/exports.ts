@@ -73,6 +73,8 @@ export async function printItinerary(model: TripModel): Promise<void> {
   });
   const host = document.createElement('div');
   host.className = 'print-host';
+  // Print on Dawn whatever the screen theme is: dark ink on white paper.
+  host.dataset.theme = 'light';
   document.body.append(host);
   const view = mount(PrintItinerary, { target: host, props: { blocks, footer: `${d.trip.name} · Waymark` } });
   document.body.classList.add('printing');

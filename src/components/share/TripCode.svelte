@@ -38,8 +38,8 @@
         role="img"
         aria-label="QR code for {model.dossier?.trip.name}"
       >
-        <rect width={drawing.size} height={drawing.size} fill="#fff" />
-        <path d={drawing.path} fill="#000" />
+        <rect class="qr-light" width={drawing.size} height={drawing.size} />
+        <path class="qr-dark" d={drawing.path} />
       </svg>
     </div>
     <p class="t-hint">

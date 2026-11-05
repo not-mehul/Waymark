@@ -15,8 +15,6 @@ export type ThemeChoice = 'SYSTEM' | 'DUSK' | 'DAWN';
 export type ThemeMode = 'dark' | 'light';
 
 const PREFIX = 'waymark.';
-// Browser chrome colour per theme (matches --bg-grad-top in tokens.css).
-const THEME_COLOR: Record<ThemeMode, string> = { dark: '#14110e', light: '#f3ece0' };
 
 /** Storage that may be missing or throw (a private window, blocked site data). */
 export interface KeyValueStore {
@@ -111,7 +109,12 @@ export function applyTheme(settings: Settings, win: Window = window): void {
   const paint = () => {
     const mode = settings.mode;
     win.document.documentElement.setAttribute('data-theme', mode);
-    win.document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLOR[mode]);
+    // Browser chrome takes the solid page colour from the tokens, as in the other apps (style.md §14).
+    const surface = win
+      .getComputedStyle(win.document.documentElement)
+      .getPropertyValue('--bg-grad-mid')
+      .trim();
+    if (surface) win.document.querySelector('meta[name="theme-color"]')?.setAttribute('content', surface);
     setNativeTheme(mode);
   };
   paint();
