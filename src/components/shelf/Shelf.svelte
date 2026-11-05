@@ -6,7 +6,7 @@
   import { ui } from '../../state/ui.svelte';
   import Icon from '../ui/Icon.svelte';
   import SectionHeader from '../ui/SectionHeader.svelte';
-  import ThemeToggle from '../ui/ThemeToggle.svelte';
+  import { ThemeToggle } from 'dusk-dawn';
   import TripCard from './TripCard.svelte';
 
   const everything = liveQuery(() => trips.trips());

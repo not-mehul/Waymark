@@ -1,5 +1,4 @@
-# Only the web app is formatted by Prettier. The Android shell, the shared design
-# sources (generated and checked by design/build-tokens.mjs), the catalog data,
+# Only the web app is formatted by Prettier. The Android shell, the catalog data,
 # the docs and the workflows keep the formatting they were written in.
 dist/
 node_modules/
@@ -7,12 +6,10 @@ android/
 test-results/
 playwright-report/
 package-lock.json
-src/styles/tokens.css
 src/catalog/*-data.ts
 build/
 config/
 tools/
 data/
-design/
 .github/
 *.md

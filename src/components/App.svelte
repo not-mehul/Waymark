@@ -18,7 +18,7 @@
   import ShelfMenu from './shelf/ShelfMenu.svelte';
   import TripRoute from './trip/TripRoute.svelte';
   import Modal from './ui/Modal.svelte';
-  import Toast from './ui/Toast.svelte';
+  import { Toast } from 'dusk-dawn';
 
   // Any type: file managers and mail apps disagree about what a .json is.
   let filePicker: HTMLInputElement;

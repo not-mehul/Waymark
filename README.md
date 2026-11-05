@@ -191,10 +191,13 @@ Qatar, which is what taking the last arrival used to make of it.
 
 ## Design: "Editorial Dusk & Dawn"
 
-The style reference is shared with Ledger and BookShelf as one source,
-`design/tokens.json`, which `design/build-tokens.mjs` turns into
-`src/styles/tokens.css` (and checks, with the contrast of every text pair, in
-`npm run check`).
+The style reference is shared with BookShelf, Ledger, Colophon and Rosetta as
+one package, [`dusk-dawn`](https://github.com/not-mehul/dusk-dawn), installed
+at a tag. It holds the tokens, Fraunces, the shared component styles and
+components, and `style.md`. `npm run check` runs its contrast check
+(`dusk-dawn check`) and its literal-colour check (`dusk-dawn colours`). To
+change the design, change the package and move its tag in `package.json`
+(`style.md` §18).
 
 Every colour in the app is a **semantic** CSS custom property (`--text-heading`,
 `--panel-bg`, `--accent-amber`), defined twice, once for Dusk and once for Dawn.
@@ -203,11 +206,11 @@ as a raw hex outside the token blocks would be.
 
 | Style reference | Implementation |
 | --- | --- |
-| `:root` / `[data-theme="light"]` token blocks | Generated into `src/styles/tokens.css` from `design/tokens.json` |
-| Shared components | `src/styles/components.css` and `ui/TabRail`, `ui/ThemeToggle`, `ui/Toast`, identical in Waymark, BookShelf and Ledger |
+| `:root` / `[data-theme="light"]` token blocks | `dusk-dawn/tokens.css`, generated in the package from its `tokens.json` |
+| Shared components | `dusk-dawn/components.css` and `TabRail`, `ThemeToggle`, `Toast` from `dusk-dawn` |
 | `var(--token)` in every rule | The same, in `src/styles/app.css` and the components |
 | RGB triples for alpha | `rgba(var(--cream-rgb), 0.03)`, and the same for the shadow and danger colours |
-| Three-stop fixed gradient + three soft glows | The page background and its glow layers in `components.css` |
+| Three-stop fixed gradient + three soft glows | The page background and its glow layers in `dusk-dawn/components.css` |
 | Serif display / system sans / system mono | Fraunces (bundled, nothing downloaded) / `system-ui` / `ui-monospace` |
 | All-caps tracked mono labels | `SectionHeader`, and the field labels in `Field` |
 | 2px corners everywhere | `--radius: 2px`; no pills |
@@ -301,10 +304,9 @@ src/
 │               modal in view, and what is sent to the Android shell
 ├── platform    The bridge to the Waymark plugin (callNative, onNativeEvent)
 ├── components  The screens and the component kit
-└── styles      The tokens (generated) and the app's stylesheet
+└── styles      The app's stylesheet (tokens and shared styles come from dusk-dawn)
 data/catalog    airports.txt and cities.txt, fetched once at start
 android/        The Capacitor project and the Waymark plugin (android/README.md)
-design/         The shared Dusk & Dawn tokens and the style reference
 ```
 
 **State is Svelte runes.** Each concern is a module of `$state` and

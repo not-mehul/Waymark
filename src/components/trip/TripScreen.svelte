@@ -7,7 +7,7 @@
   import { ui } from '../../state/ui.svelte';
   import Icon from '../ui/Icon.svelte';
   import NoticeBanner from '../ui/NoticeBanner.svelte';
-  import TabRail from '../ui/TabRail.svelte';
+  import { TabRail } from 'dusk-dawn';
   import { useTrip } from './context';
   import CostsTab from './CostsTab.svelte';
   import IdeasTab from './IdeasTab.svelte';
