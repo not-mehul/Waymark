@@ -69,12 +69,14 @@
                 <data android:mimeType="application/json" />
             </intent-filter>
 
-            <!-- A trip's QR code, read by any camera app. -->
+            <!-- waymark:// links: a trip's QR code (waymark://import), read by
+                 any camera app, and links from the sibling apps
+                 (waymark://open, style.md §14.1). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="waymark" android:host="import" />
+                <data android:scheme="waymark" />
             </intent-filter>
         </activity>
 
@@ -112,4 +114,24 @@
         </provider>
     </application>
 
+    <!-- Lets the app ask whether a sibling app is installed before handing
+         off to it (style.md §14.1). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="bookshelf" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="ledger" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="colophon" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="rosetta" />
+        </intent>
+    </queries>
 </manifest>

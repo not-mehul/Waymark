@@ -108,8 +108,11 @@ class WaymarkPlugin : Plugin() {
 
             Intent.ACTION_VIEW -> {
                 val data = intent.data ?: return
-                if (data.scheme == MainActivity.SHARE_SCHEME) {
+                if (data.scheme == MainActivity.SHARE_SCHEME && data.host == "import") {
                     data.getQueryParameter("d")?.let { emit("openCode", JSObject().put("code", it)) }
+                } else if (data.scheme == MainActivity.SHARE_SCHEME) {
+                    // Any other waymark:// link, from a sibling app (style.md §14.1).
+                    emit("link", JSObject().put("url", data.toString().take(MAX_LINK_CHARS)))
                 } else {
                     openFile(data)
                 }
@@ -281,6 +284,9 @@ class WaymarkPlugin : Plugin() {
 
         /** An email is kilobytes; cap absurdly large shares. */
         private const val MAX_SHARED_CHARS = 200_000
+
+        // Matches MAX_LINK_LENGTH in src/platform/links.ts; longer links are dropped there.
+        private const val MAX_LINK_CHARS = 8_192
 
         /** As MAX_FILE_BYTES in src/share/files.ts: larger than any real archive by far. */
         private const val MAX_FILE_BYTES = 16 * 1024 * 1024
