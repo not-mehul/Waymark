@@ -81,16 +81,22 @@
     {/if}
 
     {#if shelf.upcoming.length === 0 && shelf.active.length === 0}
-      <div class="empty-line">
-        <p class="t-hint">Nothing planned yet.</p>
-        <!-- Only on a genuinely empty shelf: somebody who has just deleted their
-             last trip does not want somebody else's back in its place. -->
-        {#if $everything?.length === 0}
-          <button type="button" class="link-button accent" onclick={loadExample}
+      <!-- Only on a genuinely empty shelf is the example offered: somebody who
+           has just deleted their last trip does not want somebody else's back. -->
+      {#if $everything?.length === 0}
+        <div class="empty-state">
+          <Icon name="compass" />
+          <p class="empty-title">No trips yet</p>
+          <p class="empty-text">
+            Every flight, stay and transfer for a trip, on one timeline that works offline.
+          </p>
+          <button type="button" class="btn btn-secondary" onclick={loadExample}
             >Load the worked example</button
           >
-        {/if}
-      </div>
+        </div>
+      {:else}
+        <p class="t-hint empty-line">Nothing planned yet.</p>
+      {/if}
     {:else}
       {#if grouped && shelf.upcoming.length > 0}<SectionHeader label="Ahead" />{/if}
       {#each shelf.upcoming as trip (trip.id)}

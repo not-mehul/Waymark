@@ -56,17 +56,19 @@
   />
 
   <div role="tabpanel" id="trip-tab-panel" aria-labelledby={TRIP_TABS.find((t) => t.id === model.tab)?.domId}>
-    {#if model.tab === 'TIMELINE'}
-      <Timeline
-        onopen={openSegment}
-        onaddflight={() => ui.go({ name: 'trip', tripId: model.tripId, adding: 'flight' })}
-      />
-    {:else if model.tab === 'IDEAS'}
-      <IdeasTab />
-    {:else if model.tab === 'PARTY'}
-      <PartyTab />
-    {:else}
-      <CostsTab />
-    {/if}
+    {#key model.tab}<div class="tab-settle">
+        {#if model.tab === 'TIMELINE'}
+          <Timeline
+            onopen={openSegment}
+            onaddflight={() => ui.go({ name: 'trip', tripId: model.tripId, adding: 'flight' })}
+          />
+        {:else if model.tab === 'IDEAS'}
+          <IdeasTab />
+        {:else if model.tab === 'PARTY'}
+          <PartyTab />
+        {:else}
+          <CostsTab />
+        {/if}
+      </div>{/key}
   </div>
 </section>

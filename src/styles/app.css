@@ -51,6 +51,19 @@
   gap: var(--space-4);
   animation: settle-in var(--dur-settle) var(--ease-settle);
 }
+.tab-settle {
+  animation: settle-in var(--dur-settle) var(--ease-settle);
+}
+/* A bar reaches its value once, as it first appears (§8.15). */
+@keyframes fill-in {
+  from {
+    transform: scaleX(0);
+  }
+}
+/* The shelf is returned to often; its meter is just there. */
+.trip-card-meter .chart-fill {
+  animation: none;
+}
 @keyframes settle-in {
   from {
     opacity: 0;
@@ -147,6 +160,16 @@ button.panel {
 }
 button.panel:hover {
   border-color: var(--border);
+}
+/* Press: the wash laid over the panel's own fill, never a lift (§7.2). */
+button.panel:active {
+  background-image: linear-gradient(var(--hover-bg), var(--hover-bg));
+}
+.trip-card-top svg {
+  transition: color var(--dur-hover) var(--ease-standard);
+}
+.trip-card:hover .trip-card-top svg {
+  color: var(--text-dim);
 }
 .trip-card-top,
 .trip-card-foot {
@@ -525,6 +548,19 @@ button.panel:hover {
   border-radius: var(--radius);
   transition: background var(--dur-hover) var(--ease-standard);
 }
+.ref-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  transition: color var(--dur-hover) var(--ease-standard);
+}
+.ref-label.copied {
+  color: var(--accent-sage);
+}
+.ref-label svg {
+  width: 12px;
+  height: 12px;
+}
 .ref-copy:hover,
 .ref-copy:active {
   background: var(--hover-bg);
@@ -754,6 +790,11 @@ button.panel:hover {
 .tl-event.active .tl-mark svg {
   background: rgba(var(--accent-amber-rgb), 0.22);
   color: var(--accent-amber);
+}
+/* The booking under way: its card carries the amber the marker already wears. */
+.tl-event.active .tl-card {
+  border-color: rgba(var(--accent-amber-rgb), 0.45);
+  box-shadow: inset 2px 0 0 var(--accent-amber);
 }
 .tl-event.past .tl-mark svg {
   background: var(--panel-bg-faint);
@@ -1261,7 +1302,9 @@ button.panel:hover {
   height: 100%;
   border-radius: 2px;
   background: var(--accent-amber);
-  transition: width var(--motion-medium, 240ms) ease-out;
+  transition: width var(--dur-settle) var(--ease-settle);
+  transform-origin: left center;
+  animation: fill-in var(--dur-settle) var(--ease-settle) both;
 }
 .chart-fill.soft {
   background: rgba(var(--accent-amber-rgb), 0.45);
@@ -1361,6 +1404,12 @@ button.panel:hover {
 }
 .ring-fill {
   stroke: var(--accent-amber);
+  animation: ring-draw var(--dur-enter) var(--ease-settle) both;
+}
+@keyframes ring-draw {
+  from {
+    stroke-dasharray: 0 var(--circumference);
+  }
 }
 .ring-text {
   position: relative;

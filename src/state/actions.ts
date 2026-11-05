@@ -109,11 +109,13 @@ export async function addSharedFlights(reading: BookingReading, tripId: string):
 }
 
 /** A reference onto the clipboard, to paste into an airline's app or a chat. */
-export async function copyText(text: string, what: string): Promise<void> {
+export async function copyText(text: string, what: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);
     ui.notify(`${what} copied.`, 'success');
+    return true;
   } catch {
     ui.notify(`${what} could not be copied. Hold it on the screen to select it instead.`, 'error');
+    return false;
   }
 }

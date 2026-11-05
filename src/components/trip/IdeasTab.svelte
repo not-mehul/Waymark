@@ -104,7 +104,13 @@
   {/if}
 
   {#if model.ideaSections.length === 0}
-    <div class="panel faint"><p class="t-hint">Nothing on the list yet.</p></div>
+    <div class="empty-state">
+      <Icon name="lightbulb" />
+      <p class="empty-title">Nothing on the list yet</p>
+      <p class="empty-text">
+        Places to see, food to try, things to do: kept here, undated, until there is a day for them.
+      </p>
+    </div>
   {/if}
 
   <button type="button" class="btn btn-primary btn-block" onclick={() => open({ name: 'addIdea' })}>

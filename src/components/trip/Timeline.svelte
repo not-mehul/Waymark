@@ -167,7 +167,11 @@
   {/if}
 
   {#if model.dossier && model.timeline.length === 0}
-    <p class="t-hint empty-line">Nothing booked yet.</p>
+    <div class="empty-state">
+      <Icon name="plane" />
+      <p class="empty-title">Nothing booked yet</p>
+      <p class="empty-text">Add a flight or a plan and it takes its place under its day.</p>
+    </div>
   {/if}
 
   {#each model.timeline as entry, index (entry.key)}
