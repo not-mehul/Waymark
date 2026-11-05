@@ -103,7 +103,9 @@ in the open on the booking screen. They were a separate encrypted table behind
 a fingerprint for a while, which is a ceremony rather than a protection on a
 device that holds nothing else encrypted and never sends an itinerary
 anywhere — and a code you cannot read without authenticating is a code you cannot
-read at a check-in desk with a bag in one hand.
+read at a check-in desk with a bag in one hand. Tap one to copy it; open it large to
+turn the phone round at a desk, with every character spelt out (Kilo, Seven,
+Papa) so an O is never read as a 0, and the screen kept on while it shows.
 
 **Travel as a group.** Travelers are profiles — seat and meal preference,
 loyalty numbers, a phone number — that belong to the person, not the trip: the
@@ -115,7 +117,9 @@ split, and flags anyone with nothing booked.
 **Read the trip.** The timeline is a single column of days with the time in the
 left gutter and, between the bookings, the part that actually goes wrong: the
 connection with a minimum-connection-time verdict, the transfer with a mode and
-a duration estimate, the four hours that belong to nobody.
+a duration estimate, the four hours that belong to nobody. Each day is numbered
+from the trip's first, the day the clocks change says by how much, and a trip
+under way has a shortcut down to now.
 
 **See the geography.** One offline map, two projections. The flat chart reads a
 region; the globe shows what a long haul actually is, with the far side of the
@@ -127,6 +131,10 @@ mark to open it. The list button reads the same trip out leg by leg, with the
 distance each covers, for a screen reader or anyone who would rather read. Labels are placed by a collision solver rather than pinned
 beside their marks, so a cluster of hotels in one city does not print on top of
 itself; a label with nowhere to go is dropped and its mark stays.
+
+**What is next, from the shelf.** The shelf is dated, leads with the next
+booking on any trip and how long until it, and a trip under way shows which
+day of it this is, with a meter of how much has gone.
 
 **Keep a list.** Not everything on a trip has a time on it. The Ideas board
 holds four kinds — **See, Eat, Do, Shop** — added a question at a time and
@@ -141,7 +149,8 @@ losing it.
 
 **Count it.** A numbers screen: distance by mode, the shape of each day, where
 the hours go, nights per city, and a carbon estimate that shows its factors
-rather than asserting a figure, above the same globe you can turn with a finger.
+rather than asserting a figure, above the same globe you can turn with a finger. The distance is put in
+proportion too: a share of the way round the Earth, or marathons end to end.
 
 **Take it with you.** A trip leaves the app four ways, all through the system
 share sheet. As **markdown** — days as headings, every booking as a line, the

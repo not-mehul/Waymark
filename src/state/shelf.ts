@@ -1,6 +1,15 @@
 // The shelf's arrangement of trips, as TripsViewModel had it.
 
-import { daysUntilStart, tripStatus, type SeatPreference, type Traveler, type Trip } from '../domain/model';
+import { daysBetween, todayIn } from '../domain/time';
+import {
+  daysUntilStart,
+  tripEndDate,
+  tripStartDate,
+  tripStatus,
+  type SeatPreference,
+  type Traveler,
+  type Trip
+} from '../domain/model';
 
 export interface Shelf {
   active: Trip[];
@@ -32,6 +41,26 @@ export function cardStatus(trip: Trip, nowMillis: number = Date.now()): { text: 
   const days = daysUntilStart(trip, nowMillis);
   const text = days === 0 ? 'Departs today' : days === 1 ? 'Departs tomorrow' : `In ${days} days`;
   return { text, tone: 'upcoming' };
+}
+
+export interface TripProgress {
+  /** Today's day of the trip, from 1. */
+  day: number;
+  /** How many days the trip has, first and last included. */
+  of: number;
+  /** How much of the trip's time has gone, 0 to 1, for the meter. */
+  fraction: number;
+}
+
+/** "Day 3 of 9", for a trip under way; null for one that is not. */
+export function tripProgress(trip: Trip, nowMillis: number = Date.now()): TripProgress | null {
+  if (tripStatus(trip, nowMillis) !== 'ACTIVE') return null;
+  const start = tripStartDate(trip);
+  const of = daysBetween(start, tripEndDate(trip)) + 1;
+  const day = Math.min(of, Math.max(1, daysBetween(start, todayIn(trip.homeZoneId, nowMillis)) + 1));
+  const span = trip.endEpochMillis - trip.startEpochMillis;
+  const fraction = span > 0 ? (nowMillis - trip.startEpochMillis) / span : 1;
+  return { day, of, fraction: Math.min(1, Math.max(0, fraction)) };
 }
 
 export const SEAT_LABEL: Record<SeatPreference, string> = {

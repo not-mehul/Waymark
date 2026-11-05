@@ -10,13 +10,14 @@ import {
   involves,
   segmentEnd,
   segmentStart,
+  tripStartDate,
   type Flight,
   type Place,
   type Segment,
   type TripDossier
 } from './model';
-import { zonedAt, type LocalDate, type ZonedDateTime } from './time';
-import { dayHeadline, dayOffsetSuffix, relative, zoneLabel } from './time-text';
+import { daysBetween, zonedAt, type LocalDate, type ZonedDateTime } from './time';
+import { clockChange, dayHeadline, dayOffsetSuffix, relative, zoneLabel } from './time-text';
 import { estimateBest, type TransitEstimate } from './transit';
 
 export type EventRole = 'WHOLE' | 'CHECK_IN' | 'CHECK_OUT';
@@ -32,6 +33,10 @@ export interface DayBreak {
   date: LocalDate;
   headline: string;
   zoneLabel: string;
+  /** Which day of the trip this is, counted from its first date at home: 1, 2, 3. */
+  dayNumber: number | null;
+  /** "Clocks go forward 8h" when this day is in another offset than the day before it. */
+  clockChange: string | null;
   sortKey: number;
   /** Unique within one timeline: a date can head the column twice across the date line. */
   key: string;
@@ -102,6 +107,8 @@ export function buildTimeline(
   const linksBefore = new Map(timelineLinks(segments, dossier, checkedBags).map((l) => [l.toSegment.id, l]));
 
   let lastDate: LocalDate | null = null;
+  let lastZone: string | null = null;
+  const firstDate = tripStartDate(dossier.trip);
   let nowEmitted = false;
 
   for (const [millis, role, segment] of instances) {
@@ -127,10 +134,13 @@ export function buildTimeline(
         date,
         headline: dayHeadline(date, zonedAt(nowMillis, localTime.timeZoneId).toPlainDate()),
         zoneLabel: zoneLabel(localTime),
+        dayNumber: dayNumberOf(firstDate, date),
+        clockChange: lastZone === null ? null : clockChange(lastZone, localTime.timeZoneId, millis),
         sortKey,
         key: `day:${date.toString()}@${sortKey}`
       });
       lastDate = date;
+      lastZone = localTime.timeZoneId;
     }
 
     if (role !== 'CHECK_OUT') {
@@ -155,6 +165,12 @@ export function buildTimeline(
 
   if (!nowEmitted) entries.push({ type: 'now', label: 'Trip complete', sortKey: nowMillis, key: 'now' });
   return entries;
+}
+
+/** Day 1 is the trip's first date; a date before it (a date-line crossing) has no number. */
+function dayNumberOf(first: LocalDate, date: LocalDate): number | null {
+  const n = daysBetween(first, date) + 1;
+  return n >= 1 ? n : null;
 }
 
 function stateOf(s: Segment, nowMillis: number): EventState {

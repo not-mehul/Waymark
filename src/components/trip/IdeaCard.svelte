@@ -5,9 +5,13 @@
   import { useTrip } from './context';
   import { IDEA_ICON } from './idea-icons';
 
-  let { idea }: { idea: Idea } = $props();
+  let { idea, picked = false }: { idea: Idea; picked?: boolean } = $props();
   const { model, open } = useTrip();
   let expanded = $state(false);
+  // Chosen by "Pick one for me": opened, so what to do with it is one tap away.
+  $effect(() => {
+    if (picked) expanded = true;
+  });
 
   const done = $derived(idea.status === 'DONE');
   const scheduled = $derived(idea.status === 'SCHEDULED');
@@ -24,7 +28,7 @@
   );
 </script>
 
-<div class="panel idea-card" class:done class:set-aside={setAside}>
+<div class="panel idea-card" id="idea-{idea.id}" class:done class:set-aside={setAside} class:picked>
   <button type="button" class="idea-head" aria-expanded={expanded} onclick={() => (expanded = !expanded)}>
     <span class="idea-icon" class:sage={scheduled} class:faint={done}
       ><Icon name={IDEA_ICON[idea.kind]} /></span

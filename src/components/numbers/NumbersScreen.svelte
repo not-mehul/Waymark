@@ -1,7 +1,15 @@
 <script lang="ts">
   // The trip, counted, and turned once on its axis. Ported from
   // AnalyticsScreen.kt.
-  import { bookedShare, busyHours, EMISSION_FACTORS, hasDistance, tripReport } from '../../domain/analytics';
+  import {
+    bookedShare,
+    busyHours,
+    clockInPerspective,
+    distanceInPerspective,
+    EMISSION_FACTORS,
+    hasDistance,
+    tripReport
+  } from '../../domain/analytics';
   import { bearingDegrees, distanceKm, formatDistance } from '../../domain/geo';
   import { destinationOf, positionOf, shortLabel } from '../../domain/model';
   import { todayIn, zoneOrUtc } from '../../domain/time';
@@ -68,6 +76,15 @@
           </div>
         </div>
       </div>
+
+      {@const far = distanceInPerspective(report.totalDistanceKm)}
+      {@const lag = clockInPerspective(report)}
+      {#if far || lag}
+        <p class="t-hint numbers-perspective">
+          {#if far}<em>{far}</em>{/if}
+          {#if lag}{lag}{/if}
+        </p>
+      {/if}
 
       {#if report.longestLegLabel}
         <div class="panel faint">

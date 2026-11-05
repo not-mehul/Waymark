@@ -21,7 +21,8 @@ export type TripSheet =
   | { name: 'settleCurrency' }
   | { name: 'scheduleIdea'; idea: Idea }
   | { name: 'editTraveler'; traveler: Traveler }
-  | { name: 'removeTraveler'; traveler: Traveler };
+  | { name: 'removeTraveler'; traveler: Traveler }
+  | { name: 'reference'; label: string; code: string };
 
 export interface TripContext {
   model: TripModel;

@@ -1,6 +1,7 @@
 // The trip, counted. Everything is derived from bookings the traveler
 // entered; the one modelled figure, carbon, carries its factors in the open.
 
+import { formatFixed } from './decimal';
 import { distanceKm, formatDistance } from './geo';
 import {
   chronological,
@@ -274,4 +275,31 @@ function hoursOnDay(s: Segment, date: LocalDate): number {
   const from = Math.max(s.startEpochMillis, dayStart);
   const to = Math.min(s.endEpochMillis, dayEnd);
   return Math.max(0, to - from) / 3_600_000;
+}
+
+const EARTH_CIRCUMFERENCE_KM = 40_075;
+const MARATHON_KM = 42.195;
+
+/**
+ * The trip's distance against something a body knows the size of: a
+ * marathon, the Earth. One sentence, and nothing for a trip that went nowhere.
+ */
+export function distanceInPerspective(km: number): string | null {
+  if (km <= 0) return null;
+  const laps = km / EARTH_CIRCUMFERENCE_KM;
+  if (laps >= 0.95) {
+    const times = laps < 1.05 ? 'once' : `${formatFixed(laps, 1)} times`;
+    return `As far as going round the Earth ${times}.`;
+  }
+  if (laps >= 0.1) return `${Math.round(laps * 100)}% of the way round the Earth.`;
+  const marathons = Math.round(km / MARATHON_KM);
+  if (marathons >= 2) return `About ${marathons} marathons, end to end.`;
+  return null;
+}
+
+/** "The clocks move 17 hours in all": the jet lag the itinerary asks of a body. */
+export function clockInPerspective(r: TripAnalyticsReport): string | null {
+  const hours = Math.round(r.hoursShifted);
+  if (r.clockChanges === 0 || hours === 0) return null;
+  return `The clocks move ${hours} hour${hours === 1 ? '' : 's'} in all, across ${r.clockChanges} change${r.clockChanges === 1 ? '' : 's'}.`;
 }

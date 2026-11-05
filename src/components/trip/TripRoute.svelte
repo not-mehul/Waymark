@@ -11,6 +11,7 @@
   import NotesScreen from '../notes/NotesScreen.svelte';
   import AddFlight from '../segment/AddFlight.svelte';
   import SegmentScreen from '../segment/SegmentScreen.svelte';
+  import ReferenceCard from '../segment/ReferenceCard.svelte';
   import Modal from '../ui/Modal.svelte';
   import { provideTrip, type TripSheet } from './context';
   import TravelerProfile from '../people/TravelerProfile.svelte';
@@ -118,6 +119,8 @@
         <RemoveTraveler traveler={current.traveler} />
       {:else if current.name === 'addPlan'}
         <AddPlan />
+      {:else if current.name === 'reference'}
+        <ReferenceCard label={current.label} code={current.code} onclose={close} />
       {:else if current.name === 'removeSegment'}
         <RemoveSegment segment={current.segment} />
       {/if}
