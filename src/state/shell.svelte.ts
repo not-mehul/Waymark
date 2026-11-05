@@ -1,9 +1,11 @@
 // The page's side of the Android shell: what it hands over (the reminders to
 // post, the journey to draw, the widget's bookings) and what comes in from it
-// (a reminder or the widget tapped, an email or a trip shared in, the earlier
-// app's trips on the first launch). In a browser none of this runs.
+// (a reminder or the widget tapped, an email or a trip shared in, a link from
+// a sibling app, the earlier app's trips on the first launch). In a browser
+// none of this runs.
 
 import { liveQuery } from 'dexie';
+import { parseLink } from '../platform/links';
 import { callNative, isNativeShell, onNativeEvent } from '../platform/native';
 import type { HandoverSource } from '../share/handover';
 import { readTripCode, readTripText } from '../share/files';
@@ -116,4 +118,20 @@ export function listenToShell(): void {
   onNativeEvent('openCode', (data: { code?: unknown }) => {
     if (typeof data.code === 'string') void showIncoming(readTripCode(data.code));
   });
+  onNativeEvent('link', (data: { url?: unknown }) => {
+    if (typeof data.url === 'string') void openLink(data.url);
+  });
+}
+
+/**
+ * A waymark:// link from a sibling app (style.md §14.1). `open?trip=<id>`
+ * shows that trip when it is on this phone; anything else just opens Waymark.
+ */
+export async function openLink(url: string): Promise<void> {
+  const link = parseLink(url, 'waymark');
+  if (!link || link.action !== 'open' || !link.params.trip) return;
+  const tripId = link.params.trip;
+  if (!(await trips.trip(tripId))) return;
+  ui.close();
+  ui.go({ name: 'trip', tripId });
 }

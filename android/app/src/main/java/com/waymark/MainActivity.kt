@@ -26,7 +26,10 @@ class MainActivity : BridgeActivity() {
         const val EXTRA_TRIP_ID = "com.waymark.extra.TRIP_ID"
         const val EXTRA_SEGMENT_ID = "com.waymark.extra.SEGMENT_ID"
 
-        /** `waymark://import?d=…`: what a trip's QR code carries. */
+        /**
+         * `waymark://import?d=…`: what a trip's QR code carries. Other actions
+         * (`waymark://open?trip=…`) come from the sibling apps (style.md §14.1).
+         */
         const val SHARE_SCHEME = "waymark"
     }
 }

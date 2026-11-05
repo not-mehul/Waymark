@@ -153,6 +153,11 @@ carrying as much of the trip as fits and saying what it left out. References
 travel with all of them, because a confirmation code is the reason to send
 somebody an itinerary in the first place.
 
+**Links from the other apps.** Waymark answers the `waymark://` scheme it
+shares with BookShelf, Ledger, Colophon and Rosetta (style.md §14.1, in
+`src/platform/links.ts`): a trip's QR code is `waymark://import?d=…`, and
+`waymark://open?trip=<id>` opens that trip if it is on the phone.
+
 **Keep a copy.** *Back up every trip* writes one file with everything in it,
 wherever you keep things; opening it on a new phone brings everything across.
 A phone-to-phone transfer during setup carries the app's data too. Nothing goes
