@@ -21,6 +21,7 @@
         cy={SIZE / 2}
         {r}
         class="ring-fill"
+        style:--circumference="{circumference}px"
         stroke-width={STROKE}
         fill="none"
         stroke-dasharray="{circumference * Math.min(1, Math.max(0, fraction))} {circumference}"

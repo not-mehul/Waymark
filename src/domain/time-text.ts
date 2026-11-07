@@ -161,6 +161,16 @@ export function utcOffset(zoneId: string, atMillis: number = Date.now()): string
 }
 
 /** "+7h" — the shift a traveler's body is being asked to absorb. */
+/**
+ * What a change of zone does to the watch on your wrist: "Clocks go forward
+ * 8h", "Clocks go back 9h", or nothing where the offset is the same.
+ */
+export function clockChange(from: string, to: string, atMillis: number): string | null {
+  const deltaMinutes = Math.trunc((offsetSeconds(to, atMillis) - offsetSeconds(from, atMillis)) / 60);
+  if (deltaMinutes === 0) return null;
+  return `Clocks go ${deltaMinutes > 0 ? 'forward' : 'back'} ${duration(Math.abs(deltaMinutes))}`;
+}
+
 export function zoneShift(from: string, to: string, atMillis: number): string | null {
   const deltaMinutes = Math.trunc((offsetSeconds(to, atMillis) - offsetSeconds(from, atMillis)) / 60);
   if (deltaMinutes === 0) return null;

@@ -3,7 +3,7 @@
   // take. Nothing here has a time on it, which is the point. Anything on the
   // list can be promoted onto the timeline, where it becomes an ordinary
   // booking and stops asking for attention.
-  import { estimatedMinutes, outstanding } from '../../domain/ideas';
+  import { estimatedMinutes, outstanding, pickIdea } from '../../domain/ideas';
   import { IDEA_KIND_TEXT } from '../../domain/model';
   import { dayCompact, duration } from '../../domain/time-text';
   import Icon from '../ui/Icon.svelte';
@@ -22,6 +22,21 @@
 
   const { model, open } = useTrip();
   let grouping = $state<Grouping>('KIND');
+
+  // For the evening nobody can decide: one open idea, brought into view and opened.
+  let picked = $state<string | null>(null);
+  const canPick = $derived(model.ideas.filter((i) => i.status === 'SAVED').length > 1);
+  function pickOne() {
+    const choice = pickIdea(model.ideas, picked);
+    if (!choice) return;
+    picked = choice.id;
+    requestAnimationFrame(() => {
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      document
+        .getElementById(`idea-${choice.id}`)
+        ?.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
+    });
+  }
 </script>
 
 <div class="tab-body">
@@ -36,6 +51,13 @@
     </div>
     <div><span class="t-stat">{model.ideaTally.done}</span><span class="t-field-label">Done</span></div>
   </div>
+
+  {#if canPick}
+    <button type="button" class="link-button accent with-icon" onclick={pickOne}>
+      <Icon name="shuffle" />
+      {picked ? 'Pick another' : 'Pick one for me'}
+    </button>
+  {/if}
 
   <!-- The same list, read three ways: by what it is, by where it is, and by the day it is pencilled in for. -->
   <div class="segmented full" role="radiogroup" aria-label="Group ideas">
@@ -52,12 +74,12 @@
   {#if grouping === 'KIND'}
     {#each model.ideaSections as section (section.kind)}
       <SectionHeader label={IDEA_KIND_TEXT[section.kind].heading} />
-      {#each section.ideas as idea (idea.id)}<IdeaCard {idea} />{/each}
+      {#each section.ideas as idea (idea.id)}<IdeaCard {idea} picked={picked === idea.id} />{/each}
     {/each}
   {:else if grouping === 'PLACE'}
     {#each model.ideasByCity as group (group.city)}
       <SectionHeader label={group.city} trailing="{outstanding(group)} open" />
-      {#each group.ideas as idea (idea.id)}<IdeaCard {idea} />{/each}
+      {#each group.ideas as idea (idea.id)}<IdeaCard {idea} picked={picked === idea.id} />{/each}
     {/each}
   {:else}
     {#each model.dayPlan.days as day (day.date.toString())}
@@ -67,11 +89,11 @@
         trailing={duration(minutes)}
         critical={minutes > FULL_DAY_MINUTES}
       />
-      {#each day.ideas as idea (idea.id)}<IdeaCard {idea} />{/each}
+      {#each day.ideas as idea (idea.id)}<IdeaCard {idea} picked={picked === idea.id} />{/each}
     {/each}
     {#if model.dayPlan.undated.length > 0}
       <SectionHeader label="No day yet" />
-      {#each model.dayPlan.undated as idea (idea.id)}<IdeaCard {idea} />{/each}
+      {#each model.dayPlan.undated as idea (idea.id)}<IdeaCard {idea} picked={picked === idea.id} />{/each}
     {/if}
   {/if}
 
@@ -82,7 +104,13 @@
   {/if}
 
   {#if model.ideaSections.length === 0}
-    <div class="panel faint"><p class="t-hint">Nothing on the list yet.</p></div>
+    <div class="empty-state">
+      <Icon name="lightbulb" />
+      <p class="empty-title">Nothing on the list yet</p>
+      <p class="empty-text">
+        Places to see, food to try, things to do: kept here, undated, until there is a day for them.
+      </p>
+    </div>
   {/if}
 
   <button type="button" class="btn btn-primary btn-block" onclick={() => open({ name: 'addIdea' })}>

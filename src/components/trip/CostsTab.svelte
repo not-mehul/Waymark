@@ -122,7 +122,13 @@
 
   <SectionHeader label="Expenses" />
   {#if costs.expenses.length === 0}
-    <p class="t-hint">Nothing spent yet. Add what was paid, by whom, and for whom.</p>
+    <div class="empty-state">
+      <Icon name="wallet" />
+      <p class="empty-title">Nothing spent yet</p>
+      <p class="empty-text">
+        Add what was paid, by whom and for whom, and the fewest payments that square it follow.
+      </p>
+    </div>
   {/if}
   {#each byDay as day (day.key)}
     <span class="t-field-label">{day.label}</span>

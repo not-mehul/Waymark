@@ -21,6 +21,7 @@
   import { timelineLinks } from '../../domain/timeline';
   import { clock, dayCompact, duration, durationBetween, zoneLabel, zoneShift } from '../../domain/time-text';
   import { totalMinutes, transitOptions } from '../../domain/transit';
+  import { copyText } from '../../state/actions';
   import { ui } from '../../state/ui.svelte';
   import NoticeBanner from '../ui/NoticeBanner.svelte';
   import Icon from '../ui/Icon.svelte';
@@ -34,6 +35,16 @@
   const segment = $derived(model.segment(segmentId));
   const party = $derived(model.party);
   let editing = $state(false);
+
+  // The reference just copied wears a tick for a moment, where the finger was.
+  let copied = $state<string | null>(null);
+  let copiedTimer: ReturnType<typeof setTimeout> | undefined;
+  async function copy(value: string, what: string) {
+    if (!(await copyText(value, what))) return;
+    copied = value;
+    clearTimeout(copiedTimer);
+    copiedTimer = setTimeout(() => (copied = null), 1600);
+  }
 
   function specifics(s: Segment, travelers: readonly Traveler[]): [string, string][] {
     const rows: [string, string | null][] = [];
@@ -195,18 +206,56 @@
         <SectionHeader label="Reference" />
         <div class="panel facts">
           {#if segment.confirmationCode}
-            <div>
-              <span class="t-field-label">{segment.bookedWith || 'Confirmation'}</span>
-              <span class="t-data-large">{segment.confirmationCode}</span>
+            {@const code = segment.confirmationCode}
+            {@const label = segment.bookedWith || 'Confirmation'}
+            <div class="ref-row">
+              <button
+                type="button"
+                class="ref-copy"
+                aria-label="Copy {label} {code}"
+                onclick={() => copy(code, label)}
+              >
+                <span class="t-field-label ref-label" class:copied={copied === code}>
+                  {#if copied === code}<Icon name="check" /> Copied{:else}{label}{/if}
+                </span>
+                <span class="t-data-large">{code}</span>
+              </button>
+              <button
+                type="button"
+                class="btn-icon"
+                aria-label="Show {code} large"
+                onclick={() => open({ name: 'reference', label, code })}
+              >
+                <Icon name="maximize" />
+              </button>
             </div>
           {/if}
           {#each tickets as [travelerId, number] (travelerId)}
             {@const owner = party.find((t) => t.id === travelerId)}
-            <div>
-              <span class="t-field-label">{owner ? displayName(owner) : 'Ticket'} · ticket</span>
-              <span class="t-data">{number}</span>
+            {@const label = `${owner ? displayName(owner) : 'Ticket'} · ticket`}
+            <div class="ref-row">
+              <button
+                type="button"
+                class="ref-copy"
+                aria-label="Copy {label} {number}"
+                onclick={() => copy(number, 'Ticket number')}
+              >
+                <span class="t-field-label ref-label" class:copied={copied === number}>
+                  {#if copied === number}<Icon name="check" /> Copied{:else}{label}{/if}
+                </span>
+                <span class="t-data">{number}</span>
+              </button>
+              <button
+                type="button"
+                class="btn-icon"
+                aria-label="Show {number} large"
+                onclick={() => open({ name: 'reference', label, code: number })}
+              >
+                <Icon name="maximize" />
+              </button>
             </div>
           {/each}
+          <span class="t-hint">Tap a reference to copy it.</span>
         </div>
       {/if}
 

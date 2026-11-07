@@ -111,6 +111,16 @@
     return ids.map((id) => initialsById.get(id)).filter((m): m is string => m !== undefined);
   }
 
+  // Worth a shortcut only once there is a past above the marker to scroll by.
+  const nowIndex = $derived(model.timeline.findIndex((e) => e.type === 'now'));
+  const showJump = $derived(nowIndex > 2 && nowIndex < model.timeline.length - 1);
+  function jumpToNow() {
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document
+      .getElementById('tl-now')
+      ?.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
+  }
+
   const filtered = $derived(party.find((t) => t.id === model.travelerFilter) ?? null);
   const nextInParty = $derived.by(() => {
     if (!filtered) return null;
@@ -121,7 +131,18 @@
 
 <div class="timeline">
   <!-- Nothing in the ordinary case; filtered, a plain statement of what is hidden. -->
-  {#if party.length >= 2}
+  {#if showJump && !filtered}
+    <div class="tl-tools">
+      <button type="button" class="filter-hint t-hint" onclick={jumpToNow}>
+        <Icon name="arrowDown" /> Jump to now
+      </button>
+      {#if party.length >= 2}
+        <button type="button" class="filter-hint t-hint" onclick={() => model.filterBy(party[0]!.id)}>
+          Showing everyone
+        </button>
+      {/if}
+    </div>
+  {:else if party.length >= 2}
     {#if filtered}
       <div class="filter-bar">
         <span class="t-body-small">Showing {displayName(filtered)} only</span>
@@ -146,7 +167,11 @@
   {/if}
 
   {#if model.dossier && model.timeline.length === 0}
-    <p class="t-hint empty-line">Nothing booked yet.</p>
+    <div class="empty-state">
+      <Icon name="plane" />
+      <p class="empty-title">Nothing booked yet</p>
+      <p class="empty-text">Add a flight or a plan and it takes its place under its day.</p>
+    </div>
   {/if}
 
   {#each model.timeline as entry, index (entry.key)}
@@ -155,10 +180,18 @@
         <div class="tl-day">
           <h2 class="t-section-heading">{entry.headline}</h2>
           <span class="tl-rule"></span>
-          <span class="t-field-label">{entry.zoneLabel}</span>
+          <span class="tl-day-meta">
+            {#if entry.dayNumber !== null}<span class="t-field-label tl-day-number"
+                >Day {entry.dayNumber}</span
+              >{/if}
+            <span class="t-field-label">{entry.zoneLabel}</span>
+          </span>
         </div>
+        {#if entry.clockChange}
+          <p class="tl-clock t-hint"><Icon name="clock" /> {entry.clockChange} · {entry.zoneLabel}</p>
+        {/if}
       {:else if entry.type === 'now'}
-        <div class="tl-now">
+        <div class="tl-now" id="tl-now">
           <span class="t-field-label tl-gutter">Now</span>
           <span class="tl-rule"></span>
           <span class="t-data-small">{entry.label}</span>

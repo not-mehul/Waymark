@@ -187,4 +187,21 @@ describe('TimelineBuilder', () => {
     const keys = buildTimeline(dossier, { nowMillis: duringTrip }).map((e) => e.key);
     expect(new Set(keys).size).toBe(keys.length);
   });
+
+  it("numbers each day from the trip's first date", () => {
+    const breaks = dayBreaks(buildTimeline(dossier, { nowMillis: duringTrip }));
+    expect(breaks[0]!.dayNumber).toBe(1);
+    expect(breaks[1]!.dayNumber).toBe(2);
+    // Days with nothing on them are skipped, not renumbered.
+    const numbers = breaks.map((b) => b.dayNumber!);
+    expect(numbers).toEqual([...numbers].sort((a, b) => a - b));
+  });
+
+  it('says when the clocks change from one day to the next', () => {
+    const breaks = dayBreaks(buildTimeline(dossier, { nowMillis: duringTrip }));
+    expect(breaks[0]!.clockChange).toBeNull();
+    // San Francisco to London in May: PDT to BST.
+    expect(breaks[1]!.clockChange).toBe('Clocks go forward 8h');
+    expect(breaks[2]!.clockChange).toBeNull();
+  });
 });

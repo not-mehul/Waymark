@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { ideaSections, ideaTally, ideasThatFit, scheduleIdea, tallyTotal } from '../../src/domain/ideas';
+import {
+  ideaSections,
+  ideaTally,
+  ideasThatFit,
+  pickIdea,
+  scheduleIdea,
+  tallyTotal
+} from '../../src/domain/ideas';
 import { idea as ideaOf, place, segmentStart, type IdeaKind, type IdeaStatus } from '../../src/domain/model';
 import { date, sample, t } from '../helpers';
 
@@ -105,5 +112,22 @@ describe('IdeaBoard', () => {
     const cramped = ideasThatFit(ideas, bloomsbury, 20);
     expect(roomy.length).toBeGreaterThanOrEqual(cramped.length);
     expect(cramped.every((i) => (i.typicalMinutes ?? 60) <= 20)).toBe(true);
+  });
+});
+
+describe('pickIdea', () => {
+  const list = [idea('a', 'SEE', 'SAVED'), idea('b', 'EAT', 'SAVED'), idea('c', 'DO', 'DONE')];
+
+  it('picks only from what is still open', () => {
+    for (const r of [0, 0.5, 0.99]) expect(['a', 'b']).toContain(pickIdea(list, null, () => r)!.id);
+  });
+
+  it('never repeats the last pick while there is another', () => {
+    expect(pickIdea(list, 'a', () => 0)!.id).toBe('b');
+    expect(pickIdea([list[0]!], 'a', () => 0)!.id).toBe('a');
+  });
+
+  it('has nothing to pick from a finished list', () => {
+    expect(pickIdea([list[2]!])).toBeNull();
   });
 });

@@ -202,3 +202,18 @@ export function ideasThatFit(
     .sort((a, b) => (b.typicalMinutes ?? DEFAULT_MINUTES) - (a.typicalMinutes ?? DEFAULT_MINUTES))
     .slice(0, limit);
 }
+
+/**
+ * One idea still open, chosen for somebody who cannot decide: never the one
+ * picked last time, when there is anything else to pick.
+ */
+export function pickIdea(
+  ideas: readonly Idea[],
+  previousId: string | null = null,
+  random: () => number = Math.random
+): Idea | null {
+  const open = ideas.filter((i) => i.status === 'SAVED');
+  const fresh = open.length > 1 ? open.filter((i) => i.id !== previousId) : open;
+  if (fresh.length === 0) return null;
+  return fresh[Math.min(fresh.length - 1, Math.floor(random() * fresh.length))]!;
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { traveler, trip, type Trip } from '../../src/domain/model';
-import { arrangeShelf, cardStatus, profileSummary } from '../../src/state/shelf';
+import { arrangeShelf, cardStatus, profileSummary, tripProgress } from '../../src/state/shelf';
 
 const DAY = 86_400_000;
 const NOW = Date.UTC(2026, 10, 1, 12);
@@ -68,5 +68,21 @@ describe('profileSummary', () => {
 
   it('has nothing to say about a bare profile', () => {
     expect(profileSummary(traveler({ id: 't', fullName: 'Ada' }))).toBeNull();
+  });
+});
+
+describe('tripProgress', () => {
+  it('counts the day of a trip under way', () => {
+    // Started yesterday, four days long: today is day 2 of 4.
+    const progress = tripProgress(at('now', -1, 4), NOW)!;
+    expect(progress.day).toBe(2);
+    expect(progress.of).toBe(4);
+    expect(progress.fraction).toBeGreaterThan(0.25);
+    expect(progress.fraction).toBeLessThan(0.5);
+  });
+
+  it('has nothing to say about a trip ahead or behind', () => {
+    expect(tripProgress(at('soon', 5, 3), NOW)).toBeNull();
+    expect(tripProgress(at('lately', -20, 3), NOW)).toBeNull();
   });
 });
