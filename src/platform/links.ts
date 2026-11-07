@@ -1,5 +1,5 @@
 // Links between the apps (style.md §14.1). This file is identical in Waymark,
-// BookShelf, Ledger, Colophon and Rosetta: change it in all five or none.
+// BookShelf, Ledger, Colophon, Rosetta and Mise: change it in all six or none.
 //
 // Every app registers its own name as a URL scheme, on Android (a VIEW
 // intent filter) and iOS (CFBundleURLTypes), and reads links of one shape:
@@ -11,7 +11,7 @@
 // itself: it opens a screen the person confirms, because any web page or app
 // can fire a custom scheme.
 
-export const APPS = ['waymark', 'bookshelf', 'ledger', 'colophon', 'rosetta'] as const;
+export const APPS = ['waymark', 'bookshelf', 'ledger', 'colophon', 'rosetta', 'mise'] as const;
 export type AppName = (typeof APPS)[number];
 
 /** The actions each app answers, with the parameters it reads. Add to it; never rename. */
@@ -33,6 +33,10 @@ export const LINK_ACTIONS = {
   },
   rosetta: {
     open: ['id', 'title']
+  },
+  mise: {
+    open: ['id'],
+    import: ['url']
   }
 } as const satisfies Record<AppName, Record<string, readonly string[]>>;
 

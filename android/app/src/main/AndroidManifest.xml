@@ -133,5 +133,9 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="rosetta" />
         </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="mise" />
+        </intent>
     </queries>
 </manifest>
