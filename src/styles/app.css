@@ -1290,7 +1290,7 @@ button.panel:active {
 .chart-track {
   display: block;
   height: 6px;
-  border-radius: 2px;
+  border-radius: var(--corner-full);
   background: var(--border-faint);
   overflow: hidden;
 }
@@ -1300,7 +1300,7 @@ button.panel:active {
 .chart-fill {
   display: block;
   height: 100%;
-  border-radius: 2px;
+  border-radius: var(--corner-full);
   background: var(--accent-amber);
   transition: width var(--dur-settle) var(--ease-settle);
   transform-origin: left center;
@@ -1331,7 +1331,7 @@ button.panel:active {
 }
 .split-track .chart-part {
   flex-basis: 0;
-  border-radius: 2px;
+  border-radius: var(--corner-xs);
 }
 .legend {
   display: flex;
@@ -1371,7 +1371,7 @@ button.panel:active {
   position: relative;
 }
 .day-column .chart-part {
-  border-radius: 2px;
+  border-radius: var(--corner-xs);
 }
 .day-column.today::after {
   content: '';
@@ -1621,4 +1621,24 @@ button.panel:active {
     font-size: 8pt;
     color: var(--text-faint);
   }
+}
+
+/* ─── Delight (style.md §11.3) ─────────────────────────────────── */
+
+/* The title that spins when you find where you are (an easter egg). */
+.title-word {
+  width: fit-content;
+}
+/* The paper plane of the Konami code. */
+.fly-by {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 300;
+  color: var(--accent-bright);
+  pointer-events: none;
+}
+.fly-by svg {
+  width: 40px;
+  height: 40px;
 }

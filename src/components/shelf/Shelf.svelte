@@ -9,7 +9,8 @@
   import { ui } from '../../state/ui.svelte';
   import Icon from '../ui/Icon.svelte';
   import SectionHeader from '../ui/SectionHeader.svelte';
-  import { ThemeToggle } from 'dusk-dawn';
+  import { ThemeToggle, konami, play, secretTaps } from 'dusk-dawn';
+  import { flyBy, hatch } from '../../util/delight';
   import TripCard from './TripCard.svelte';
 
   const everything = liveQuery(() => trips.trips());
@@ -26,13 +27,34 @@
     shelf !== null && shelf.active.length > 0 && (shelf.upcoming.length > 0 || shelf.past.length > 0)
   );
   const open = (tripId: string) => ui.go({ name: 'trip', tripId });
+
+  // Easter eggs (style.md §11.3). The Konami code clears a paper plane for
+  // take-off; seven taps on the title find where you are.
+  let title = $state<HTMLElement>();
+  $effect(() =>
+    konami(() => {
+      void flyBy();
+      hatch('konami', 'Cleared for take-off.');
+    })
+  );
+  function youAreHere() {
+    play(title, 'spin-once');
+    hatch('title', 'You are here. Probably.');
+  }
 </script>
 
 <section class="screen" aria-labelledby="shelf-title">
   <header class="masthead">
     <div>
       <span class="t-section-label shelf-eyebrow">{today}</span>
-      <h1 class="t-page-title" id="shelf-title">Waymark</h1>
+      <h1
+        class="t-page-title title-word"
+        id="shelf-title"
+        bind:this={title}
+        use:secretTaps={{ count: 7, onunlock: youAreHere }}
+      >
+        Waymark
+      </h1>
       <p class="t-tagline">Your whole trip, offline.</p>
     </div>
     <div class="masthead-controls">

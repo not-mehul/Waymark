@@ -8,6 +8,7 @@
     localTime,
     type LocalDate
   } from '../../domain/time';
+  import { cheer, hatch } from '../../util/delight';
   import { trips } from '../../state/app';
   import { ui } from '../../state/ui.svelte';
   import DateField from '../ui/DateField.svelte';
@@ -47,6 +48,9 @@
     );
     ui.close();
     ui.go({ name: 'trip', tripId: id });
+    // A new trip is worth a little confetti; an eighty-day one, a nod to Phileas Fogg.
+    cheer(null, { count: 50 });
+    if (days === 80) hatch('fogg', 'Eighty days. Phileas Fogg would approve.');
   }
 </script>
 

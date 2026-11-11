@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { EGGS, eggsFound } from '../../util/delight';
   import { APP_VERSION } from '../../state/app';
   import ModalHead from '../ui/ModalHead.svelte';
   import SectionHeader from '../ui/SectionHeader.svelte';
@@ -23,6 +24,7 @@
   Nothing is backed up off this device. A trip lives on this phone until you back it up to a file or share it,
   which is the way to keep a copy anywhere else or hand one to somebody.
 </p>
+<p class="t-body-small" id="eggCount">Easter eggs: {eggsFound()} of {EGGS.length} found</p>
 <SectionHeader label="Bundled data" />
 {#each CREDITS as [label, credit] (label)}
   <div class="credit">
