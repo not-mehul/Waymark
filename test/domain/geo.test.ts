@@ -85,6 +85,7 @@ describe('Geo', () => {
   it('distance formatting switches unit and precision', () => {
     expect(formatDistance(8.6)).toBe('8.6 km');
     expect(formatDistance(120.4)).toBe('120 km');
+    expect(formatDistance(18312.7)).toBe('18,312 km');
     expect(formatDistance(100, false)).toMatch(/mi$/);
   });
 });

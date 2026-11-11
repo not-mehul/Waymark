@@ -2,9 +2,16 @@
   // Who is travelling, what each of them is actually booked on, and the
   // windows where the party is not together.
   import { coverage, splitMinutes, type SplitWindow } from '../../domain/party-split';
-  import { displayName, initials, partyById, segmentTitle } from '../../domain/model';
+  import {
+    displayName,
+    initials,
+    partyById,
+    segmentStart,
+    segmentTitle,
+    type Segment
+  } from '../../domain/model';
   import { zonedAt } from '../../domain/time';
-  import { clock, duration } from '../../domain/time-text';
+  import { clock, dayCompact, duration } from '../../domain/time-text';
   import { profileSummary } from '../../state/shelf';
   import Icon from '../ui/Icon.svelte';
   import NoticeBanner from '../ui/NoticeBanner.svelte';
@@ -14,15 +21,27 @@
   const { model, open } = useTrip();
   const entries = $derived(model.dossier ? coverage(model.dossier) : []);
 
-  /** Split windows are instants; show them on the clock the party is on. */
+  /**
+   * Split windows are instants; show each end on the clock of the leg that
+   * starts or ends there (a train out of London reads London time, its
+   * arrival Paris time), not of whatever hotel stay happens to cover it.
+   */
   function zoneAt(millis: number): string {
     const d = model.dossier;
+    const legs = d?.segments.filter((s) => s.kind !== 'LODGING') ?? [];
     return (
+      legs.find((s) => s.startEpochMillis === millis)?.startZoneId ??
+      legs.find((s) => s.endEpochMillis === millis)?.endZoneId ??
       d?.segments.find((s) => millis >= s.startEpochMillis && millis <= s.endEpochMillis)?.startZoneId ??
       d?.trip.homeZoneId ??
       'UTC'
     );
   }
+  /** Two trains on the same route need their day and time to tell apart. */
+  const missedLabel = (s: Segment) => {
+    const at = segmentStart(s);
+    return `${segmentTitle(s)} · ${dayCompact(at.toPlainDate())} ${clock(at)}`;
+  };
   const span = (w: SplitWindow) =>
     `${clock(zonedAt(w.startMillis, zoneAt(w.startMillis)))} – ${clock(zonedAt(w.endMillis, zoneAt(w.endMillis)))}`;
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -50,14 +69,7 @@
           }}
         >
           <span class="party-mark large" class:dim>{initials(t)}</span>
-          <span class="menu-text">
-            <span class="t-card-title">{t.fullName}</span>
-            <span class="t-data-small">
-              {plural(entry.flightCount, 'flight')} · {plural(entry.segmentCount, 'booking')}{entry.hasLodging
-                ? ''
-                : ' · no lodging'}
-            </span>
-          </span>
+          <span class="t-card-title">{t.fullName}</span>
         </button>
         <button
           type="button"
@@ -72,12 +84,17 @@
           onclick={() => open({ name: 'removeTraveler', traveler: t })}><Icon name="trash" /></button
         >
       </div>
+      <p class="t-data-small">
+        {plural(entry.flightCount, 'flight')} · {plural(entry.segmentCount, 'booking')}{entry.hasLodging
+          ? ''
+          : ' · no lodging'}
+      </p>
       {#if summary}<p class="t-hint">{summary}</p>{/if}
       {#if entry.missingFromSegments.length > 0}
         <div class="facts">
           <div>
             <span class="t-field-label">Not travelling on</span>
-            <span class="t-hint faint">{entry.missingFromSegments.map(segmentTitle).join(', ')}</span>
+            <span class="t-hint faint">{entry.missingFromSegments.map(missedLabel).join(', ')}</span>
           </div>
         </div>
       {/if}

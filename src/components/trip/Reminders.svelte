@@ -19,7 +19,7 @@
   const ICON: Record<ReminderCategory, IconName> = {
     FLIGHTS: 'plane',
     LEAVE: 'clock',
-    CHECK_IN: 'ticket',
+    CHECK_IN: 'qr',
     GROUND: 'train',
     BOOKINGS: 'ticket',
     STAYS: 'bed'

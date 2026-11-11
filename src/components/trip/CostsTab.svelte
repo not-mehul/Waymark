@@ -108,18 +108,6 @@
     />
   {/if}
 
-  <button
-    type="button"
-    class="btn btn-primary btn-block"
-    disabled={costs.party.length === 0}
-    onclick={() => open({ name: 'expense', expense: null })}
-  >
-    <Icon name="plus" /> Add an expense
-  </button>
-  {#if costs.party.length === 0 && costs.loaded}
-    <p class="t-hint">Add somebody to the party first: an expense is paid by someone.</p>
-  {/if}
-
   <SectionHeader label="Expenses" />
   {#if costs.expenses.length === 0}
     <div class="empty-state">
@@ -145,12 +133,28 @@
     {/each}
   {/each}
 
+  <button
+    type="button"
+    class="btn btn-primary btn-block"
+    disabled={costs.party.length === 0}
+    onclick={() => open({ name: 'expense', expense: null })}
+  >
+    <Icon name="plus" /> Add an expense
+  </button>
+  {#if costs.party.length === 0 && costs.loaded}
+    <p class="t-hint">Add somebody to the party first: an expense is paid by someone.</p>
+  {/if}
+
   <SectionHeader label="Currency" />
   <button type="button" class="panel expense-row" onclick={() => open({ name: 'settleCurrency' })}>
     <span class="menu-text">
       <span class="t-field-label">Settled in</span>
       <span class="t-data heading">{costs.settle}</span>
-      <span class="t-hint">Every expense is converted to this, once, at the rate below.</span>
+      <span class="t-hint"
+        >Every expense is converted to this, once{costs.foreign.length > 0
+          ? ', at the rate below'
+          : ', at the rate for its currency'}.</span
+      >
     </span>
   </button>
   {#each costs.foreign as currency (currency)}

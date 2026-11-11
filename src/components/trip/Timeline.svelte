@@ -2,6 +2,7 @@
   // The single column the whole app exists to produce: days in order, the
   // time in the left gutter in mono, and the awkward gaps between bookings
   // named rather than left blank.
+  import { airlineName } from '../../catalog/airlines';
   import { RISK_LABEL } from '../../domain/connection-risk';
   import {
     designator,
@@ -50,10 +51,13 @@
     }
   }
 
+  /** "T5" for a numbered terminal; SFO's "I" would read "TI", so a lettered one is spelled out. */
+  const terminalLabel = (t: string) => (/^\d/.test(t) ? `T${t}` : `Terminal ${t}`);
+
   function subtitle(s: Segment, role: EventRole): string {
     switch (s.kind) {
       case 'FLIGHT':
-        return `${designator(s)} · ${s.operatedBy ?? s.carrierCode}`;
+        return `${designator(s)} · ${s.operatedBy ?? airlineName(s.carrierCode)}`;
       case 'LODGING':
         return role === 'CHECK_OUT' ? s.origin.city || s.origin.name : (s.origin.address ?? s.origin.city);
       case 'GROUND':
@@ -68,7 +72,7 @@
     switch (s.kind) {
       case 'FLIGHT':
         parts.push(
-          s.departureTerminal && `T${s.departureTerminal}`,
+          s.departureTerminal && terminalLabel(s.departureTerminal),
           s.departureGate && `Gate ${s.departureGate}`,
           durationBetween(s.startEpochMillis, s.endEpochMillis),
           s.aircraft
@@ -245,11 +249,11 @@
   {/each}
 
   <div class="btn-row timeline-actions">
-    <button type="button" class="btn btn-secondary" onclick={onaddflight}
-      ><Icon name="plane" /> Add flight</button
-    >
-    <button type="button" class="btn btn-secondary" onclick={() => open({ name: 'addPlan' })}>
+    <button type="button" class="btn btn-muted" onclick={() => open({ name: 'addPlan' })}>
       <Icon name="plus" /> Add plan
     </button>
+    <button type="button" class="btn btn-primary" onclick={onaddflight}
+      ><Icon name="plane" /> Add flight</button
+    >
   </div>
 </div>

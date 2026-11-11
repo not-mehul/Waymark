@@ -307,9 +307,23 @@ button.panel:active {
 }
 .picker-field .t-data {
   flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .picker-field .t-data-small {
   color: var(--text-dim);
+}
+/* Two date fields side by side on a phone leave no room for the year: drop
+   it rather than wrap the day onto two lines (the calendar still shows it). */
+.picker-field {
+  container-type: inline-size;
+}
+@container (max-width: 190px) {
+  .picker-field .t-data-small {
+    display: none;
+  }
 }
 
 /* ─── Pickers: calendar and clock (§8.6) ─────────────────── */
@@ -482,7 +496,12 @@ button.panel:active {
   cursor: default;
 }
 .theme-setting {
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+}
+.theme-setting .segmented {
+  align-self: flex-start;
 }
 .menu-item.static:hover {
   background: transparent;
@@ -651,6 +670,10 @@ button.panel:active {
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-4) 0 var(--space-1);
+}
+.tl-day .t-section-heading {
+  /* "Wednesday 18 November" on one line at phone width. */
+  font-size: clamp(1.5rem, 6.4vw, 1.875rem);
 }
 .tl-day .t-field-label {
   margin: 0;
@@ -859,6 +882,10 @@ button.panel:active {
 }
 .ends .t-data-small {
   color: var(--text-dim);
+  white-space: nowrap;
+}
+.ends > div {
+  flex: 1 1 0;
 }
 .end-right {
   align-items: flex-end;
@@ -996,13 +1023,18 @@ button.panel:active {
 .timeline-actions {
   padding-top: var(--space-4);
 }
-.btn-secondary {
-  border: 1px solid var(--text-strong);
-  color: var(--text-strong);
-}
-.btn-secondary:hover {
-  background: var(--text-strong);
-  color: var(--bg-grad-top);
+/* Hover belongs to fine pointers (style.md §13). On a phone the last tap
+   leaves :hover stuck, which filled a secondary button solid after a tap
+   landed where it now sits. */
+@media (hover: none) {
+  .btn-secondary:hover:not(:disabled) {
+    background: transparent;
+    color: var(--text-strong);
+  }
+  .btn-muted:hover:not(:disabled) {
+    border-color: var(--border);
+    color: var(--text-dim);
+  }
 }
 .block-time {
   color: var(--accent-amber);

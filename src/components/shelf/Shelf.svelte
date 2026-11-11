@@ -41,6 +41,8 @@
     play(title, 'spin-once');
     hatch('title', 'You are here. Probably.');
   }
+  /** "In 6d 6h", cased like the trip card's "In 6 days" below it. */
+  const sentence = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 </script>
 
 <section class="screen" aria-labelledby="shelf-title">
@@ -87,7 +89,9 @@
       <span class="up-next-row">
         <span class="t-body ellipsis">{segmentTitle(segment)}</span>
         <span class="t-data-small accent up-next-when">
-          {under ? `ends ${relative(segment.endEpochMillis, now)}` : relative(segment.startEpochMillis, now)}
+          {sentence(
+            under ? `ends ${relative(segment.endEpochMillis, now)}` : relative(segment.startEpochMillis, now)
+          )}
         </span>
       </span>
       <span class="t-data-small dim">{dayCompact(start.toPlainDate())} · {clock(start)} local</span>
