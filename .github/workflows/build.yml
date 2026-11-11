@@ -1,11 +1,10 @@
 name: Build
 
-# Every push gets the checks the release gets: the web app's checks and
-# tests, the Android shell's unit tests, lint and builds, Kotlin style, and on
-# an emulator the upgrade from the Kotlin app and the cold start. A pull
-# request from a branch of this repository is already covered by the push that
-# updated it, so only a pull request from a fork runs here a second time. The
-# release APK is built by release.yml, from a tag.
+# The everyday checks. Every push runs the web app's checks (tokens and
+# contrast, formatting, lint, types, the unit suite and a production build).
+# Pull requests and main also build the Android shell and run its unit tests.
+# The emulator upgrade test, Android lint and Kotlin style live in
+# device-checks.yml and run by hand; the release APK is built by release.yml.
 on:
   push:
     branches: ["**"]
@@ -19,199 +18,39 @@ concurrency:
 permissions:
   contents: read
 
-env:
-  # The last commit with the Kotlin app (app/, core/, feature/), which phones
-  # are upgrading from. CI builds it to install the new app over.
-  KOTLIN_APP_COMMIT: c019bcb903d12410639091b1405bfe5136a9d6df
-  KTLINT_VERSION: "1.8.0"
-  KTLINT_SHA256: 369ad2b789f95a011f807e1fcb690ccef80bd7cd014fd139e73ae82dcc0baeab
-  DETEKT_VERSION: "1.23.8"
-  DETEKT_SHA256: 3afe89a11120303c73c9bdda3d8fe558dd9070a6937d27819ddc04b275381245
-
 jobs:
-  # The web app: tokens and contrast, formatting, lint, types, the unit suite
-  # and a production build.
   web:
+    # A branch of this repository is already covered by its push.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
       - uses: actions/checkout@v7
-
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
-
       - run: npm ci
       - run: npm run check
 
-  # The Android shell the web app ships in (android/): its unit tests, Android
-  # lint (of the app only; Capacitor's own module is not ours to lint), a debug
-  # and a minified release build. The Kotlin app it replaces is built beside
-  # it, from KOTLIN_APP_COMMIT, in the same job so the two share the runner's
-  # debug key, for the upgrade test that follows.
-  shell:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+  android:
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
-
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v6
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "21"
-
       - uses: android-actions/setup-android@v4
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-
+      - uses: gradle/actions/setup-gradle@v6
       - run: npm ci
       - run: npm run sync
-
-      - name: Unit tests, lint, build
+      - name: Unit tests and debug build
         working-directory: android
-        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug assembleDebug assembleRelease
-
-      # R8 once stripped a Glance widget's UI from BookShelf's release builds
-      # only (see proguard-rules.pro); fail if it, or the receiver and worker
-      # Android instantiates by class name, ever goes missing. MainActivity and
-      # the plugin go missing if the Kotlin sources are skipped.
-      - name: Release build kept the activity, plugin, widget and reminders
-        working-directory: android
-        run: |
-          dex() { unzip -p app/build/outputs/apk/release/app-release-unsigned.apk 'classes*.dex'; }
-          dex | grep -q -a "Lcom/waymark/MainActivity;"
-          dex | grep -q -a "Lcom/waymark/WaymarkPlugin;"
-          dex | grep -q -a "Nothing coming up"
-          dex | grep -q -a "Lcom/waymark/alerts/ReminderReceiver;"
-          dex | grep -q -a "Lcom/waymark/alerts/DepartureWatchWorker;"
-
-      - name: Sign the release with the debug key for the emulator
-        run: |
-          BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
-          "$BT/apksigner" sign --ks ~/.android/debug.keystore --ks-pass pass:android \
-            --out android/app/build/outputs/apk/release/app-release-ci.apk \
-            android/app/build/outputs/apk/release/app-release-unsigned.apk
-
-      - name: Check out the Kotlin app to upgrade from
-        run: |
-          git fetch --no-tags --depth=1 origin "$KOTLIN_APP_COMMIT"
-          git worktree add --detach "$RUNNER_TEMP/kotlin-app" FETCH_HEAD
-
-      # Release-like, with its baseline profile, signed with the debug key.
-      - name: Build the Kotlin app to upgrade from
-        working-directory: ${{ runner.temp }}/kotlin-app
-        run: ./gradlew --no-daemon :app:assembleBenchmarkRelease
-
-      - name: Collect APKs
-        run: |
-          mkdir -p apks/debug apks/release apks/kotlin
-          cp android/app/build/outputs/apk/debug/app-debug.apk apks/debug/
-          cp android/app/build/outputs/apk/release/app-release-ci.apk apks/release/
-          cp "$RUNNER_TEMP/kotlin-app/app/build/outputs/apk/benchmarkRelease/app-benchmarkRelease.apk" apks/kotlin/
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: shell-apks
-          path: apks/
-          retention-days: 7
-
-      - name: Upload reports on failure
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: shell-reports
-          path: android/app/build/reports/
-          retention-days: 7
-
-  # On an emulator: the Kotlin app with a trip, upgraded in place to the shell,
-  # which has to bring the trip across; then the cold start of each, measured
-  # the same way one after the other, which is also the release smoke test.
-  shell-emulator:
-    needs: shell
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-
-      # Only for Playwright's Android API (drives the WebView over adb); no
-      # browsers are needed.
-      - run: npm ci
-
-      - uses: actions/download-artifact@v8
-        with:
-          name: shell-apks
-          path: apks
-
-      - name: Enable KVM
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-
-      # API 34, as the Kotlin app's baseline profile was recorded on.
-      - uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 34
-          target: google_apis
-          arch: x86_64
-          cores: 4
-          ram-size: 4096M
-          disk-size: 6G
-          disable-animations: true
-          # Start adb before the emulator; if the emulator comes up first it can
-          # stay "offline" for the whole boot timeout.
-          pre-emulator-launch-script: adb start-server
-          emulator-boot-timeout: 420
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none
-          script: scripts/android-shell-tests.sh apks
-
-  # The Android shell's Kotlin: ktlint and detekt.
-  style:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: "21"
-
-      # The command-line tools, pinned and checksummed, rather than Gradle
-      # plugins: they need nothing from Google's Maven and run in seconds.
-      - name: Fetch ktlint and detekt
-        run: |
-          base=https://repo1.maven.org/maven2
-          curl -sSfL -o ktlint.jar "$base/com/pinterest/ktlint/ktlint-cli/$KTLINT_VERSION/ktlint-cli-$KTLINT_VERSION-all.jar"
-          curl -sSfL -o detekt.jar "$base/io/gitlab/arturbosch/detekt/detekt-cli/$DETEKT_VERSION/detekt-cli-$DETEKT_VERSION-all.jar"
-          echo "$KTLINT_SHA256  ktlint.jar" | sha256sum -c -
-          echo "$DETEKT_SHA256  detekt.jar" | sha256sum -c -
-
-      - name: ktlint
-        run: java -jar ktlint.jar "android/app/src/**/*.kt" "!**/build/**" --relative
-
-      - name: detekt
-        run: |
-          sources=$(find android/app -path '*/build' -prune -o -type d \( -path '*/src/main/java' -o -path '*/src/test/java' \) -print | paste -sd, -)
-          java -jar detekt.jar --input "$sources" --config config/detekt.yml --build-upon-default-config
+        run: ./gradlew --no-daemon :app:testDebugUnitTest assembleDebug

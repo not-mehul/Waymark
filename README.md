@@ -448,9 +448,14 @@ or open `android/` in Android Studio after `npm run sync`.
 The plugin's Kotlin style is checked by ktlint and detekt, run in CI as their
 command-line jars against `.editorconfig` and `config/detekt.yml`; the same two
 commands work locally with the jars from Maven Central (versions in
-`build.yml`).
+`device-checks.yml`).
 
-**On an emulator, in CI.** Every push installs the last Kotlin version with
+**In CI.** Every push runs `npm run check`; pull requests and `main` also
+build the Android shell and run its unit tests. The slower checks below are
+the **Device checks** workflow, started by hand from the Actions tab before a
+release that touches the shell.
+
+**On an emulator, in Device checks.** It installs the last Kotlin version with
 the worked example in it, installs the new app over it as a phone would get
 the update, and checks the trip, its twelve bookings and two travelers came
 across and the handover file is gone. Then it times the cold start of both,
@@ -489,8 +494,8 @@ IndexedDB faked in memory. The domain, catalog and share suites were ported
 one for one from the Kotlin app's, which is how the TypeScript port was held
 to the same behaviour. The Waymark plugin's own logic (the schedule it keeps,
 the widget's choice of booking, the time spans it writes) has JVM tests under
-`android/app/src/test`, and CI checks the upgrade from the Kotlin app on an
-emulator.
+`android/app/src/test`, and the Device checks workflow checks the upgrade
+from the Kotlin app on an emulator.
 
 - `cost-splitter` — an even split, the odd cent, a split among some, no
   more settling payments than people less one, a foreign expense converted
