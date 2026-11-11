@@ -17,6 +17,7 @@ local.properties
 keystore.properties
 *.keystore
 *.jks
+*.p12
 
 # The Svelte app
 node_modules/

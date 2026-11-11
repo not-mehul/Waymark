@@ -19,18 +19,24 @@ signed by **the same key** or the phone will refuse the upgrade. Losing this
 key means every install has to be uninstalled and reinstalled from scratch, so
 put it somewhere you will still have it in five years.
 
+This makes the key with OpenSSL, as a PKCS#12 file that Gradle and Android's
+signing tools read directly (no Java needed). It works the same in Termux on
+Android (`pkg install openssl`) as on a computer:
+
 ```bash
-keytool -genkeypair -v \
-  -keystore waymark.jks \
-  -alias waymark \
-  -keyalg RSA -keysize 4096 -validity 10000
+openssl req -x509 -newkey rsa:4096 -sha256 -days 10000 -noenc \
+  -keyout waymark.key -out waymark.crt -subj "/CN=Waymark"
+openssl pkcs12 -export -inkey waymark.key -in waymark.crt -name waymark -out waymark.p12
+rm waymark.key waymark.crt
 ```
 
-It asks for a keystore password, your name and organisation (any of it can be
-left blank), and a key password. Keep both passwords.
+The second command asks for a password twice. Keep it: in a PKCS#12 file it is
+both the keystore password and the key password. `-name waymark` is the key alias.
+`*.p12`, `*.jks`, `*.keystore` and `keystore.properties` are in `.gitignore`; do
+not take them out.
 
-`*.jks`, `*.keystore` and `keystore.properties` are all in `.gitignore`. Do not
-take them out.
+(`keytool -genkeypair -keystore waymark.jks -alias waymark -keyalg RSA -keysize 4096
+-validity 10000` makes an equivalent key if you have a JDK.)
 
 ---
 
@@ -102,10 +108,10 @@ Actions**:
 
 | Secret | What goes in it |
 | --- | --- |
-| `KEYSTORE_BASE64` | `base64 -w0 waymark.jks` — the whole keystore, one line |
+| `KEYSTORE_BASE64` | `base64 -w0 waymark.p12` — the whole keystore, one line |
 | `KEYSTORE_PASSWORD` | the keystore password |
-| `KEY_ALIAS` | `waymark`, or whatever `-alias` you used |
-| `KEY_PASSWORD` | the key password |
+| `KEY_ALIAS` | `waymark`, the `-name` (or `-alias`) you used |
+| `KEY_PASSWORD` | the key password (for a `.p12`, the same as the keystore's) |
 
 Then tag and push:
 
