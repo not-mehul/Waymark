@@ -6,7 +6,7 @@ import { celebrate, createEggs, prefersReducedMotion, type CelebrateOptions } fr
 import { ui } from '../state/ui.svelte';
 import { icons } from './icons';
 
-export const EGGS = ['konami', 'title', 'fogg'] as const;
+export const EGGS = ['konami', 'title', 'fogg', 'north'] as const;
 export type Egg = (typeof EGGS)[number];
 
 const eggs = createEggs('waymark', EGGS);

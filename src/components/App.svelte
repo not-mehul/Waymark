@@ -10,6 +10,7 @@
   import People from './people/People.svelte';
   import TravelerProfile from './people/TravelerProfile.svelte';
   import About from './shelf/About.svelte';
+  import IdleCompass from './shelf/IdleCompass.svelte';
   import ImportPreview from './shelf/ImportPreview.svelte';
   import NewTrip from './shelf/NewTrip.svelte';
   import Problem from './shelf/Problem.svelte';
@@ -17,6 +18,7 @@
   import SharedFlights from './shelf/SharedFlights.svelte';
   import ShelfMenu from './shelf/ShelfMenu.svelte';
   import TripRoute from './trip/TripRoute.svelte';
+  import IdleDock from './ui/IdleDock.svelte';
   import Modal from './ui/Modal.svelte';
   import { Toast } from 'dusk-dawn';
 
@@ -98,6 +100,8 @@
     {/key}
   </Modal>
 {/if}
+
+<IdleDock label="A compass" disabled={ui.screen.name !== 'shelf' || !!ui.modal}><IdleCompass /></IdleDock>
 
 <Toast
   toast={ui.toast}
