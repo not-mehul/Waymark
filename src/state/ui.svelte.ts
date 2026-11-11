@@ -24,7 +24,7 @@ export function parentOf(screen: Screen): Screen | null {
   return { name: 'shelf' };
 }
 
-export type ToastKind = 'success' | 'error' | 'info';
+export type ToastKind = 'success' | 'error' | 'info' | 'celebrate';
 
 export interface ToastAction {
   label: string;

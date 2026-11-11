@@ -16,7 +16,7 @@
   const progress = $derived(tripProgress(trip, now));
 </script>
 
-<button type="button" class="panel trip-card" class:dimmed {onclick}>
+<button type="button" class="panel trip-card dd-pressable dd-lift" class:dimmed {onclick}>
   <div class="trip-card-top">
     <div>
       <span class="t-card-title">{trip.name}</span>
