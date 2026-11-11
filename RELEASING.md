@@ -118,6 +118,14 @@ git push origin v2.0.0
 unit tests, builds the page and the release APK around it, signs it, uploads it as a build artifact, and opens a **draft** GitHub release
 with the APK attached. Write the notes and press publish.
 
+You can also start on GitHub instead: **Releases → Draft a new release**, type a
+new `vX.Y.Z` tag under *Choose a tag*, write the notes, and press **Publish
+release**. Publishing creates the tag and runs the same workflow, which adds the
+APK to that release a few minutes later and leaves your notes alone. Saving it as
+a draft starts nothing (GitHub runs no workflows for drafts), so publish it. If the
+signing secrets are missing, the run fails rather than attach an unsigned APK to a
+published release.
+
 If any of the four secrets is missing, the workflow still finishes — it warns,
 naming the ones that are missing, and names the file
 `waymark-<version>-unsigned.apk` so an unsigned build cannot be mistaken for a

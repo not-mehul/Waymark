@@ -8,10 +8,23 @@ name: Release
 # release APK (the Svelte app in its Capacitor shell), signs it if the
 # repository has a keystore in its secrets, and attaches it to a GitHub
 # release as a draft for you to write notes on and publish.
+#
+# Or start from GitHub's "Draft a new release" page: pick a new vX.Y.Z tag
+# there and publish. Publishing creates the tag and runs this, and the APK
+# is added to that release a few minutes later; its notes are left as written.
+# (Saving a draft there starts nothing: GitHub runs no workflows for drafts.)
 on:
   push:
     tags: ["v*"]
+  release:
+    types: [published]
   workflow_dispatch:
+
+# Publishing a release from the web page both creates its tag and publishes
+# it, which can start this twice; one build per tag is enough.
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -123,19 +136,33 @@ jobs:
           path: ${{ steps.apk.outputs.path }}
           retention-days: 30
 
-      # A draft, not a publish: the release notes are yours to write, and an
-      # unsigned build should never go out without somebody noticing it.
-      - name: Draft the GitHub release
+      # A tag pushed from the command line gets a new draft: the release notes
+      # are yours to write, and an unsigned build should never go out without
+      # somebody noticing it. A release that already exists (one made on the
+      # "Draft a new release" page, say) keeps its notes and gets the APK added,
+      # replacing an earlier copy of the same file.
+      - name: Attach the APK to the GitHub release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v3
-        with:
-          draft: true
-          name: Waymark ${{ github.ref_name }}
-          files: ${{ steps.apk.outputs.path }}
-          body: |
-            Waymark ${{ github.ref_name }} — an offline-first travel companion for Android.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          APK: ${{ steps.apk.outputs.path }}
+          SIGNED: ${{ steps.keystore.outputs.signed }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            if [ "$SIGNED" != "true" ] && [ "$(gh release view "$TAG" --json isDraft --jq .isDraft)" != "true" ]; then
+              echo "::error::Not attaching an unsigned APK to the published release $TAG. Add the signing secrets (RELEASING.md) and re-run this job."
+              exit 1
+            fi
+            gh release upload "$TAG" "$APK" --clobber
+          else
+            cat > "$RUNNER_TEMP/notes.md" <<NOTES
+          Waymark $TAG — an offline-first travel companion for Android.
 
-            **Install:** download the APK below and open it on the phone. Android
-            will ask you to allow installing from this source the first time.
+          **Install:** download the APK below and open it on the phone. Android
+          will ask you to allow installing from this source the first time.
 
-            Requires Android 8.0 (API 26) or later.
+          Requires Android 8.0 (API 26) or later.
+          NOTES
+            gh release create "$TAG" "$APK" --draft --verify-tag --title "Waymark $TAG" --notes-file "$RUNNER_TEMP/notes.md"
+          fi
