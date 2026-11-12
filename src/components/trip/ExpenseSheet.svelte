@@ -8,7 +8,8 @@
     type Expense,
     type ExpenseCategory
   } from '../../domain/model';
-  import { systemZone, todayIn } from '../../domain/time';
+  import { compareDates, systemZone, todayIn } from '../../domain/time';
+  import { tripDays } from '../../state/idea-plan';
   import { currencyOn, isCurrency } from '../../state/costs-logic';
   import DateField from '../ui/DateField.svelte';
   import Field from '../ui/Field.svelte';
@@ -19,7 +20,18 @@
   const { model, close } = useTrip();
   const costs = model.costs;
   const party = costs.party;
-  const today = todayIn(systemZone());
+  // A new expense starts on today when the trip is under way, else on the
+  // trip's nearest day: one logged before leaving is usually a deposit for it.
+  const today = (() => {
+    const now = todayIn(systemZone());
+    const days = tripDays(model.dossier);
+    const first = days[0];
+    const last = days[days.length - 1];
+    if (!first || !last) return now;
+    if (compareDates(now, first) < 0) return first;
+    if (compareDates(now, last) > 0) return last;
+    return now;
+  })();
 
   // svelte-ignore state_referenced_locally
   const start = existing;

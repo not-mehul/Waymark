@@ -175,8 +175,8 @@ cd android && ./gradlew -PwaymarkVersion=2.0.0 assembleRelease
 The unit suite covers the parts of the app that can be tested without a device
 — all the date arithmetic, the timeline builder, the country table, the label
 placer, the exports and parsers, the airport and coastline assets, the
-repository over IndexedDB, and what the page sends the Android shell. CI's
-emulator run covers the upgrade from the Kotlin app and a cold start. Nothing
+repository over IndexedDB, and what the page sends the Android shell. The
+Device checks workflow (run by hand) covers the upgrade from the Kotlin app and a cold start. Nothing
 automated covers layout, notifications firing or the widget drawing. Before a release, on a
 real phone:
 
@@ -216,5 +216,5 @@ real phone:
   For 2.0, install it over the Kotlin version on the phone and check every trip
   is on the shelf, with its bookings, people, ideas and costs, and that a
   reminder set before the update still arrives after the app has been opened
-  once. CI checks the same move with the worked example; a real phone is the
+  once. Device checks run the same move with the worked example; a real phone is the
   check with real trips.

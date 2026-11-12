@@ -37,12 +37,7 @@
     {segments.length === 1 ? 'booking' : 'bookings'}, every idea and every note will be deleted from this
     device.
   </p>
-  <Field
-    label="Type the trip's name to confirm"
-    id="delete-confirm"
-    placeholder={trip.name}
-    bind:value={typed}
-  />
+  <Field label="Type “{trip.name}” to confirm" id="delete-confirm" bind:value={typed} />
   <!-- Most trips people delete are over. Putting one away keeps it, quiet, back in one tap. -->
   {#if !trip.archived}
     <button type="button" class="btn btn-muted btn-block" onclick={putAway}>

@@ -11,7 +11,7 @@ It has Waymark's id (`com.waymark`), release key and version numbering, the
 ones the Kotlin app had before it, so it installed over the Kotlin app as an
 update. The Kotlin app itself was removed from the repository at the
 switch-over; CI still builds its last commit (`KOTLIN_APP_COMMIT` in
-`.github/workflows/build.yml`) to check that upgrade on an emulator.
+`.github/workflows/device-checks.yml`, run by hand) to check that upgrade on an emulator.
 
 ## What the shell does
 

@@ -10,7 +10,7 @@
     hasDistance,
     tripReport
   } from '../../domain/analytics';
-  import { bearingDegrees, distanceKm, formatDistance } from '../../domain/geo';
+  import { bearingDegrees, distanceKm, formatDistance, grouped } from '../../domain/geo';
   import { destinationOf, positionOf, shortLabel } from '../../domain/model';
   import { todayIn, zoneOrUtc } from '../../domain/time';
   import { dayCompact, durationBetween } from '../../domain/time-text';
@@ -148,14 +148,16 @@
       <div class="panel stack">
         <div class="stats spread">
           <div>
-            <span class="t-stat accent">{report.ideasDone}</span><span class="t-field-label">Done</span>
-          </div>
-          <div>
-            <span class="t-stat">{report.ideasScheduled}</span><span class="t-field-label">Scheduled</span>
-          </div>
-          <div>
-            <span class="t-stat">{report.ideasOutstanding}</span><span class="t-field-label">Still on it</span
+            <span class="t-stat">{report.ideasOutstanding}</span><span class="t-field-label">On the list</span
             >
+          </div>
+          <div>
+            <span class="t-stat accent">{report.ideasScheduled}</span><span class="t-field-label"
+              >Scheduled</span
+            >
+          </div>
+          <div>
+            <span class="t-stat">{report.ideasDone}</span><span class="t-field-label">Done</span>
           </div>
         </div>
         <Meter
@@ -186,7 +188,7 @@
 
       <SectionHeader label="Carbon" />
       <div class="panel stack">
-        <p class="t-section-heading">{round(report.carbonKg)} kg CO₂e</p>
+        <p class="t-section-heading">{grouped(report.carbonKg)} kg CO₂e</p>
         <p class="t-hint">
           A model, not a measurement: distance times a published factor per mode, {round(
             EMISSION_FACTORS.LONG_HAUL_FLIGHT * 1000

@@ -1,5 +1,7 @@
 // Shorthands the ported Kotlin tests share.
 import { readFileSync } from 'node:fs';
+import { readWorldPlaces } from 'dusk-dawn/places/vite';
+import { installPlaces, placesLoaded } from '../src/catalog/gazetteer';
 import { buildSampleItinerary, type SampleBundle } from '../src/catalog/sample-itinerary';
 import type { Flight, Segment, TripDossier } from '../src/domain/model';
 import { Temporal, localDate, zonedOf, type LocalDate, type LocalTime } from '../src/domain/time';
@@ -40,3 +42,8 @@ export const CATALOG_SOURCE = 'data/catalog';
 /** A bundled catalog file, read off disk. */
 export const bundledLines = (name: string): string[] =>
   readFileSync(new URL(`../${CATALOG_SOURCE}/${name}`, import.meta.url), 'utf8').split('\n');
+
+/** Installs the world's places from dusk-dawn, as the app does at start; once per test file. */
+export const installWorldPlaces = (): void => {
+  if (!placesLoaded()) installPlaces(readWorldPlaces());
+};

@@ -7,7 +7,6 @@
   import type { IconName } from '../../util/icons';
   import Icon from '../ui/Icon.svelte';
   import ModalHead from '../ui/ModalHead.svelte';
-  import ThemeSetting from '../ui/ThemeSetting.svelte';
   import { useTrip, type TripSheet } from './context';
 
   const { model, open, close } = useTrip();
@@ -146,6 +145,5 @@
 {@render rows(shareRows)}
 <hr class="hairline" />
 {@render rows(settingsRows)}
-<ThemeSetting />
 <hr class="hairline" />
 {@render rows(tripRows)}

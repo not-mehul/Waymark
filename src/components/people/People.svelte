@@ -29,11 +29,10 @@
       {@const summary = profileSummary(traveler)}
       <button type="button" class="panel person-row" onclick={() => ui.open({ name: 'traveler', traveler })}>
         <PartyMark {traveler} />
-        <div>
-          <div class="t-body-small" style:color="var(--text-heading)">{traveler.fullName}</div>
-          <div class="t-data-small ellipsis">
-            {plural($people.counts.get(traveler.id) ?? 0, 'trip')}{summary ? ` · ${summary}` : ''}
-          </div>
+        <div class="menu-text">
+          <span class="t-card-title">{traveler.fullName}</span>
+          <span class="t-data-small">{plural($people.counts.get(traveler.id) ?? 0, 'trip')}</span>
+          {#if summary}<span class="t-hint">{summary}</span>{/if}
         </div>
       </button>
     {/each}

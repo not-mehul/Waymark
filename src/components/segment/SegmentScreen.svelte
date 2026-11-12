@@ -46,6 +46,18 @@
     copiedTimer = setTimeout(() => (copied = null), 1600);
   }
 
+  /** What the two ends of a booking are called: a hotel is checked into, not departed. */
+  function endLabels(s: Segment): [string, string] {
+    switch (s.kind) {
+      case 'LODGING':
+        return ['Check-in', 'Check-out'];
+      case 'EXPERIENCE':
+        return ['Starts', 'Ends'];
+      default:
+        return ['Departs', 'Arrives'];
+    }
+  }
+
   function specifics(s: Segment, travelers: readonly Traveler[]): [string, string][] {
     const rows: [string, string | null][] = [];
     switch (s.kind) {
@@ -66,12 +78,7 @@
         }
         break;
       case 'LODGING':
-        rows.push(
-          ['Nights', String(nights(s))],
-          ['Room', s.roomDescription],
-          ['Address', s.origin.address],
-          ['Check-in', s.checkInNote]
-        );
+        rows.push(['Room', s.roomDescription], ['Address', s.origin.address], ['Arriving', s.checkInNote]);
         break;
       case 'GROUND':
         rows.push(
@@ -137,13 +144,13 @@
       <div class="panel">
         <div class="ends">
           <div>
-            <span class="t-field-label">Departs</span>
+            <span class="t-field-label">{endLabels(segment)[0]}</span>
             <span class="t-stat">{clock(start)}</span>
             <span class="t-data-small">{dayCompact(start.toPlainDate())} · {zoneLabel(start)}</span>
             <span class="t-body-small muted">{segment.origin.name}</span>
           </div>
           <div class="end-right">
-            <span class="t-field-label">Arrives</span>
+            <span class="t-field-label">{endLabels(segment)[1]}</span>
             <span class="t-stat">{clock(end)}</span>
             <span class="t-data-small">{dayCompact(end.toPlainDate())} · {zoneLabel(end)}</span>
             <span class="t-body-small muted">{destination.name}</span>
@@ -152,8 +159,14 @@
         <hr class="hairline" />
         <div class="stats">
           <div>
-            <span class="t-stat">{durationBetween(segment.startEpochMillis, segment.endEpochMillis)}</span>
-            <span class="t-field-label">Duration</span>
+            {#if segment.kind === 'LODGING'}
+              {@const n = nights(segment)}
+              <span class="t-stat">{n}</span>
+              <span class="t-field-label">{n === 1 ? 'Night' : 'Nights'}</span>
+            {:else}
+              <span class="t-stat">{durationBetween(segment.startEpochMillis, segment.endEpochMillis)}</span>
+              <span class="t-field-label">Duration</span>
+            {/if}
           </div>
           {#if hasCoordinates(segment.origin) && hasCoordinates(destination) && segment.origin.name !== destination.name}
             <div>
@@ -255,7 +268,7 @@
               </button>
             </div>
           {/each}
-          <span class="t-hint">Tap a reference to copy it.</span>
+          <span class="t-hint">Tap a reference to copy it, or the corner button to show it large.</span>
         </div>
       {/if}
 
