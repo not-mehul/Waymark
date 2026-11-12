@@ -56,7 +56,7 @@
     >
       <Icon name="arrowLeft" />
     </button>
-    <h1 class="t-card-title" id="notes-title">On arrival</h1>
+    <h1 class="t-card-title" id="notes-title">Destination notes</h1>
   </header>
 
   <div class="tab-body">

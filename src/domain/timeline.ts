@@ -156,7 +156,10 @@ export function buildTimeline(
       state: stateOf(segment, nowMillis),
       localTime,
       arrivalDayOffset:
-        role === 'CHECK_OUT' ? null : dayOffsetSuffix(segmentStart(segment), segmentEnd(segment)),
+        // A hotel's later day is its nights, shown on the card; "+4" would read as a date offset.
+        role === 'CHECK_OUT' || segment.kind === 'LODGING'
+          ? null
+          : dayOffsetSuffix(segmentStart(segment), segmentEnd(segment)),
       sortKey: millis,
       id,
       key: id

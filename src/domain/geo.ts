@@ -141,9 +141,14 @@ export const distanceSettings = { metric: true };
 export const MILE_REGIONS: ReadonlySet<string> = new Set(['US', 'GB', 'LR', 'MM']);
 
 export function formatDistance(km: number, metric: boolean = distanceSettings.metric): string {
-  if (metric) return km < 10 ? `${formatFixed(km, 1)} km` : `${Math.trunc(km)} km`;
+  if (metric) return km < 10 ? `${formatFixed(km, 1)} km` : `${grouped(Math.trunc(km))} km`;
   const miles = km * 0.621371;
-  return miles < 10 ? `${formatFixed(miles, 1)} mi` : `${Math.trunc(miles)} mi`;
+  return miles < 10 ? `${formatFixed(miles, 1)} mi` : `${grouped(Math.trunc(miles))} mi`;
+}
+
+/** A whole number with thousands separated: 18312 → "18,312". */
+export function grouped(n: number): string {
+  return String(Math.trunc(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 // — Orthographic projection: the globe ——————————————————————————————————

@@ -50,8 +50,6 @@
   {/if}
   <div class="btn-row">
     <button type="button" class="btn btn-muted" onclick={close}>Close</button>
-    <button type="button" class="btn btn-muted" onclick={onsendfile}
-      ><Icon name="share" /> Send the file</button
-    >
+    <button type="button" class="btn btn-muted" onclick={onsendfile}><Icon name="share" /> Send file</button>
   </div>
 </div>
