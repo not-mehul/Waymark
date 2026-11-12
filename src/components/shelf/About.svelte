@@ -7,7 +7,7 @@
   const CREDITS = [
     ['Coastlines', 'Natural Earth 1:110m — public domain'],
     ['Stations', 'IATA airport table — deduplicated, zones resolved from coordinates'],
-    ['Cities', 'GeoNames cities15000 — CC BY 4.0, geonames.org'],
+    ['Places', 'GeoNames — CC BY 4.0, geonames.org'],
     ['Airlines', 'Hand-compiled IATA designators'],
     ['Destination notes', 'Hand-compiled'],
     ['Licence', 'MIT']
