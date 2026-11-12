@@ -1,611 +1,66 @@
-# Waymark
+<p align="center"><img src="docs/icon.svg" width="88" height="88" alt=""></p>
 
-An Android travel-logistics app: every flight, stay, transfer and booking for a
-trip — for one traveler or a party that splits up — on one timeline, one vector
-chart. It works with the radio off.
+<h1 align="center">Waymark</h1>
 
-Svelte 5 and TypeScript in a Capacitor 8 shell, the stack Ledger and
-BookShelf share, with IndexedDB (through Dexie) for storage. The page's
-runtime libraries are Dexie, fflate for trip codes, a QR encoder and the
-Temporal polyfill. What has to happen with the app closed (reminders, the
-journey under way, the home-screen widget) and reading barcodes are a small
-Kotlin plugin in the Android project, with WorkManager, Glance and ZXing's
-core. It targets Android 17 and runs on Android 8 and later.
+<p align="center"><em>Your whole trip, offline.</em></p>
 
-Until version 2.0 Waymark was a Kotlin and Jetpack Compose app. The rewrite
-kept its id, its signing key and its features, and moves a phone's trips
-across the first time the new version opens.
+<p align="center">
+  Android&nbsp;·&nbsp;<a href="https://github.com/not-mehul/Waymark/releases/latest">Latest release</a>&nbsp;·&nbsp;MIT&nbsp;·&nbsp;Created by <strong>Mehul Sen</strong>
+</p>
 
 ---
 
-## What it does
+Waymark is a travel-logistics app for Android. Every flight, stay, transfer and booking for a trip, for one traveler or a party that splits up, sits on one timeline and one map. It calls no schedule service and no tracking API, so it works with the radio off: a booking is a record of something already arranged, kept where you can read it at a gate.
 
-**Enter a flight.** A designator, a date, two airport codes, two times off a
-picker. Waymark calls no schedule service and no tracking API, so what it
-contributes is only what an airport code
-already implies: coordinates and a time zone, from a bundled directory of
-**8,831 IATA stations**. That is enough to put the leg on the map, to work out
-that a 16:20 out of San Francisco lands the following morning, and to show the
-block time back as you set it, which is the quickest way to catch a time
-entered against the wrong airport.
+<p align="center">
+  <img src="docs/screenshots/timeline.webp" width="200" alt="A trip's timeline: a flight from San Francisco to London, a train and a hotel, with a clock-change note">
+  <img src="docs/screenshots/globe.webp" width="200" alt="The globe view with the trip's legs from San Francisco to London and Paris">
+  <img src="docs/screenshots/numbers.webp" width="200" alt="The numbers screen: distance travelled, countries, clock changes and distance by mode">
+  <img src="docs/screenshots/shelf-dawn.webp" width="200" alt="The trip shelf in the light Dawn theme, with the next flight counting down">
+</p>
 
-**Or don't type it.** Share a confirmation email to Waymark, or paste one into
-Add flight, and it reads the flight numbers, airports, dates and times out of
-it — on the phone, with nothing sent anywhere — and shows them to be checked
-before anything is saved. Pick a screenshot or a photo of a boarding pass and
-the barcode fills in the flight, the airports, the date, the cabin and the
-seat; a pass does not carry clock times, so those are left to you.
+## Features
 
-**Add things one question at a time.** A plan or an idea is entered through a
-short flow rather than a form: what kind of thing, then what it is, then when,
-then the reference numbers somebody has to go and find in an email. Any earlier
-step can be tapped to go back and corrected, and closing the sheet at any point
-saves nothing at all.
+### Plan the trip
 
-**And then leave it alone.** There is no live tracking and no "what the board
-says" to keep current, because nobody is going to update an app at a gate. A
-booking is a record of something already arranged, so it opens **read only**;
-Edit turns the screen into a form with Save and Cancel — every field, from the
-flight number and the airports to a hotel's room and a train's pick-up point —
-and nothing is written until Save.
+- **Enter a flight in seconds.** A designator, a date, two airport codes and two times. A bundled directory of 8,831 IATA stations supplies coordinates and time zones, so Waymark knows a 16:20 out of San Francisco lands the next morning and shows the block time back to catch a time entered against the wrong airport.
+- **Or don't type it.** Share or paste a confirmation email and Waymark reads the flight numbers, airports, dates and times on the phone. Pick a photo or screenshot of a boarding pass and the barcode fills in the flight, airports, date, cabin and seat. Everything it reads is shown to be checked before it is saved.
+- **One question at a time.** Plans and ideas are added through a short flow (what kind, what, when, the reference numbers), and any earlier step can be tapped to correct it. Closing the sheet saves nothing.
+- **Places mean what you meant.** Typed places are read against a bundled gazetteer of about 320,000 places: every town of 1,000 people or more, every region, and landmarks, neighbourhoods, islands, mountains, parks and stations. "Eiffel Tower" is pinned on the tower and filed under Paris, "Bloomsbury, London" lands in Bloomsbury, and "Bombay" finds Mumbai. Each place carries its own time zone, so a 15:00 check-in in Paris is 15:00 in Paris. Anything it can't place stays as typed, without a wrong pin.
+- **An ideas board.** See, Eat, Do and Shop, saved without a date and read by kind, by place or by day. Each traveler can mark what they want, a day says when it is overfull, and one tap promotes an idea onto the timeline.
 
-**Be told before it starts.** The one thing the app volunteers is that
-something you entered is about to happen, which it knows from the itinerary and
-the clock. **Every category has its own lead time** and any of them can be
-switched off: flights three hours out, trains and transfers an hour, a booked
-table an hour, a hotel check-in not at all — until you say otherwise. Two more
-are about flights: **online check-in**, a day ahead, and **time to leave for
-the airport**, worked out from where the trip is before the flight and how
-long the journey to the airport takes. A single alarm is set for the next
-reminder anywhere in the app, so they arrive on time rather than whenever
-Android next lets a background job run; a reminder that fell due while
-notifications were blocked is still shown once they are allowed. Tapping one
-opens the booking. One notification channel, asked for once, when you save
-your first flight.
+### Read the trip
 
-**See what is next without opening anything.** A home-screen widget shows the
-next booking across every trip, counting down, and opens it. Small, it is the
-booking and the time left; wide, its day, time and place; tall, the two
-bookings after it as well. The widget picker shows it drawn, with a booking in
-it, rather than as a blank tile.
+- **One timeline.** A single column of days with the time in the gutter, and between the bookings the parts that go wrong: the connection with a minimum-connection-time verdict, the transfer with a duration estimate, the hours that belong to nobody. Days are numbered, clock changes are called out, and a trip under way has a shortcut to now.
+- **Bookings open read only.** Edit turns the screen into a form with Save and Cancel, and nothing is written until Save.
+- **Codes you can read at a desk.** Confirmation codes, record locators and ticket numbers sit on the booking. Tap to copy, or open one large with every character spelt out (Kilo, Seven, Papa), the screen kept on.
+- **An offline map, two projections.** A flat chart for a region and a globe for a long haul, both with real coastlines from Natural Earth and great-circle legs on top. Pinch to zoom, drag to pan or turn, tap a mark to open it. Labels are placed by a collision solver, and a list view reads the trip out leg by leg.
+- **Land informed.** Currency, plug type, emergency number and driving side for every country a station can be in, and the destination worked out from where the trip actually spends its time, not from the last connection.
+- **Numbers.** Distance by mode, the shape of each day, nights per city and a carbon estimate that shows its factors.
+- **Your format.** Clock times follow the phone's 12- or 24-hour setting and distances its region. On a tablet or unfolded phone, a booking opens beside the timeline.
 
-**The journey under way, on the lock screen.** From three hours before a
-flight — half an hour before a train or a transfer — until it arrives, one
-ongoing notification counts down to departure and then fills a bar to
-landing. On Android 16 and later it is a Live Update: pinned at the top of the
-shade, on the lock screen, and as a chip in the status bar carrying the time
-left. It follows the departure-reminder setting for its kind.
+### Travel with it
 
-**Split the costs.** A trip's Costs tab takes each expense as it happens —
-what it was, how much and in which currency, who paid and who it was for —
-and says who owes whom: the total, each person's share, and the fewest
-payments that square it. Expenses in another currency are converted once, at
-a rate the traveler types or, with online extras on, the European Central
-Bank's rate for the day. Costs travel with the trip in files and backups.
+- **Reminders before things start.** Each category has its own lead time (flights three hours out, trains and transfers an hour, a table an hour), plus online check-in a day ahead and a time-to-leave alert worked out from where you are. One exact alarm keeps them on time.
+- **The journey on the lock screen.** From shortly before departure until arrival, one ongoing notification counts down and then fills a bar to landing. On Android 16 and later it is a Live Update in the status bar.
+- **A home-screen widget** with the next booking across every trip, in three sizes.
+- **Travel as a group.** Travelers are profiles (seat and meal preference, loyalty numbers, phone) that belong to the person, not the trip, and are assigned per segment. When the party splits, Waymark names the window and flags anyone with nothing booked.
+- **Split the costs.** Log each expense with who paid and who it was for, in any currency, and see the fewest payments that square it.
+- **Weather on arrival.** With online extras on, a two-week forecast for where the trip will be, and last year's weather for the same dates beyond that. It is kept for use without a signal.
 
-**The weather where you are going.** With online extras on, the "On arrival"
-screen shows each day still to come at the place the trip will be: a forecast
-for the next two weeks, and the same dates last year beyond that. What is
-fetched is kept, so it is there abroad without a signal.
+### Share and keep
 
-**Print it.** The trip menu writes the itinerary as an A4 PDF — every booking
-under its day, in local time, with who is on it, its reference, the day's
-weather and who owes whom — to share, or sends the same pages to a printer.
+- **Take it with you.** Send a trip as Markdown, a calendar file, a trip file another Waymark opens whole, or a QR code for the phone across the table.
+- **Print it.** An A4 PDF itinerary with every booking under its day, references, weather and who owes whom.
+- **Back up every trip** to one file, and archive trips that are over: no reminders, off the widget, back with one tap.
+- **Links from the other apps.** `waymark://open?trip=<id>` opens a trip, and a trip's QR code is a `waymark://import` link.
+- **A little delight.** Confetti when a trip is created, an idle compass to play with, and four easter eggs, counted in About. All of it respects reduced motion.
 
-**Nothing on first launch.** The shelf opens empty, with the worked example
-offered rather than installed. Somebody planning a real trip does not begin by
-deleting a stranger's holiday, and somebody who wants to see what a full
-itinerary looks like is one tap away from a week in London and Paris.
+## Private by design
 
-**Keep the codes where you can read them.** A confirmation code, a record
-locator and a ticket number are fields on the booking that carries them, shown
-in the open on the booking screen. They were a separate encrypted table behind
-a fingerprint for a while, which is a ceremony rather than a protection on a
-device that holds nothing else encrypted and never sends an itinerary
-anywhere — and a code you cannot read without authenticating is a code you cannot
-read at a check-in desk with a bag in one hand. Tap one to copy it; open it large to
-turn the phone round at a desk, with every character spelt out (Kilo, Seven,
-Papa) so an O is never read as a 0, and the screen kept on while it shows.
+Nothing about a trip leaves the phone unless you share it. There are no accounts and no cloud backup. The network is used only for the two optional online extras, weather and exchange rates, and nothing is fetched until you turn them on; a test checks that.
 
-**Travel as a group.** Travelers are profiles — seat and meal preference,
-loyalty numbers, a phone number — that belong to the person, not the trip: the
-same person on two trips is one profile, edited once, from either trip or from
-People on the shelf. They are assigned per segment. When two people are on different bookings — one on the morning
-train, one on the evening one — the app names the window in which the party is
-split, and flags anyone with nothing booked.
-
-**Read the trip.** The timeline is a single column of days with the time in the
-left gutter and, between the bookings, the part that actually goes wrong: the
-connection with a minimum-connection-time verdict, the transfer with a mode and
-a duration estimate, the four hours that belong to nobody. Each day is numbered
-from the trip's first, the day the clocks change says by how much, and a trip
-under way has a shortcut down to now.
-
-**See the geography.** One offline map, two projections. The flat chart reads a
-region; the globe shows what a long haul actually is, with the far side of the
-world culled rather than flattened. Both draw real coastlines — Natural Earth's
-1:110m land polygons, simplified to about 1,400 points and shipped inside the
-binary — over water, under a graticule, with the trip's great-circle legs on
-top. Pinch to zoom either one, drag to pan the chart or turn the globe, tap a
-mark to open it. The list button reads the same trip out leg by leg, with the
-distance each covers, for a screen reader or anyone who would rather read. Labels are placed by a collision solver rather than pinned
-beside their marks, so a cluster of hotels in one city does not print on top of
-itself; a label with nowhere to go is dropped and its mark stays.
-
-**What is next, from the shelf.** The shelf is dated, leads with the next
-booking on any trip and how long until it, and a trip under way shows which
-day of it this is, with a meter of how much has gone.
-
-**Keep a list.** Not everything on a trip has a time on it. The Ideas board
-holds four kinds — **See, Eat, Do, Shop** — added a question at a time and
-saved without a date, then read three ways: by kind, by place, or by the day
-they are pencilled in for. A day is a date without a clock time, which is
-how planning actually happens; the board totals each day's estimates and says
-so when a day is overfull. Each traveler can mark what they want, so a
-party of four can see where their interests actually overlap. One tap promotes
-an idea onto the timeline with a date and a duration, where it becomes an
-ordinary booking; removing that booking puts it back on the list rather than
-losing it.
-
-**Count it.** A numbers screen: distance by mode, the shape of each day, where
-the hours go, nights per city, and a carbon estimate that shows its factors
-rather than asserting a figure, above the same globe you can turn with a finger. The distance is put in
-proportion too: a share of the way round the Earth, or marathons end to end.
-
-**Take it with you.** A trip leaves the app four ways, all through the system
-share sheet. As **markdown** — days as headings, every booking as a line, the
-idea list as checkboxes, the booking references as an index. As a **calendar
-file** whose events, in UTC, land at the right moment in any calendar app. As a
-**trip file** that Waymark on another phone opens back into the whole trip,
-party, bookings and ideas. Or as a **QR code** for the phone across the table,
-carrying as much of the trip as fits and saying what it left out. References
-travel with all of them, because a confirmation code is the reason to send
-somebody an itinerary in the first place.
-
-**Links from the other apps.** Waymark answers the `waymark://` scheme it
-shares with BookShelf, Ledger, Colophon and Rosetta (style.md §14.1, in
-`src/platform/links.ts`): a trip's QR code is `waymark://import?d=…`, and
-`waymark://open?trip=<id>` opens that trip if it is on the phone.
-
-**Keep a copy.** *Back up every trip* writes one file with everything in it,
-wherever you keep things; opening it on a new phone brings everything across.
-A phone-to-phone transfer during setup carries the app's data too. Nothing goes
-to a cloud backup.
-
-**Put a trip away.** A trip that is over can be archived: off the shelf, quiet —
-no reminders, not on the widget — and back with one tap.
-
-**Read it your way.** Clock times follow the phone's 12- or 24-hour setting and
-distances its region's miles or kilometres. On a tablet or an unfolded phone the
-booking you tap opens beside the timeline instead of over it.
-
-**Places you type mean what you meant.** "Paris" is a city, resolved against a
-bundled gazetteer of about 320,000 places — every town of 1,000 people or more,
-every region, and the landmarks, neighbourhoods, islands, mountains, lakes,
-parks and stations with an English Wikipedia article — nearest to where the
-trip is that day, so a 15:00 check-in in Paris is 15:00 in Paris, not in the
-zone the trip was created in. "Eiffel Tower" is pinned on the Eiffel Tower and
-filed under Paris; "Bloomsbury, London" lands in Bloomsbury; "Bombay" finds
-Mumbai. A three-letter code is a station. Anything else
-stays exactly as typed, with no pin on the map rather than a confident pin in
-the wrong country, and the screen says back how each place was read.
-
-**Land informed.** What the money is, what the plug is, what number to call and
-which way to look before crossing — for **every country** a bundled station can
-be in, not for nine hand-written cities.
-
-The destinations are measured rather than assumed. Waymark sums the time
-between landing somewhere and leaving it again, ranks the results, and calls
-the longest one the destination; anywhere else with a day or more in it is one
-too. A trip to Japan that connects through Doha for two hours is not a trip to
-Qatar, which is what taking the last arrival used to make of it.
-
----
-
-## Design: "Editorial Dusk & Dawn"
-
-The style reference is shared with BookShelf, Ledger, Colophon and Rosetta as
-one package, [`dusk-dawn`](https://github.com/not-mehul/dusk-dawn), installed
-at a tag. It holds the tokens, Fraunces, the shared component styles and
-components, and `style.md`. `npm run check` runs its contrast check
-(`dusk-dawn check`) and its literal-colour check (`dusk-dawn colours`). To
-change the design, change the package and move its tag in `package.json`
-(`style.md` §18).
-
-Every colour in the app is a **semantic** CSS custom property (`--text-heading`,
-`--panel-bg`, `--accent-amber`), defined twice, once for Dusk and once for Dawn.
-No component names a colour. A token added to one theme only is a bug, exactly
-as a raw hex outside the token blocks would be.
-
-| Style reference | Implementation |
-| --- | --- |
-| `:root` / `[data-theme="light"]` token blocks | `dusk-dawn/tokens.css`, generated in the package from its `tokens.json` |
-| Shared components | `dusk-dawn/components.css` and `TabRail`, `ThemeToggle`, `Toast` from `dusk-dawn` |
-| `var(--token)` in every rule | The same, in `src/styles/app.css` and the components |
-| RGB triples for alpha | `rgba(var(--cream-rgb), 0.03)`, and the same for the shadow and danger colours |
-| Three-stop fixed gradient + three soft glows | The page background and its glow layers in `dusk-dawn/components.css` |
-| Serif display / system sans / system mono | Fraunces (bundled, nothing downloaded) / `system-ui` / `ui-monospace` |
-| All-caps tracked mono labels | `SectionHeader`, and the field labels in `Field` |
-| 2px corners everywhere | `--radius: 2px`; no pills |
-| Modal: amber hairline, corner brackets, fade + settle | `Modal` |
-| Theme switch with sliding amber knob, `role="switch"` | `ThemeToggle`, with System / Dusk / Dawn in both menus (`ThemeSetting`) |
-| Undo instead of asking, one toast at a time | `Toast`, through `ui.notify` |
-| Segmented control for a real choice, quiet rail for navigation | `OptionChips` vs `TabRail` |
-| Motion is responsiveness, not decoration | The `--dur-*` and `--ease-*` tokens, and nothing outside them |
-
-### The mark
-
-A surveyor's north needle: two long triangles meeting on a vertical axis, the
-right half amber and the left half cream, with the axis running the full height
-of the glyph. It is the adaptive launcher foreground, two filled halves sized to
-the 66dp safe zone, with a monochrome layer that cuts the needle out of its own
-field so a themed-icon tint does not flatten it into a lozenge.
-
-It replaced a ring-and-chevron mark that was, on inspection, broken: the ring
-was centred at the top of the canvas and the chevron sat below it, so the two
-halves of the logo never met.
-
-### Motion
-
-Every transition takes its duration and easing from the tokens: content
-settles in, list rows stagger down the column once, and a value animates to
-its target rather than jumping. Nothing bounces, nothing spins, nothing
-animates that the reader is waiting for. With reduced motion asked for in the
-system's accessibility settings, every one of them is cut to the final state.
-
-### Dates and times
-
-Both pickers are drawn in the app's own idiom rather than taken from Material,
-which arrives with its own palette, shapes and ideas about elevation. The date
-picker is a Monday-first month grid; the time picker is the **whole clock laid
-out and tapped** — twenty-four hours over twelve minutes, six to a line, every
-value one tap away.
-
-The time picker got there by subtraction. It began as two dragged wheels with
-stepper arrows, which turned 16:20 into a drag you had to watch. Then it gained
-a row of shortcut chips at three-hour intervals — 06:00, 09:00, 12:00 — which
-is a guess about when people travel dressed up as a convenience, and no help at
-all for the times nobody publishes on the hour. Minutes are laid out in fives,
-because departures are mostly published in fives, with a row of +1 to +4 beneath
-for the ones that are not — 08:31, 19:04 — and an existing time is never
-rounded to fit. The running time is the modal's own title, so the body is
-nothing but choices. Both pickers open in their own modal and change nothing
-until Choose.
-
-Fields that open a picker are shaped *exactly* like fields that accept typing —
-same corner, same border, same 11dp of vertical padding — so a date sitting
-beside a flight number is the same height as it.
-
-Both themes share one type ramp; only colour changes. First launch follows the
-system setting; the toggle overrides it, and System in the menu hands it back.
-An inline script in `index.html` puts the page on the saved side before the
-first paint.
-
-### Charts: one hue, by measurement
-
-The palette's two accents are deliberately close — that closeness is what makes
-the theme calm — and that rules them out as a categorical pair. Measured with a
-colour-vision validator against the Dusk surface, amber against sage separates
-by **ΔE 5.8 under protanopia and 8.6 to normal vision**, both under the floor
-at which two marks can be told apart.
-
-So no chart in Waymark encodes identity with hue. Length carries magnitude,
-position and a written label carry identity, and colour does one job: emphasis.
-Where a mark genuinely has two parts, they are two shades of a single hue
-(ΔE 35 in Dusk, 21 in Dawn) and both parts are labelled. Every bar prints its
-own value; legend text wears a text token, never the series colour.
-
----
-
-## Architecture
-
-One page, built by Vite into a single `index.html` with the catalog files
-beside it, which `cap sync` copies into the Android project:
-
-```
-src/
-├── domain      Plain TypeScript, no DOM: the model and the logic (timeline,
-│               connection risk, party splits, reminders, the journey under
-│               way, cost splits, weather plan, analytics, exports, geometry)
-├── catalog     Stations, places, airlines, country facts, coastline, the
-│               worked example
-├── db          The Dexie (IndexedDB) schema and the repositories
-├── share       Trip files, backups, trip codes, emails, boarding passes, and
-│               the handover from the Kotlin app
-├── online      The only network code: weather and exchange rates, opt-in
-├── state       Svelte rune modules: the open trip, settings, the screen and
-│               modal in view, and what is sent to the Android shell
-├── platform    The bridge to the Waymark plugin (callNative, onNativeEvent)
-├── components  The screens and the component kit
-└── styles      The app's stylesheet (tokens and shared styles come from dusk-dawn)
-data/catalog    airports.txt, fetched once at start (places.txt comes from dusk-dawn)
-android/        The Capacitor project and the Waymark plugin (android/README.md)
-```
-
-**State is Svelte runes.** Each concern is a module of `$state` and
-`$derived` values with the functions that change them: the trip that is open,
-the settings, which screen and which modal are showing. Lists read IndexedDB
-through Dexie's `liveQuery`, so a change made anywhere (an import, a reminder
-tapped, another screen) shows everywhere without a refresh. Back is the
-system's back gesture, which the shell hands to the page only while it has a
-modal to close or a screen to leave, so the predictive back-to-home animation
-still works.
-
-**The domain layer is plain TypeScript.** No DOM, no Svelte, no Dexie, which
-is why the interesting logic is unit-tested in Node and most of the tests
-below run in milliseconds. It was ported from the Kotlin app's domain module
-together with its tests, which became the specification.
-
-**Persistence.** One IndexedDB database. Bookings live in one store with a
-`kind` discriminator, as they did in the Kotlin app's single table. Backups and
-trip files keep the `waymark` archive format the Kotlin app wrote, so every
-file it made still opens, including ones from people on a trip who have not
-updated yet.
-
-**What runs with the app closed is Kotlin.** A page cannot keep time while the
-app is closed, so the page works out every reminder still worth posting, the
-journeys to draw and the next dozen bookings, and sends them to the Waymark
-plugin whenever a trip or a setting changes. The plugin keeps one alarm for
-the next thing due, with a 15-minute WorkManager check underneath, posts the
-notifications, draws the Live Update and the widget, and reads barcodes with
-ZXing. Its receiver, worker, widget and channel names are the Kotlin app's, so
-alarms, placed widgets and notification settings carried over the upgrade.
-
-**Moving from the Kotlin app.** The last Kotlin versions kept a full backup in
-the app's private storage whenever a trip changed. On its first launch the new
-app reads that file through the plugin, imports it, checks every trip reads
-back whole, and only then deletes it. If the old app's database is there but
-the file is not, it says so and points to restoring a backup instead of
-opening on an empty shelf.
-
-**Nothing is encrypted, deliberately.** There was an AES-256-GCM vault under an
-Android Keystore key, with a `BiometricPrompt` in front of the moment a code
-became readable. It is gone. The threat it defended against was somebody
-holding the unlocked phone — which is the same person the app is for — and the
-cost was that a confirmation code could not be read at a desk without a free
-hand for a fingerprint. Nothing here is sent anywhere, so what protects a code
-is the device's own lock screen, as it does for everything else on it.
-
-**Flight data comes from the traveler, and only from the traveler.** There is
-no provider interface and no status subsystem. The one network client in the
-app, `src/online`, fetches the weather and the day's exchange rates, and only
-after the traveler turns on online extras; it sends a place to about a
-kilometre and the dates, or a request for today's rates, and never a booking,
-a name or a trip. A booking holds the times it was given, and changing them means
-editing the booking — which reaches every field, not only the times.
-
-**A connection is something one traveler makes.** The timeline walks each
-traveler's own itinerary separately and merges the results. Where the party
-agrees on what comes before a booking, that link carries its verdict; where
-they disagree — the definition of a split — no link is drawn, because there is
-no single connection to judge. Walking one chronological line over the whole
-party is how the app used to pair one person's arrival with another person's
-departure and announce an impossible connection on a correct itinerary.
-
-**Deleting.** Removing a booking releases any idea that was promoted onto it,
-so the idea returns to the list rather than vanishing with the segment.
-Removing a traveler takes the bookings only they were on and their name off
-the rest, and removes their profile if they are on no other trip. Removing a whole trip removes everything under it in one transaction, with the
-reminders raised for it. A sweep on start-up repairs anything a previous
-version orphaned. Trip deletion asks for the trip's name to be typed: it is the only
-irreversible thing the app can do, and the only friction of its kind.
-
-**The station directory.** `data/catalog/airports.txt` holds 8,831 IATA stations —
-the supplied table, with the 259 closed fields dropped and 26 duplicate codes
-resolved in favour of the larger, better-described row. **Time zones were
-resolved from each station's coordinates when the file was generated**, against
-real boundary data, so the app carries an exact IANA zone per airport and
-applies no heuristic of its own; a wrong zone moves a flight to the wrong day,
-not merely the wrong hour. `parseAirportDirectory` is a plain function over the
-file's lines, so the whole file is checked by the unit tests. The hand-curated core
-list survives alongside it and wins any collision, because it carries terminal
-designators and the names travelers actually use ("Heathrow", not "London
-Heathrow Airport").
-
-The supplied table had lost its accented letters to an encoding fault, so
-Montréal shipped as "Montral". `tools/repair_airport_names.py` restored them
-for 720 stations from OurAirports. It changes a name only where the file's text
-is exactly OurAirports' spelling with the non-ASCII letters taken out, so it
-adds letters back and touches nothing else. Search folds accents, so "sao paulo"
-still finds São Paulo.
-
-**The basemap.** `src/catalog/coastline-data.ts` holds Natural Earth's public-domain 1:110m land
-polygons, reduced by Ramer–Douglas–Peucker to 1,403 vertices across 50 rings —
-roughly one point per fifty kilometres of coast. Rings that crossed the
-antimeridian were clipped into separate closed pieces at generation time, which
-is what stops a filled landmass from becoming a stripe across the chart at the
-seam. It parses lazily, so a trip that never opens the map never pays for it.
-
----
-
-## Building
-
-The page needs Node 24 (`.nvmrc`); nothing else.
-
-```bash
-npm ci
-npm run dev        # the app in a browser, at http://localhost:5173
-npm run check      # tokens and contrast, formatting, lint, types, tests, build
-npm test           # the unit suite alone
-```
-
-In a browser the app is the whole app except what Android does for it:
-reminders, the widget, reading a barcode from a picture where the browser has
-no `BarcodeDetector`, and shares from other apps. Data lives in the browser's
-IndexedDB, so the browser build is also where to try a backup safely.
-
-**The Android app** needs a JDK 21 and an Android SDK with API 37, found through
-`android/local.properties` or `ANDROID_HOME`:
-
-```bash
-npm run sync                       # build the page and copy it into android/
-cd android
-./gradlew assembleDebug            # app/build/outputs/apk/debug/app-debug.apk
-./gradlew :app:testDebugUnitTest   # the plugin's unit tests
-./gradlew :app:lintDebug           # Android lint
-./gradlew assembleRelease          # the R8-minified release APK
-```
-
-or open `android/` in Android Studio after `npm run sync`.
-[android/README.md](android/README.md) describes the shell and the plugin.
-
-The plugin's Kotlin style is checked by ktlint and detekt, run in CI as their
-command-line jars against `.editorconfig` and `config/detekt.yml`; the same two
-commands work locally with the jars from Maven Central (versions in
-`device-checks.yml`).
-
-**In CI.** Every push runs `npm run check`; pull requests and `main` also
-build the Android shell and run its unit tests. The slower checks below are
-the **Device checks** workflow, started by hand from the Actions tab before a
-release that touches the shell.
-
-**On an emulator, in Device checks.** It installs the last Kotlin version with
-the worked example in it, installs the new app over it as a phone would get
-the update, and checks the trip, its twelve bookings and two travelers came
-across and the handover file is gone. Then it times the cold start of both,
-ten launches each. On 1 November 2026 (API 34 emulator, median of 10, empty
-shelf) the Kotlin app drew its shelf in 513 ms and the new app in 429 ms.
-
-### Releasing
-
-Waymark ships as a sideloaded APK; there is no store listing. Publishing is a
-tag push:
-
-```bash
-git tag v2.0.0 && git push origin v2.0.0
-```
-
-The version comes from the tag: `v2.0.0` builds version name `2.0.0` and code
-`20000`, for the APK and the page alike, so there is no number in the source
-to remember to bump. `.github/workflows/release.yml` runs the checks, builds
-the release APK, signs it with the keystore held in the repository's secrets
-(the same key the Kotlin versions were signed with, which is what lets it
-install as an update) and opens a draft GitHub release with the APK attached.
-**[RELEASING.md](RELEASING.md)** covers the signing key, the four secrets,
-building signed on your own machine, and what to check on a real phone before
-tagging.
-
-Release builds run R8 with resource shrinking. Without a keystore the build
-still completes and says so, and the artifact is named `-unsigned` so it cannot
-be mistaken for a shippable one.
-
----
-
-## Tests
-
-317 unit tests in Vitest, run in Node with the time zone pinned to UTC and
-IndexedDB faked in memory. The domain, catalog and share suites were ported
-one for one from the Kotlin app's, which is how the TypeScript port was held
-to the same behaviour. The Waymark plugin's own logic (the schedule it keeps,
-the widget's choice of booking, the time spans it writes) has JVM tests under
-`android/app/src/test`, and the Device checks workflow checks the upgrade
-from the Kotlin app on an emulator.
-
-- `cost-splitter` — an even split, the odd cent, a split among some, no
-  more settling payments than people less one, a foreign expense converted
-  once, an expense with no rate listed rather than counted, a payer who has
-  left the party still owed, and amounts read the way people type them
-- `weather-plan`, `weather`, `rates` — where the trip is
-  on each day still to come, forecast within two weeks and last year beyond,
-  both services' replies read and refused, and **nothing fetched at all while
-  online extras are off**
-- `itinerary-document` — every booking once under its day, every reference,
-  the day's weather, and who pays whom
-- `live-journey` — the journey under way: nothing long before departure, a
-  countdown from three hours out, a bar that fills to landing, gone on arrival,
-  quiet when flight reminders are off, and woken exactly when it next changes
-- `trip-repository` — an import reads back whole and replaces rather than
-  duplicates, everyone ticked is stored as everyone, deleting a trip removes
-  everything on it, removing a traveler
-  takes their own bookings and keeps the shared ones, a profile on another trip
-  survives, an archived trip stays quiet, the widget reads the next few
-  bookings soonest first
-- `rows` — every kind of booking in the worked example round-trips, an
-  unknown kind is skipped rather than a crash, a place without coordinates
-  stays without them
-- `trip-archive` — trip files and QR payloads round-trip, a code fits by
-  leaving out what it says it left out, a damaged or newer file is refused
-- `parsing` — flights read out of a confirmation email (dates either side
-  of the flight number, 12-hour times, a European date not mistaken for a
-  time, "Room 215" not mistaken for a flight) and out of an IATA boarding-pass
-  barcode, one leg or several
-- `segment-form` — editing a booking: a new airport moves it into that
-  airport's zone, an end a little before the start runs past midnight, seats
-  are kept only for the people on the flight
-- `leg-times`, `lodging-nights` — an arrival's day inferred from two
-  clocks, and nights counted as calendar nights in the hotel's zone
-- `places`, `whereabouts` — typed places resolved exactly, nearest
-  first, never by substring; where the trip is at a given moment
-- `ics-export` — one event per booking, UTC times, escaping and folding
-- `airlines` — the carrier table's codes well formed and unique
-- `flight-designator` — parsing `BA286`, `ba 286`, `BAW286`, `3U8888`, `U2 1234`
-- `geo` — great-circle distances against published figures, arc symmetry,
-  Mercator round-trip, antimeridian detection
-- `connection-risk` — minimum connection times, terminal changes,
-  immigration, inter-carrier bag re-check, a delay eating a connection
-- `timeline-builder` — ordering, one entry per segment (two for lodging),
-  day breaks, traveler filtering, the now marker, and **two travelers on
-  parallel flights not being read as one broken connection**
-- `party-split-analyzer` — the split window and per-traveler coverage
-- `reminder-planner` — that every category can raise one rather than only
-  flights, that a category switched off raises nothing, the window boundaries at
-  both ends, and **that the signature is stable as the clock closes in** so a
-  booking is announced once rather than at every check — but changes when the
-  booking moves, because the time did
-- `transit-and-time` — estimates, mode selection, duration and zone-shift text
-- `idea-board` — section ordering, per-traveler filtering, and promotion to
-  a timeline segment
-- `countries` — every row well formed and unique, and the one that decides
-  whether the feature works at all: **every country in the bundled station
-  directory has notes**, so there is no airport you can enter and get a blank
-  screen for
-- `time-at-place` — that the worked example resolves to London then Paris,
-  that a two-hour connection is not a destination, and that a trip with one
-  movement has nowhere to have stayed
-- `trip-analytics` — distance splits that add up, day loads that cannot
-  exceed a day, carbon against the published factors
-- `globe-projection` — orthographic projection inside the unit disc, the
-  horizon as the culling boundary, and a centroid that survives the antimeridian
-- `duration-text` — how a span reads at every scale: hours and minutes under
-  a day, then days, then weeks and days, then months, weeks and days; zero terms
-  dropped; and a property that the leading unit only ever coarsens as the span
-  grows
-- `airport-directory` — the generated format, interned zones, a station with
-  no municipality falling back to its own name, and a malformed line being
-  skipped rather than taking the directory down with it
-- `airport-asset` — the shipped file itself: every zone one the platform
-  knows, every coordinate in range, no duplicate codes, the stations a traveler
-  is most likely to type, the half-hour and three-quarter-hour zones that a
-  lazy country-to-zone table gets wrong, and **a check that each station's UTC
-  offset agrees with its longitude**, which is what catches a transposed
-  latitude and longitude
-- `markdown-export` — sections, chronology, checkbox states, a filename safe
-  on any filesystem, and that **every booking reference in the fixture appears
-  in the exported document**
-- `label-placer` — no two labels overlapping, no label covering a foreign
-  mark, everything inside the viewport, priority winning a contested slot, and
-  forty marks in one cluster yielding some labels rather than all or none
-- `coastline` — closed rings, real coordinates, no seam crossing from
-  interior longitudes, and a point-in-polygon check that Paris is on land and
-  the mid-Pacific is not
-- `handover` — moving the Kotlin app's trips: no file means nothing to do, a
-  file that cannot be read is kept for the next launch, and running it twice
-  changes nothing the second time
-- `files` — a backup's trips found, a file too large to be a trip turned away
-  unread, and a trip code's link opened as well as its bare payload
-- `shell-data` — what the page sends the Android shell: every reminder still
-  to come, soonest first and worded as at the moment it falls due, nothing
-  with reminders off, a journey window per flight, and each widget booking
-  named with its trip, day, clock and place
-- `add-flight` — an evening departure that lands the next morning, a chosen
-  part of the party, and a boarding pass filling in everything it carries but
-  the clock times
-
----
-
-## Notes on honesty
-
-Places where the app says less than it could:
+## Good to know
 
 - **Nothing about a booking is live, and the app says so.** Every flight time,
   gate and terminal was typed in by a traveler. The app holds the network
@@ -650,30 +105,48 @@ Places where the app says less than it could:
   published primary number, and several countries run separate lines for
   police, fire and ambulance.
 
----
+## Install
 
-## Data
+Download the signed APK from the [latest release](https://github.com/not-mehul/Waymark/releases/latest) and open it on your phone. Waymark targets Android 17 and runs on Android 8 and later. Updating from the old Kotlin app keeps your trips: the rewrite has the same id and signing key, and moves your data across the first time it opens.
 
-Coastlines are derived from [Natural Earth](https://www.naturalearthdata.com)
-1:110m land polygons, which are in the public domain. The station directory is
-the IATA table supplied with the project, deduplicated and cleaned, with time
-zones resolved from coordinates at generation time, and ISO country codes
-expanded to names by the bundled country table. The place gazetteer is
-[GeoNames](https://www.geonames.org) (CC BY 4.0), shared with Ledger through
-`dusk-dawn/places` (its `places/LICENSE.md` says what was selected and how);
-the airline names are
-hand-compiled. That table — currency, socket
-type, mains voltage, emergency number and driving side for 240 countries and
-territories — is hand-compiled. Everything else in the app was entered by
-whoever is using it.
+## The Dusk & Dawn apps
 
-The same credits are in the app, under the version line at the foot of the trip
-shelf, so a reader who never sees this file can still find out what is bundled
-in the binary they installed.
+Waymark is one of six apps by Mehul Sen that share one design system, [Editorial Dusk & Dawn](https://github.com/not-mehul/dusk-dawn), and a common link scheme, so they can hand things to each other.
 
----
+| App | What it is for |
+|---|---|
+| [Waymark](https://github.com/not-mehul/Waymark) | Your whole trip, offline: flights, stays, plans and costs on one timeline |
+| [BookShelf](https://github.com/not-mehul/BookShelf) | Books, films, shows and the lines worth keeping |
+| [Ledger](https://github.com/not-mehul/Ledger) | A record of cities, scored on what matters to you |
+| [Colophon](https://github.com/not-mehul/Colophon) | Inspect, fix and rebind EPUB editions |
+| [Rosetta](https://github.com/not-mehul/Rosetta) | A quiet library and reader for books, papers and notes |
+| [Mise](https://github.com/not-mehul/Mise) | Recipes from anywhere, cooked one step at a time |
+
+## Build from source
+
+Svelte 5 and TypeScript in a Capacitor 8 shell, with IndexedDB (through Dexie) for storage and a small Kotlin plugin for reminders, the widget, the journey notification and barcode reading. You need Node 24.
+
+```sh
+npm ci
+npm run dev        # the app in a browser, at http://localhost:5173
+npm run check      # tokens and contrast, formatting, lint, types, tests, build
+npm run sync       # build the page into android/, then open it in Android Studio
+```
+
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) covers the design, the architecture, the Android build and the tests. [RELEASING.md](RELEASING.md) covers signing and releases.
+
+## Credits
+
+Waymark is designed and built by **Mehul Sen** ([@not-mehul](https://github.com/not-mehul)).
+
+- Coastlines: [Natural Earth](https://www.naturalearthdata.com) 1:110m land polygons, public domain.
+- Places: [GeoNames](https://www.geonames.org), CC BY 4.0, shared through `dusk-dawn/places`.
+- The station directory, airline names and country notes are compiled for the project.
+- Icons: [Lucide](https://lucide.dev), ISC.
+- Fonts and design: Fraunces (SIL Open Font License) through [dusk-dawn](https://github.com/not-mehul/dusk-dawn).
+
+The same credits appear in the app, under the version line at the foot of the trip shelf.
 
 ## Licence
 
-[MIT](LICENSE). The bundled geographic data is credited above: Natural Earth is
-public domain, GeoNames is CC BY 4.0.
+[MIT](LICENSE) © 2026 Mehul Sen. The bundled data keeps its own terms, listed above.
