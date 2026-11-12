@@ -1,11 +1,10 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { AIRPORTS_ASSET, installAirports, parseAirportDirectory } from '../../src/catalog/airports';
-import { CITIES_ASSET, installCities, parseCityDirectory } from '../../src/catalog/cities';
 import { buildSampleItinerary } from '../../src/catalog/sample-itinerary';
 import { segmentEnd, segmentStart, type TripDossier } from '../../src/domain/model';
 import { localDate, localTime } from '../../src/domain/time';
 import { newPlanDraft, planSegment, withKind } from '../../src/state/plan';
-import { bundledLines } from '../helpers';
+import { bundledLines, installWorldPlaces } from '../helpers';
 
 const bundle = buildSampleItinerary(localDate(2026, 5, 14));
 const dossier: TripDossier = {
@@ -16,7 +15,7 @@ const dossier: TripDossier = {
 
 beforeAll(() => {
   installAirports(parseAirportDirectory(bundledLines(AIRPORTS_ASSET)));
-  installCities(parseCityDirectory(bundledLines(CITIES_ASSET)));
+  installWorldPlaces();
 });
 
 describe('planSegment', () => {

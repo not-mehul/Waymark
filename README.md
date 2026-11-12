@@ -180,9 +180,13 @@ distances its region's miles or kilometres. On a tablet or an unfolded phone the
 booking you tap opens beside the timeline instead of over it.
 
 **Places you type mean what you meant.** "Paris" is a city, resolved against a
-bundled gazetteer of every city of 15,000 people or more, nearest to where the
-trip is that day — so a 15:00 check-in in Paris is 15:00 in Paris, not in the
-zone the trip was created in. A three-letter code is a station. Anything else
+bundled gazetteer of about 320,000 places — every town of 1,000 people or more,
+every region, and the landmarks, neighbourhoods, islands, mountains, lakes,
+parks and stations with an English Wikipedia article — nearest to where the
+trip is that day, so a 15:00 check-in in Paris is 15:00 in Paris, not in the
+zone the trip was created in. "Eiffel Tower" is pinned on the Eiffel Tower and
+filed under Paris; "Bloomsbury, London" lands in Bloomsbury; "Bombay" finds
+Mumbai. A three-letter code is a station. Anything else
 stays exactly as typed, with no pin on the map rather than a confident pin in
 the wrong country, and the screen says back how each place was read.
 
@@ -303,7 +307,7 @@ src/
 ├── domain      Plain TypeScript, no DOM: the model and the logic (timeline,
 │               connection risk, party splits, reminders, the journey under
 │               way, cost splits, weather plan, analytics, exports, geometry)
-├── catalog     Stations, cities, airlines, country facts, coastline, the
+├── catalog     Stations, places, airlines, country facts, coastline, the
 │               worked example
 ├── db          The Dexie (IndexedDB) schema and the repositories
 ├── share       Trip files, backups, trip codes, emails, boarding passes, and
@@ -314,7 +318,7 @@ src/
 ├── platform    The bridge to the Waymark plugin (callNative, onNativeEvent)
 ├── components  The screens and the component kit
 └── styles      The app's stylesheet (tokens and shared styles come from dusk-dawn)
-data/catalog    airports.txt and cities.txt, fetched once at start
+data/catalog    airports.txt, fetched once at start (places.txt comes from dusk-dawn)
 android/        The Capacitor project and the Waymark plugin (android/README.md)
 ```
 
@@ -654,9 +658,10 @@ Coastlines are derived from [Natural Earth](https://www.naturalearthdata.com)
 1:110m land polygons, which are in the public domain. The station directory is
 the IATA table supplied with the project, deduplicated and cleaned, with time
 zones resolved from coordinates at generation time, and ISO country codes
-expanded to names by the bundled country table. The city gazetteer is
-[GeoNames](https://www.geonames.org) `cities15000` (CC BY 4.0), built into
-`data/catalog/cities.txt` by `tools/build_cities.py`; the airline names are
+expanded to names by the bundled country table. The place gazetteer is
+[GeoNames](https://www.geonames.org) (CC BY 4.0), shared with Ledger through
+`dusk-dawn/places` (its `places/LICENSE.md` says what was selected and how);
+the airline names are
 hand-compiled. That table — currency, socket
 type, mains voltage, emergency number and driving side for 240 countries and
 territories — is hand-compiled. Everything else in the app was entered by

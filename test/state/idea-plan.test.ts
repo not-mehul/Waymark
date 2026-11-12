@@ -1,6 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { AIRPORTS_ASSET, installAirports, parseAirportDirectory } from '../../src/catalog/airports';
-import { CITIES_ASSET, installCities, parseCityDirectory } from '../../src/catalog/cities';
 import { buildSampleItinerary } from '../../src/catalog/sample-itinerary';
 import { idea, place, tripStartDate, type TripDossier } from '../../src/domain/model';
 import { localDate, zonedOf, localTime } from '../../src/domain/time';
@@ -12,7 +11,7 @@ import {
   tripCities,
   tripDays
 } from '../../src/state/idea-plan';
-import { bundledLines } from '../helpers';
+import { bundledLines, installWorldPlaces } from '../helpers';
 
 const bundle = buildSampleItinerary(localDate(2026, 5, 14));
 const dossier: TripDossier = {
@@ -24,7 +23,7 @@ const base = { id: 'i1', tripId: dossier.trip.id, title: 'Musée Rodin', kind: '
 
 beforeAll(() => {
   installAirports(parseAirportDirectory(bundledLines(AIRPORTS_ASSET)));
-  installCities(parseCityDirectory(bundledLines(CITIES_ASSET)));
+  installWorldPlaces();
 });
 
 describe('the trip, as the Ideas tab reads it', () => {

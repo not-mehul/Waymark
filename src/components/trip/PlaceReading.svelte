@@ -2,7 +2,7 @@
   // How the app has understood a typed place, said back before it is saved.
   // "Paris" becomes Paris, France and Paris's clock; "the bakery by the hotel"
   // stays as typed, on the clock of wherever the trip is that day. When a name
-  // could be more than one city the others are offered beside it, and a place
+  // could be more than one place the others are offered beside it, and a place
   // nobody could look up can have its clock set by hand.
   import { placeCandidates, resolvedLabel, type ResolvedPlace } from '../../catalog/places';
   import { samePlace, type Place } from '../../domain/model';
@@ -18,7 +18,7 @@
 
   let { text, context, chosen, onchoose }: Props = $props();
 
-  // A beat after typing stops: the gazetteer is thirty thousand cities.
+  // A beat after typing stops: the gazetteer is a third of a million places.
   let readings = $state.raw<ResolvedPlace[]>([]);
   $effect(() => {
     const typed = text.trim();

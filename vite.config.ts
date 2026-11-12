@@ -1,16 +1,18 @@
 import { readFileSync } from 'node:fs';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { worldPlaces } from 'dusk-dawn/places/vite';
 import { defineConfig, type Plugin } from 'vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 
 /**
- * The station directory and the gazetteer are 2 MB of text, too much to
+ * The station directory and the world's places are 14 MB of text, too much to
  * inline into the page, so they ship beside it as `catalog/<name>` and are
- * fetched once at start (src/catalog/load.ts). They live in data/catalog;
- * test/helpers.ts reads the same folder.
+ * fetched once at start (src/catalog/load.ts). The stations live in
+ * data/catalog, which test/helpers.ts reads too; the places come from
+ * dusk-dawn, the same file Ledger ships.
  */
 const CATALOG_SOURCE = 'data/catalog';
-const CATALOG_FILES = ['airports.txt', 'cities.txt'];
+const CATALOG_FILES = ['airports.txt'];
 
 function catalog(): Plugin {
   const read = (name: string) => readFileSync(new URL(`${CATALOG_SOURCE}/${name}`, import.meta.url));
@@ -40,7 +42,7 @@ const { version } = JSON.parse(readFileSync(new URL('package.json', import.meta.
 
 export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(version) },
-  plugins: [svelte(), viteSingleFile(), catalog()],
+  plugins: [svelte(), viteSingleFile(), catalog(), worldPlaces({ fileName: 'catalog/places.txt' })],
   build: {
     // Keep in sync with android.minWebViewVersion in capacitor.config.ts.
     target: ['chrome111', 'safari16']
