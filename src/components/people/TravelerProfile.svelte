@@ -4,6 +4,7 @@
   import { trips } from '../../state/app';
   import { SEAT_LABEL } from '../../state/shelf';
   import { ui } from '../../state/ui.svelte';
+  import DateField from '../ui/DateField.svelte';
   import Field from '../ui/Field.svelte';
   import Icon from '../ui/Icon.svelte';
   import ModalHead from '../ui/ModalHead.svelte';
@@ -99,10 +100,13 @@
             bind:value={doc.label}
           />
         </div>
-        <div class="field">
-          <label class="t-field-label" for="id-expires-{i}">Expires</label>
-          <input id="id-expires-{i}" class="input input-mono" type="date" bind:value={doc.expires} />
-        </div>
+        <DateField
+          label="Expires"
+          id="id-expires-{i}"
+          value={parseDate(doc.expires)}
+          onchange={(d) => (doc.expires = d.toString())}
+          onclear={() => (doc.expires = '')}
+        />
         <button
           type="button"
           class="btn-icon"
