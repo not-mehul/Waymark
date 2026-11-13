@@ -1,5 +1,7 @@
 <script lang="ts">
   import { backUpEveryTrip } from '../../state/actions';
+  import { relative } from '../../domain/time-text';
+  import { settings } from '../../state/app';
   import { ui } from '../../state/ui.svelte';
   import type { IconName } from '../../util/icons';
   import Icon from '../ui/Icon.svelte';
@@ -25,6 +27,11 @@
         ui.close();
         void backUpEveryTrip();
       }
+    },
+    {
+      icon: 'refresh',
+      label: 'Backups and sync',
+      act: () => ui.open({ name: 'sync' })
     },
     {
       icon: 'upload',
@@ -54,4 +61,5 @@
 <p class="t-hint">
   A backup is one file with every trip in it. Keep it wherever you keep things; open it on a new phone to
   bring everything across.
+  {#if settings.lastBackupAt}Last backed up {relative(settings.lastBackupAt)}.{/if}
 </p>

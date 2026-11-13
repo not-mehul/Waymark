@@ -68,6 +68,14 @@
       <button
         type="button"
         class="btn-icon"
+        aria-label="Find a booking"
+        onclick={() => ui.open({ name: 'search' })}
+      >
+        <Icon name="search" />
+      </button>
+      <button
+        type="button"
+        class="btn-icon"
         aria-label="Every trip"
         onclick={() => ui.open({ name: 'shelfMenu' })}
       >

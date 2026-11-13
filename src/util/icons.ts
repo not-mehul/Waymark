@@ -125,6 +125,25 @@ export const icons = {
     ),
   bag: () =>
     wrap('<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4ZM3 6h18M16 10a4 4 0 0 1-8 0"/>'),
+  search: () => wrap('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>'),
+  refresh: () =>
+    wrap(
+      '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>'
+    ),
+  paperclip: () =>
+    wrap(
+      '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>'
+    ),
+  image: () =>
+    wrap(
+      '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/>'
+    ),
+  checkSquare: () => wrap('<rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/>'),
+  star: () =>
+    wrap(
+      '<path d="M11.5 2.3a.5.5 0 0 1 1 0l2.3 4.7 5.2.8a.5.5 0 0 1 .3.9l-3.8 3.7.9 5.1a.5.5 0 0 1-.8.6L12 15.8l-4.6 2.4a.5.5 0 0 1-.8-.6l.9-5.1-3.8-3.7a.5.5 0 0 1 .3-.9l5.2-.8z"/>'
+    ),
+  mail: () => wrap('<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>'),
   list: () => wrap('<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>'),
   chart: () => wrap('<path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/>'),
   qr: () =>

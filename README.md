@@ -33,6 +33,8 @@ Waymark is a travel-logistics app for Android. Every flight, stay, transfer and 
 
 - **One timeline.** A single column of days with the time in the gutter, and between the bookings the parts that go wrong: the connection with a minimum-connection-time verdict, the transfer with a duration estimate, the hours that belong to nobody. Days are numbered, clock changes are called out, and a trip under way has a shortcut to now.
 - **Bookings open read only.** Edit turns the screen into a form with Save and Cancel, and nothing is written until Save.
+- **Tickets on the booking.** Add a boarding pass picture, a PDF e-ticket or a voucher to any booking, and documents for the whole trip (insurance, a visa). A boarding pass read to fill in a flight is kept with it. At the gate it opens on white at full brightness, with the screen kept on.
+- **Find anything.** Search every trip at once by place, hotel, airline, flight or confirmation code.
 - **Codes you can read at a desk.** Confirmation codes, record locators and ticket numbers sit on the booking. Tap to copy, or open one large with every character spelt out (Kilo, Seven, Papa), the screen kept on.
 - **An offline map, two projections.** A flat chart for a region and a globe for a long haul, both with real coastlines from Natural Earth and great-circle legs on top. Pinch to zoom, drag to pan or turn, tap a mark to open it. Labels are placed by a collision solver, and a list view reads the trip out leg by leg.
 - **Land informed.** Currency, plug type, emergency number and driving side for every country a station can be in, and the destination worked out from where the trip actually spends its time, not from the last connection.
@@ -45,6 +47,7 @@ Waymark is a travel-logistics app for Android. Every flight, stay, transfer and 
 - **The journey on the lock screen.** From shortly before departure until arrival, one ongoing notification counts down and then fills a bar to landing. On Android 16 and later it is a Live Update in the status bar.
 - **A home-screen widget** with the next booking across every trip, in three sizes.
 - **Travel as a group.** Travelers are profiles (seat and meal preference, loyalty numbers, phone) that belong to the person, not the trip, and are assigned per segment. When the party splits, Waymark names the window and flags anyone with nothing booked.
+- **Before you go.** A packing and to-do list for each trip, started from what the destination needs (the plug adapter, the currency), and passports and visas on each traveler's profile, with a warning when one runs out before or during the trip, or leaves under six months.
 - **Split the costs.** Log each expense with who paid and who it was for, in any currency, and see the fewest payments that square it.
 - **Weather on arrival.** With online extras on, a two-week forecast for where the trip will be, and last year's weather for the same dates beyond that. It is kept for use without a signal.
 
@@ -52,13 +55,15 @@ Waymark is a travel-logistics app for Android. Every flight, stay, transfer and 
 
 - **Take it with you.** Send a trip as Markdown, a calendar file, a trip file another Waymark opens whole, or a QR code for the phone across the table.
 - **Print it.** An A4 PDF itinerary with every booking under its day, references, weather and who owes whom.
-- **Back up every trip** to one file, and archive trips that are over: no reminders, off the widget, back with one tap.
-- **Links from the other apps.** `waymark://open?trip=<id>` opens a trip, and a trip's QR code is a `waymark://import` link.
+- **Back up every trip** to one file, and archive trips that are over: no reminders, off the widget, back with one tap. On the phone, a dated backup is also written each week to `Documents/Waymark/Backups`, keeping the newest five.
+- **Sync through a folder** you pick, kept the same across phones by Syncthing, Drive or Nextcloud. Trips merge one by one, and a trip deleted on one phone stays deleted.
+- **After the trip.** Each city you stayed in can be rated in Ledger or sent to Nookling as a postcard, each with one tap.
+- **Links between the apps.** `waymark://open?trip=<id>` opens a trip, and a trip's QR code is a `waymark://import` link. Waymark sends `ledger://add` and `nookling://postcard`.
 - **A little delight.** Confetti when a trip is created, an idle compass to play with, and four easter eggs, counted in About. All of it respects reduced motion.
 
 ## Private by design
 
-Nothing about a trip leaves the phone unless you share it. There are no accounts and no cloud backup. The network is used only for the two optional online extras, weather and exchange rates, and nothing is fetched until you turn them on; a test checks that.
+Nothing about a trip leaves the phone unless you share it, or turn on sync through a folder you choose. There are no accounts and no Waymark server. The network is used only for the two optional online extras, weather and exchange rates, and nothing is fetched until you turn them on; a test checks that.
 
 ## Good to know
 
@@ -74,10 +79,11 @@ Nothing about a trip leaves the phone unless you share it. There are no accounts
   rates cover about thirty currencies and are not what a card or a bureau
   charges. A rate from a receipt can be typed in, and a typed rate is never
   replaced by a live one.
-- **Offline cuts both ways.** Nothing is backed up off the device on its own.
-  A trip lives on one phone until it is shared or backed up to a file, and a
-  lost phone with no backup is a lost trip. The About sheet says this too,
-  rather than leaving it to be discovered after the fact.
+- **Offline cuts both ways.** The weekly backup stays on the phone, in
+  Documents. A trip only leaves the phone when it is shared, backed up to a
+  file you move, or synced through a folder, so a lost phone with none of
+  those is a lost trip. The About sheet says this too, rather than leaving it
+  to be discovered after the fact.
 - **The email reader skims; it does not understand.** It finds a flight number
   from an airline it knows with an airport code beside it, and the nearest
   date and times. An unusual layout can defeat it, which is why what it finds

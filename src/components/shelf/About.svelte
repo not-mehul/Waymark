@@ -21,8 +21,8 @@
   you turn on online extras in a trip's menu.
 </p>
 <p class="t-body-small">
-  Nothing is backed up off this device. A trip lives on this phone until you back it up to a file or share it,
-  which is the way to keep a copy anywhere else or hand one to somebody.
+  Nothing is backed up off this device on its own. The weekly backup stays on the phone, in Documents. To keep
+  a copy anywhere else, sync through a folder, back up to a file you move, or share the trip.
 </p>
 <p class="t-body-small" id="eggCount">Easter eggs: {eggsFound()} of {EGGS.length} found</p>
 <SectionHeader label="Bundled data" />

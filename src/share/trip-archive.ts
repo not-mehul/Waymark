@@ -28,12 +28,15 @@ import {
   traveler,
   trip,
   tripCosts,
+  type ChecklistItem,
+  type IdentityDoc,
   type Idea,
   type Place,
   type Segment,
   type Traveler,
   type Trip,
-  type TripCosts
+  type TripCosts,
+  type TripDocument
 } from '../domain/model';
 import { parseDate } from '../domain/time';
 import { airportPlace, findAirport } from '../catalog/airports';
@@ -61,6 +64,10 @@ export interface TripBundle {
   ideas: Idea[];
   /** Null when the file says nothing about costs, as one from an older Waymark does. */
   costs: TripCosts | null;
+  /** Tickets and documents; absent or null when the file says nothing about them. */
+  documents?: TripDocument[] | null;
+  /** The before-you-go list; absent or null when the file says nothing about it. */
+  checklist?: ChecklistItem[] | null;
 }
 
 // — The file's own shapes ———————————————————————————————————————————————
@@ -86,6 +93,25 @@ export interface ArchiveTrip {
   segments: ArchiveSegment[];
   ideas: ArchiveIdea[];
   costs: ArchiveCosts | null;
+  documents: ArchiveDocument[] | null;
+  checklist: ArchiveCheck[] | null;
+}
+
+export interface ArchiveDocument {
+  id: string;
+  segment: string | null;
+  name: string;
+  mime: string;
+  /** Base64. */
+  data: string;
+  code: string | null;
+  added: number;
+}
+
+export interface ArchiveCheck {
+  id: string;
+  text: string;
+  done: boolean;
 }
 
 export interface ArchiveCosts {
@@ -124,6 +150,13 @@ export interface ArchiveTraveler {
   meal: string | null;
   loyalty: string[];
   phone: string | null;
+  ids: ArchiveIdentityDoc[];
+}
+
+export interface ArchiveIdentityDoc {
+  kind: string;
+  label: string;
+  expires: string;
 }
 
 export interface ArchivePlace {
@@ -303,8 +336,21 @@ const TRAVELER: Schema = [
   opt('seat', 'string', 'NONE'),
   nul('meal', 'string'),
   opt('loyalty', 'strings', []),
-  nul('phone', 'string')
+  nul('phone', 'string'),
+  opt('ids', { list: [req('kind', 'string'), opt('label', 'string', ''), req('expires', 'string')] }, [])
 ];
+
+const DOCUMENT: Schema = [
+  req('id', 'string'),
+  nul('segment', 'string'),
+  opt('name', 'string', ''),
+  req('mime', 'string'),
+  req('data', 'string'),
+  nul('code', 'string'),
+  opt('added', 'number', 0)
+];
+
+const CHECK: Schema = [req('id', 'string'), req('text', 'string'), opt('done', 'boolean', false)];
 
 const TRIP: Schema = [
   req('id', 'string'),
@@ -317,7 +363,9 @@ const TRIP: Schema = [
   opt('party', 'strings', []),
   opt('segments', { list: SEGMENT }, []),
   opt('ideas', { list: IDEA }, []),
-  nul('costs', COSTS)
+  nul('costs', COSTS),
+  nul('documents', { list: DOCUMENT }),
+  nul('checklist', { list: CHECK })
 ];
 
 const ARCHIVE: Schema = [
@@ -436,7 +484,18 @@ export function archiveOf(bundles: readonly TripBundle[], nowMillis: number = Da
       party: b.travelers.map((t) => t.id),
       segments: b.segments.map(segmentToArchive),
       ideas: b.ideas.map(ideaToArchive),
-      costs: b.costs ? costsToArchive(b.costs) : null
+      costs: b.costs ? costsToArchive(b.costs) : null,
+      documents:
+        b.documents?.map((d) => ({
+          id: d.id,
+          segment: d.segmentId,
+          name: d.name,
+          mime: d.mime,
+          data: d.dataBase64,
+          code: d.code,
+          added: d.addedAtMillis
+        })) ?? null,
+      checklist: b.checklist?.map((c) => ({ id: c.id, text: c.text, done: c.done })) ?? null
     }))
   };
 }
@@ -481,7 +540,21 @@ export function bundlesOf(archive: WaymarkArchive): TripBundle[] {
     travelers: t.party.map((id) => travelers.get(id)).filter((x): x is Traveler => x !== undefined),
     segments: t.segments.map((s) => segmentFromArchive(s, t.id)).filter((x): x is Segment => x !== null),
     ideas: t.ideas.map((i) => ideaFromArchive(i, t.id)).filter((x): x is Idea => x !== null),
-    costs: t.costs ? costsFromArchive(t.costs, t.id) : null
+    costs: t.costs ? costsFromArchive(t.costs, t.id) : null,
+    documents:
+      t.documents?.map((d) => ({
+        id: d.id,
+        tripId: t.id,
+        segmentId: d.segment,
+        name: d.name,
+        mime: d.mime,
+        dataBase64: d.data,
+        code: d.code,
+        addedAtMillis: d.added
+      })) ?? null,
+    checklist:
+      t.checklist?.map((c, position) => ({ id: c.id, tripId: t.id, text: c.text, done: c.done, position })) ??
+      null
   }));
 }
 
@@ -552,6 +625,7 @@ function lean(archive: WaymarkArchive): WaymarkArchive {
     trips: archive.trips.map((t) => ({
       ...t,
       costs: null,
+      documents: null,
       segments: t.segments.map((row) => {
         const destination =
           row.destination && !samePlaceRow(row.destination, row.origin) ? row.destination : null;
@@ -775,7 +849,8 @@ function travelerToArchive(t: Traveler): ArchiveTraveler {
     seat: t.seatPreference,
     meal: t.mealPreference,
     loyalty: [...t.loyaltyRefs],
-    phone: t.contactPhone
+    phone: t.contactPhone,
+    ids: t.identityDocs.map((d) => ({ kind: d.kind, label: d.label, expires: d.expires }))
   };
 }
 
@@ -789,7 +864,10 @@ function travelerFromArchive(t: ArchiveTraveler): Traveler {
       : 'NONE',
     mealPreference: t.meal,
     loyaltyRefs: [...t.loyalty],
-    contactPhone: t.phone
+    contactPhone: t.phone,
+    identityDocs: t.ids
+      .filter((d) => (d.kind === 'PASSPORT' || d.kind === 'VISA') && parseDate(d.expires) !== null)
+      .map((d): IdentityDoc => ({ kind: d.kind as IdentityDoc['kind'], label: d.label, expires: d.expires }))
   });
 }
 

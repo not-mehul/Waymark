@@ -21,11 +21,18 @@
   }
   const opens = (sheet: TripSheet) => () => open(sheet);
 
-  const goes = (view: 'map' | 'numbers' | 'notes') => () => {
+  const goes = (view: 'map' | 'numbers' | 'notes' | 'checklist') => () => {
     close();
     ui.go({ name: 'trip', tripId: model.tripId, view });
   };
-  const viewRows: Row[] = [
+  const started = $derived(model.dossier ? model.dossier.trip.startEpochMillis <= Date.now() : false);
+  const viewRows: Row[] = $derived([
+    {
+      icon: 'checkSquare',
+      title: 'Before you go',
+      detail: 'Packing, passports and visas, and documents for the whole trip',
+      act: goes('checklist')
+    },
     {
       icon: 'map',
       title: 'The map',
@@ -38,8 +45,18 @@
       title: 'Destination notes',
       detail: 'Money, plugs, emergency numbers',
       act: goes('notes')
-    }
-  ];
+    },
+    ...(started
+      ? [
+          {
+            icon: 'star' as const,
+            title: 'After the trip',
+            detail: 'Rate each city in Ledger, or send your nookling a postcard',
+            act: opens({ name: 'afterTrip' })
+          }
+        ]
+      : [])
+  ]);
 
   const exports = (act: () => unknown) => () => {
     close();

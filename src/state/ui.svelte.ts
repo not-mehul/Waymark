@@ -14,7 +14,7 @@ export type Screen =
   | { name: 'trip'; tripId: string; segmentId?: string; adding?: 'flight'; view?: TripView };
 
 /** The trip's own screens beyond its tabs, reached from its menu. */
-export type TripView = 'map' | 'numbers' | 'notes';
+export type TripView = 'map' | 'numbers' | 'notes' | 'checklist';
 
 /** Where Back goes from a screen: a booking returns to its trip, anything else to the shelf. */
 export function parentOf(screen: Screen): Screen | null {
@@ -55,7 +55,9 @@ export type Modal =
   | { name: 'import'; bundles: TripBundle[]; existing: Set<string> }
   | { name: 'problem'; title: string; detail: string }
   | { name: 'traveler'; traveler: Traveler }
-  | { name: 'sharedFlights'; reading: BookingReading };
+  | { name: 'sharedFlights'; reading: BookingReading }
+  | { name: 'search' }
+  | { name: 'sync' };
 
 class Ui {
   screen = $state<Screen>({ name: 'shelf' });

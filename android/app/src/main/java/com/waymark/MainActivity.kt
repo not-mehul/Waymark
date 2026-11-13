@@ -14,6 +14,7 @@ class MainActivity : BridgeActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         registerPlugin(WaymarkPlugin::class.java)
+        registerPlugin(com.waymark.files.FolderSyncPlugin::class.java)
         // A restored instance already handled its launch intent; don't deliver
         // it to the page a second time.
         if (savedInstanceState != null) intent = Intent(Intent.ACTION_MAIN)

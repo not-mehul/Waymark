@@ -145,6 +145,18 @@ export interface Traveler {
   /** Frequent-flyer and hotel programme numbers, as printed: "BA 12345678". */
   loyaltyRefs: string[];
   contactPhone: string | null;
+  /** Passports and visas, each with the day it runs out: what the checklist warns about. */
+  identityDocs: IdentityDoc[];
+}
+
+export type IdentityDocKind = 'PASSPORT' | 'VISA';
+
+/** A passport or a visa, as printed: "UK passport", "US ESTA". */
+export interface IdentityDoc {
+  kind: IdentityDocKind;
+  label: string;
+  /** ISO date, YYYY-MM-DD. */
+  expires: string;
 }
 
 export function traveler(fields: Partial<Traveler> & { id: string; fullName: string }): Traveler {
@@ -154,6 +166,7 @@ export function traveler(fields: Partial<Traveler> & { id: string; fullName: str
     mealPreference: null,
     loyaltyRefs: [],
     contactPhone: null,
+    identityDocs: [],
     ...fields
   };
 }
@@ -699,3 +712,36 @@ export interface RaisedReminder {
 
 /** Follow the system, or always Dusk, or always Dawn — the traveler's choice. */
 export type ThemeMode = 'SYSTEM' | 'DUSK' | 'DAWN';
+
+// — Tickets and documents ———————————————————————————————————————————————
+
+/**
+ * A file kept with a trip for use offline: a boarding pass picture, an
+ * e-ticket PDF, a voucher screenshot. Held as base64 so a backup, a sync file
+ * and a trip file carry it as plain text.
+ */
+export interface TripDocument {
+  id: string;
+  tripId: string;
+  /** The booking it belongs to; null for one that belongs to the whole trip. */
+  segmentId: string | null;
+  name: string;
+  mime: string;
+  dataBase64: string;
+  /** The text in its barcode, when one was read: shown again at the gate. */
+  code: string | null;
+  addedAtMillis: number;
+}
+
+export const isPicture = (d: Pick<TripDocument, 'mime'>) => d.mime.startsWith('image/');
+
+// — Before you go ———————————————————————————————————————————————————————
+
+/** One line of a trip's packing and before-you-go list. */
+export interface ChecklistItem {
+  id: string;
+  tripId: string;
+  text: string;
+  done: boolean;
+  position: number;
+}

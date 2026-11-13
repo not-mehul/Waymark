@@ -41,7 +41,8 @@ export const LINK_ACTIONS = {
   nookling: {
     open: [],
     cooked: ['dish'],
-    read: ['title', 'author']
+    read: ['title', 'author'],
+    postcard: ['city', 'country', 'date']
   }
 } as const satisfies Record<AppName, Record<string, readonly string[]>>;
 
