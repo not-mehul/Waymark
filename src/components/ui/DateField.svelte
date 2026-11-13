@@ -10,7 +10,8 @@
   interface Props {
     label: string;
     id: string;
-    value: LocalDate;
+    /** Null shows the field empty; the calendar then opens on today. */
+    value: LocalDate | null;
     /** Days before this are shown but cannot be chosen. */
     min?: LocalDate;
     onchange?: (date: LocalDate) => void;
@@ -34,13 +35,13 @@
   ];
   const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
+  const today = todayIn(systemZone());
   let open = $state(false);
   // svelte-ignore state_referenced_locally
-  let draft = $state(value);
+  let draft = $state(value ?? today);
   // The month on show: the draft's, until the arrows move it.
   // svelte-ignore state_referenced_locally
-  let shown = $state(value.toPlainYearMonth());
-  const today = todayIn(systemZone());
+  let shown = $state((value ?? today).toPlainYearMonth());
 
   const cells = $derived.by(() => {
     const first = shown.toPlainDate({ day: 1 });
@@ -53,14 +54,14 @@
   const tooEarly = (date: LocalDate) => min !== undefined && compareDates(date, min) < 0;
 
   function start() {
-    draft = value;
-    shown = value.toPlainYearMonth();
+    draft = value ?? today;
+    shown = draft.toPlainYearMonth();
     open = true;
   }
 
   function choose() {
     open = false;
-    if (!draft.equals(value)) onchange?.(draft);
+    if (!value || !draft.equals(value)) onchange?.(draft);
   }
 </script>
 
@@ -76,8 +77,12 @@
     onclick={start}
   >
     <Icon name="calendar" />
-    <span class="t-data" id="{id}-value">{dayCompact(value)}</span>
-    <span class="t-data-small">{value.year}</span>
+    {#if value}
+      <span class="t-data" id="{id}-value">{dayCompact(value)}</span>
+      <span class="t-data-small">{value.year}</span>
+    {:else}
+      <span class="picker-placeholder" id="{id}-value">Choose a date</span>
+    {/if}
   </button>
 </div>
 

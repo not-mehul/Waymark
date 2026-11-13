@@ -4,6 +4,7 @@
   // stays as typed, on the clock of wherever the trip is that day. When a name
   // could be more than one place the others are offered beside it, and a place
   // nobody could look up can have its clock set by hand.
+  import { Select } from 'dusk-dawn';
   import { placeCandidates, resolvedLabel, type ResolvedPlace } from '../../catalog/places';
   import { samePlace, type Place } from '../../domain/model';
   import { utcOffset } from '../../domain/time-text';
@@ -73,17 +74,15 @@
     {/if}
     {#if typedOnly}
       {#if pickingZone && zones.length > 0}
-        <select
-          class="input"
-          aria-label="Whose clock?"
+        <Select
+          label="Whose clock?"
           value={current.timeZoneId}
-          onchange={(ev) => {
-            onchoose({ ...current, timeZoneId: ev.currentTarget.value });
+          options={zones.map((zone) => ({ value: zone, label: zoneName(zone) }))}
+          onchange={(timeZoneId) => {
+            onchoose({ ...current, timeZoneId });
             pickingZone = false;
           }}
-        >
-          {#each zones as zone (zone)}<option value={zone}>{zoneName(zone)}</option>{/each}
-        </select>
+        />
       {:else}
         <button type="button" class="link-button accent" onclick={() => (pickingZone = true)}
           >Set its clock</button

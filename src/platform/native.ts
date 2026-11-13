@@ -7,6 +7,7 @@
 // both places. Call installNativeBridge() once, before the app mounts.
 
 import { Capacitor, registerPlugin, SystemBars, SystemBarsStyle } from '@capacitor/core';
+import { dismissOverlay } from 'dusk-dawn';
 
 /** Event payloads are JSON from the shell; handlers check what they use. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,7 +52,11 @@ export function installNativeBridge(native: NativeShell | null = capacitorShell(
   if (shell) return true;
   if (!native) return false;
   shell = native;
-  native.on('back', () => backStack.at(-1)?.());
+  native.on('back', () => {
+    // An open dusk-dawn menu closes before the modal it sits in.
+    if (dismissOverlay()) return;
+    backStack.at(-1)?.();
+  });
   return true;
 }
 
