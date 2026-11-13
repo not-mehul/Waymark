@@ -105,6 +105,7 @@
           id="id-expires-{i}"
           value={parseDate(doc.expires)}
           onchange={(d) => (doc.expires = d.toString())}
+          onclear={() => (doc.expires = '')}
         />
         <button
           type="button"

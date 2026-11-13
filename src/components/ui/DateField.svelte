@@ -15,9 +15,11 @@
     /** Days before this are shown but cannot be chosen. */
     min?: LocalDate;
     onchange?: (date: LocalDate) => void;
+    /** Offers "Clear date" in the picker while there is a date, for optional fields. */
+    onclear?: () => void;
   }
 
-  let { label, id, value, min, onchange }: Props = $props();
+  let { label, id, value, min, onchange, onclear }: Props = $props();
 
   const MONTHS = [
     'January',
@@ -57,6 +59,11 @@
     draft = value ?? today;
     shown = draft.toPlainYearMonth();
     open = true;
+  }
+
+  function clear() {
+    open = false;
+    onclear?.();
   }
 
   function choose() {
@@ -132,5 +139,10 @@
         {/each}
       </div>
     </div>
+    {#if onclear && value}
+      <button type="button" class="link-button picker-clear" id="{id}-clear" onclick={clear}
+        >Clear date</button
+      >
+    {/if}
   </PickerModal>
 {/if}
