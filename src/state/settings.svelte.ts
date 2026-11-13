@@ -35,6 +35,11 @@ export class Settings {
   onlineExtras = $state(false);
   notificationsAsked = $state(false);
   reminders = $state(new ReminderPreferences());
+  /** When the last backup was written to Documents/Waymark/Backups (epoch millis), for the weekly one. */
+  lastBackupAt = $state<number | null>(null);
+  /** The folder a sync app keeps the same across phones, while sync is on. */
+  syncFolder = $state<{ uri: string; name: string } | null>(null);
+  lastSyncAt = $state<number | null>(null);
   /** What the system asks for, while the theme follows it. */
   systemDark = $state(true);
 
@@ -48,6 +53,19 @@ export class Settings {
     if (theme === 'DUSK' || theme === 'DAWN') this.theme = theme;
     this.onlineExtras = this.read('online.extras') === 'true';
     this.notificationsAsked = this.read('notifications.asked') === 'true';
+    this.lastBackupAt = numberOr(this.read('backup.last'));
+    this.lastSyncAt = numberOr(this.read('sync.last'));
+    try {
+      const folder = JSON.parse(this.read('sync.folder') ?? 'null') as {
+        uri?: unknown;
+        name?: unknown;
+      } | null;
+      if (folder && typeof folder.uri === 'string') {
+        this.syncFolder = { uri: folder.uri, name: typeof folder.name === 'string' ? folder.name : '' };
+      }
+    } catch {
+      // A damaged value: sync is off until a folder is picked again.
+    }
     const leads: Partial<Record<ReminderCategory, Lead>> = {};
     for (const category of REMINDER_CATEGORIES) {
       const lead = Number(this.read(`lead.${category.toLowerCase()}`) ?? NaN);
@@ -81,6 +99,37 @@ export class Settings {
     this.write(`lead.${category.toLowerCase()}`, String(lead));
   }
 
+  markBackedUp(at: number): void {
+    this.lastBackupAt = at;
+    this.write('backup.last', String(at));
+  }
+
+  setSyncFolder(folder: { uri: string; name: string } | null): void {
+    this.syncFolder = folder;
+    this.write('sync.folder', JSON.stringify(folder));
+    if (!folder) {
+      this.lastSyncAt = null;
+      this.write('sync.last', '');
+      this.write('sync.base', '{}');
+    }
+  }
+
+  markSynced(at: number, base: Record<string, string>): void {
+    this.lastSyncAt = at;
+    this.write('sync.last', String(at));
+    this.write('sync.base', JSON.stringify(base));
+  }
+
+  /** Each trip's fingerprint as of the last sync (src/share/sync-merge.ts). */
+  syncBase(): Record<string, string> {
+    try {
+      const base = JSON.parse(this.read('sync.base') ?? '{}') as unknown;
+      return base && typeof base === 'object' && !Array.isArray(base) ? (base as Record<string, string>) : {};
+    } catch {
+      return {};
+    }
+  }
+
   private read(key: string): string | null {
     try {
       return this.store?.getItem(PREFIX + key) ?? null;
@@ -96,6 +145,11 @@ export class Settings {
       console.warn('Could not save a setting', err);
     }
   }
+}
+
+function numberOr(text: string | null): number | null {
+  const n = Number(text ?? '');
+  return text && Number.isFinite(n) && n > 0 ? n : null;
 }
 
 /**

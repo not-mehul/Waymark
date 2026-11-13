@@ -88,6 +88,7 @@
 }
 .masthead {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-3);
@@ -1673,4 +1674,185 @@ button.panel:active {
 .fly-by svg {
   width: 40px;
   height: 40px;
+}
+
+/* — Tickets and documents ————————————————————————————————————————— */
+
+.docs {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.doc-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.doc-open {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.doc-open:hover {
+  background: var(--hover-bg);
+}
+
+.doc-thumb {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: var(--corner-sm);
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+.doc-file {
+  display: grid;
+  place-items: center;
+  color: var(--accent-amber);
+}
+
+.doc-text {
+  display: grid;
+  min-width: 0;
+}
+
+/* A pass shown to a scanner: dark ink on white whatever the theme. */
+.pass-sheet {
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  border-radius: var(--corner-md);
+  background: var(--scanner-fg);
+}
+
+.pass-image {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+}
+
+/* — Before you go ———————————————————————————————————————————————— */
+
+.check-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.check-row {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 12px;
+}
+
+.check-row.done .check-text {
+  color: var(--text-dim);
+  text-decoration: line-through;
+}
+
+.check-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.check-box {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+  border: 0;
+  background: none;
+  color: var(--accent-amber);
+  cursor: pointer;
+}
+
+.check-box::before {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--text-muted);
+  border-radius: 6px;
+}
+
+.check-box {
+  position: relative;
+}
+
+.check-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.check-add .input {
+  flex: 1 1 12rem;
+}
+
+.id-docs {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.id-doc-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.id-doc-row .field {
+  flex: 1 1 9rem;
+}
+
+/* — After the trip ———————————————————————————————————————————————— */
+
+.after-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.after-row {
+  display: grid;
+  gap: 8px;
+}
+
+.after-place {
+  display: grid;
+}
+
+/* — Large text (style.md §15: layouts hold at 200% text) ————————————— */
+
+/* A label wraps rather than pushing the page sideways at the largest text sizes. */
+.btn {
+  max-width: 100%;
+  white-space: normal;
+}
+
+.masthead > :first-child {
+  flex: 1 1 12rem;
+  min-width: 0;
 }

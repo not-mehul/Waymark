@@ -140,3 +140,41 @@ describe('TripArchive', () => {
     expect(onlyBundle(bundlesOf(fromCode(code.payload))).costs).toBeNull();
   });
 });
+
+describe('documents, the checklist and passports', () => {
+  it('travel in a backup and come back whole', () => {
+    const [first, ...rest] = trip.travelers;
+    const full: TripBundle = {
+      ...trip,
+      travelers: [
+        { ...first!, identityDocs: [{ kind: 'PASSPORT', label: 'UK', expires: '2030-02-01' }] },
+        ...rest
+      ],
+      documents: [
+        {
+          id: 'doc-1',
+          tripId: trip.trip.id,
+          segmentId: trip.segments[0]!.id,
+          name: 'pass.png',
+          mime: 'image/png',
+          dataBase64: 'iVBORw0KGgo=',
+          code: 'M1ELLISON/MARA',
+          addedAtMillis: 5
+        }
+      ],
+      checklist: [{ id: 'chk-1', tripId: trip.trip.id, text: 'Passport', done: true, position: 0 }]
+    };
+    const back = onlyBundle(bundlesOf(decodeArchive(encodeArchive(archiveOf([full])))));
+    expect(back.documents).toEqual(full.documents);
+    expect(back.checklist).toEqual(full.checklist);
+    expect(back.travelers[0]!.identityDocs).toEqual(full.travelers[0]!.identityDocs);
+  });
+
+  it('are left out of a trip code, and an older file says nothing about them', () => {
+    const back = onlyBundle(bundlesOf(decodeArchive(encodeArchive(archiveOf([trip])))));
+    expect(back.documents).toBeNull();
+    expect(back.checklist).toBeNull();
+    const code = toCode(archiveOf([{ ...trip, documents: [] }]))!;
+    expect(onlyBundle(bundlesOf(fromCode(code.payload))).documents).toBeNull();
+  });
+});

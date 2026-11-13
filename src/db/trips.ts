@@ -106,6 +106,8 @@ export class TripRepository {
       await db.expenses.where('tripId').equals(tripId).delete();
       await db.costSettings.delete(tripId);
       await db.rates.where('tripId').equals(tripId).delete();
+      await db.documents.where('tripId').equals(tripId).delete();
+      await db.checklist.where('tripId').equals(tripId).delete();
       await this.pruneAlerts();
       await this.pruneTravelers();
     });
@@ -161,10 +163,12 @@ export class TripRepository {
   /** Remove one booking, and everything that only existed because of it. */
   async deleteSegment(segmentId: string): Promise<void> {
     const { db } = this;
-    await db.transaction('rw', db.segments, db.ideas, db.alerts, async () => {
+    await db.transaction('rw', db.segments, db.ideas, db.alerts, db.documents, async () => {
       // An idea promoted onto the timeline goes back to the list rather than
       // vanishing with the segment.
       await this.releaseSegment(segmentId);
+      // Its tickets stay with the trip, not with a booking that is gone.
+      await db.documents.where('segmentId').equals(segmentId).modify({ segmentId: null });
       await db.alerts.where('segmentId').equals(segmentId).modify({ acknowledged: true });
       await db.segments.delete(segmentId);
     });
@@ -337,7 +341,9 @@ export class TripRepository {
           travelers: await this.party(trip.id),
           segments: await this.segments(trip.id),
           ideas: (await db.ideas.where('tripId').equals(trip.id).sortBy('addedAtMillis')).map(ideaOf),
-          costs: await this.costs(trip.id)
+          costs: await this.costs(trip.id),
+          documents: await db.documents.where('tripId').equals(trip.id).sortBy('addedAtMillis'),
+          checklist: await db.checklist.where('tripId').equals(trip.id).sortBy('position')
         });
       }
       return out;
@@ -383,6 +389,15 @@ export class TripRepository {
         // A file from a Waymark that did not know about costs says nothing
         // about them, which is not the same as "there are none".
         if (bundle.costs) await this.replaceCosts(tripId, bundle.costs);
+        // Likewise: no list in the file is not an empty list.
+        if (bundle.documents) {
+          await db.documents.where('tripId').equals(tripId).delete();
+          await db.documents.bulkPut(bundle.documents.map((d) => ({ ...d, tripId })));
+        }
+        if (bundle.checklist) {
+          await db.checklist.where('tripId').equals(tripId).delete();
+          await db.checklist.bulkPut(bundle.checklist.map((c, position) => ({ ...c, tripId, position })));
+        }
       }
       await this.pruneAlerts();
       await this.pruneTravelers();
@@ -402,7 +417,9 @@ export class TripRepository {
       db.expenses,
       db.costSettings,
       db.rates,
-      db.alerts
+      db.alerts,
+      db.documents,
+      db.checklist
     ];
   }
 

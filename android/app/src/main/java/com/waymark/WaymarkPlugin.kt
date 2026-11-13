@@ -21,6 +21,7 @@ import com.waymark.alerts.Alerts
 import com.waymark.alerts.DepartureWatch
 import com.waymark.alerts.Notifications
 import com.waymark.alerts.Schedule
+import com.waymark.files.Documents
 import com.waymark.share.Barcodes
 import com.waymark.share.Exports
 import com.waymark.widget.NextUpWidget
@@ -241,6 +242,31 @@ class WaymarkPlugin : Plugin() {
             }
         }
     }
+
+    // Tickets, backups and the sibling apps.
+
+    @PluginMethod
+    fun openDocument(call: PluginCall) = respond(call) {
+        val bytes = Base64.decode(call.require("data"), Base64.DEFAULT)
+        Documents.open(activity, call.require("name"), call.getString("mime") ?: "application/octet-stream", bytes)
+    }
+
+    @PluginMethod
+    fun setBright(call: PluginCall) = respond(call) {
+        Documents.bright(activity, call.getBoolean("on", false) == true)
+        true
+    }
+
+    @PluginMethod
+    fun writeBackup(call: PluginCall) = respond(call) {
+        Documents.writeBackup(context, call.require("name"), call.require("text"), call.getInt("keep", 5) ?: 5)
+    }
+
+    @PluginMethod
+    fun canOpenUrl(call: PluginCall) = respond(call) { Documents.canOpen(context, call.require("url")) }
+
+    @PluginMethod
+    fun openUrl(call: PluginCall) = respond(call) { Documents.openUrl(activity, call.require("url")) }
 
     // Reminders, the journey under way, and the widget.
 

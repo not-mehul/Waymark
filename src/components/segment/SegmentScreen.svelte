@@ -28,6 +28,7 @@
   import SectionHeader from '../ui/SectionHeader.svelte';
   import { useTrip } from '../trip/context';
   import EditSegment from './EditSegment.svelte';
+  import Documents from '../docs/Documents.svelte';
 
   let { segmentId }: { segmentId: string } = $props();
   const { model, open } = useTrip();
@@ -271,6 +272,8 @@
           <span class="t-hint">Tap a reference to copy it, or the corner button to show it large.</span>
         </div>
       {/if}
+
+      <Documents segmentId={segment.id} />
 
       {#if link}
         <SectionHeader label="Getting here" />

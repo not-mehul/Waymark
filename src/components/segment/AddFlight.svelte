@@ -11,6 +11,7 @@
   import { dayOffsetSuffix, duration } from '../../domain/time-text';
   import { readBookingText } from '../../share/booking-text';
   import { readCode } from '../../share/read-code';
+  import { keepFile } from '../../state/documents';
   import {
     canSave,
     defaultFlightDate,
@@ -108,6 +109,8 @@
   // a mobile pass is the common case.
   let picker = $state<HTMLInputElement | null>(null);
   let reading = $state(false);
+  // The pass itself is kept with the flight when it is saved, to show at the gate.
+  let pass = $state.raw<{ file: File; code: string } | null>(null);
   async function readPass(file: File | undefined) {
     if (!file) return;
     reading = true;
@@ -124,7 +127,8 @@
       return;
     }
     entry = read.entry;
-    notice = read.notice;
+    notice = `${read.notice} The pass is kept with the flight, to show at the gate.`;
+    pass = { file, code: code.kind === 'read' ? code.text : '' };
   }
 
   function toggle(id: string) {
@@ -149,6 +153,11 @@
     if (!flight || saving) return;
     saving = true;
     await model.saveSegment(flight);
+    if (pass) {
+      await keepFile(pass.file, model.tripId, flight.id, pass.code || null).catch((err: unknown) =>
+        console.warn('Keeping the boarding pass', err)
+      );
+    }
     ui.back();
   }
 </script>

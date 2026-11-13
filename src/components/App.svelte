@@ -4,6 +4,7 @@
   import { callNative, isNativeShell } from '../platform/native';
   import { NO_HANDOVER, runHandover } from '../share/handover';
   import { listenToShell, nativeHandover, startShellSync } from '../state/shell.svelte';
+  import { startKeeping } from '../state/keeping.svelte';
   import { openTripFile } from '../state/actions';
   import { trips } from '../state/app';
   import { ui } from '../state/ui.svelte';
@@ -16,6 +17,8 @@
   import Problem from './shelf/Problem.svelte';
   import Shelf from './shelf/Shelf.svelte';
   import SharedFlights from './shelf/SharedFlights.svelte';
+  import Search from './shelf/Search.svelte';
+  import SyncSheet from './shelf/SyncSheet.svelte';
   import ShelfMenu from './shelf/ShelfMenu.svelte';
   import TripRoute from './trip/TripRoute.svelte';
   import IdleDock from './ui/IdleDock.svelte';
@@ -59,6 +62,7 @@
       // After the handover, so a trip shared in at launch opens over the moved trips.
       listenToShell();
       startShellSync();
+      startKeeping();
     })();
   });
 </script>
@@ -96,6 +100,10 @@
         <TravelerProfile traveler={modal.traveler} />
       {:else if modal.name === 'sharedFlights'}
         <SharedFlights reading={modal.reading} />
+      {:else if modal.name === 'search'}
+        <Search />
+      {:else if modal.name === 'sync'}
+        <SyncSheet />
       {/if}
     {/key}
   </Modal>

@@ -2,8 +2,10 @@
 // own against fake-indexeddb; nothing under src/db reaches for this module.
 
 import { AlertRepository } from '../db/alerts';
+import { ChecklistRepository } from '../db/checklist';
 import { CostRepository } from '../db/costs';
 import { openDatabase } from '../db/database';
+import { DocumentRepository } from '../db/documents';
 import { IdeaRepository } from '../db/ideas';
 import { TripRepository } from '../db/trips';
 import { WeatherRepository } from '../online/weather';
@@ -14,6 +16,8 @@ export const trips = new TripRepository(db);
 export const ideas = new IdeaRepository(db);
 export const costs = new CostRepository(db);
 export const alerts = new AlertRepository(db);
+export const documents = new DocumentRepository(db);
+export const checklist = new ChecklistRepository(db);
 export const weather = new WeatherRepository(db);
 export const settings = new Settings();
 

@@ -11,13 +11,15 @@
 import Dexie, { type EntityTable, type Table } from 'dexie';
 import {
   SEGMENT_KINDS,
+  type ChecklistItem,
   type ExchangeRate,
   type Expense,
   type Idea,
   type RaisedReminder,
   type Segment,
   type Traveler,
-  type Trip
+  type Trip,
+  type TripDocument
 } from '../domain/model';
 import { parseDate } from '../domain/time';
 
@@ -62,6 +64,8 @@ export type WaymarkDb = Dexie & {
   rates: Table<RateRow, [string, string]>;
   alerts: EntityTable<RaisedReminder, 'signature'>;
   weather: Table<WeatherRow, [string, string]>;
+  documents: EntityTable<TripDocument, 'id'>;
+  checklist: EntityTable<ChecklistItem, 'id'>;
 };
 
 /** Every table a trip file carries: what a change to the handover copy watches. */
@@ -73,7 +77,9 @@ export const ARCHIVE_TABLES = [
   'ideas',
   'expenses',
   'costSettings',
-  'rates'
+  'rates',
+  'documents',
+  'checklist'
 ] as const;
 
 export function openDatabase(name = 'waymark'): WaymarkDb {
@@ -91,6 +97,11 @@ export function openDatabase(name = 'waymark'): WaymarkDb {
     rates: '[tripId+currency], tripId',
     alerts: 'signature, segmentId, raisedAtMillis',
     weather: '[placeKey+date], date'
+  });
+  // v2: tickets and documents kept with a booking, and the before-you-go list.
+  db.version(2).stores({
+    documents: 'id, tripId, segmentId',
+    checklist: 'id, tripId'
   });
   return db;
 }

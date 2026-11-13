@@ -114,3 +114,38 @@ describe('TripRepository', () => {
     expect(next.every(([t]) => t.id === sample.trip.id)).toBe(true);
   });
 });
+
+describe('documents and the checklist', () => {
+  const doc = (segmentId: string | null) => ({
+    id: `doc-${segmentId ?? 'trip'}`,
+    tripId: sample.trip.id,
+    segmentId,
+    name: 'ticket.pdf',
+    mime: 'application/pdf',
+    dataBase64: 'JVBERi0=',
+    code: null,
+    addedAtMillis: 1
+  });
+
+  it('keeps a booking’s tickets with the trip when the booking goes, and drops them with the trip', async () => {
+    const segment = sample.segments[0]!;
+    await db.documents.put(doc(segment.id));
+    await trips.deleteSegment(segment.id);
+    expect((await db.documents.get(doc(segment.id).id))!.segmentId).toBeNull();
+    await trips.deleteTrip(sample.trip.id);
+    expect(await db.documents.count()).toBe(0);
+  });
+
+  it('carries them in a bundle, and an import without them leaves them alone', async () => {
+    await db.documents.put(doc(null));
+    await db.checklist.put({ id: 'c', tripId: sample.trip.id, text: 'Passport', done: false, position: 0 });
+    const [b] = await trips.bundles();
+    expect(b!.documents).toHaveLength(1);
+    expect(b!.checklist).toHaveLength(1);
+    await trips.importBundles([bundle]);
+    expect(await db.documents.count()).toBe(1);
+    await trips.importBundles([{ ...bundle, documents: [], checklist: [] }]);
+    expect(await db.documents.count()).toBe(0);
+    expect(await db.checklist.count()).toBe(0);
+  });
+});

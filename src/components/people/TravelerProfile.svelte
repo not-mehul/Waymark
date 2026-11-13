@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { displayName, SEAT_PREFERENCES, type Traveler } from '../../domain/model';
+  import { displayName, SEAT_PREFERENCES, type IdentityDoc, type Traveler } from '../../domain/model';
+  import { parseDate } from '../../domain/time';
   import { trips } from '../../state/app';
   import { SEAT_LABEL } from '../../state/shelf';
   import { ui } from '../../state/ui.svelte';
@@ -20,6 +21,8 @@
   let meal = $state(original.mealPreference ?? '');
   let loyalty = $state(original.loyaltyRefs.join('\n'));
   let phone = $state(original.contactPhone ?? '');
+  let ids = $state<IdentityDoc[]>(original.identityDocs.map((d) => ({ ...d })));
+  const addId = (kind: IdentityDoc['kind']) => (ids = [...ids, { kind, label: '', expires: '' }]);
 
   const seats = SEAT_PREFERENCES.map((value) => ({ value, label: SEAT_LABEL[value] }));
   const orNull = (text: string) => text.trim() || null;
@@ -36,7 +39,11 @@
         .split('\n')
         .map((line) => line.trim())
         .filter((line) => line !== ''),
-      contactPhone: orNull(phone)
+      contactPhone: orNull(phone),
+      // A row without a real expiry date has nothing to warn about, so it isn't kept.
+      identityDocs: ids
+        .filter((d) => parseDate(d.expires) !== null)
+        .map((d) => ({ kind: d.kind, label: d.label.trim(), expires: d.expires }))
     });
     onclose();
   }
@@ -75,6 +82,45 @@
     mono
     bind:value={phone}
   />
+  <fieldset class="id-docs">
+    <legend class="t-field-label">Passports and visas</legend>
+    {#each ids as doc, i (i)}
+      <div class="id-doc-row">
+        <div class="field">
+          <label class="t-field-label" for="id-label-{i}"
+            >{doc.kind === 'PASSPORT' ? 'Passport' : 'Visa'}</label
+          >
+          <input
+            id="id-label-{i}"
+            class="input"
+            inputmode="text"
+            enterkeyhint="next"
+            placeholder={doc.kind === 'PASSPORT' ? 'UK passport' : 'US ESTA, India e-visa'}
+            bind:value={doc.label}
+          />
+        </div>
+        <div class="field">
+          <label class="t-field-label" for="id-expires-{i}">Expires</label>
+          <input id="id-expires-{i}" class="input input-mono" type="date" bind:value={doc.expires} />
+        </div>
+        <button
+          type="button"
+          class="btn-icon"
+          aria-label="Remove {doc.label || (doc.kind === 'PASSPORT' ? 'passport' : 'visa')}"
+          onclick={() => (ids = ids.filter((_, j) => j !== i))}
+        >
+          <Icon name="trash" />
+        </button>
+      </div>
+    {/each}
+    <div class="chip-row">
+      <button type="button" class="chip" onclick={() => addId('PASSPORT')}
+        ><Icon name="plus" /> Passport</button
+      >
+      <button type="button" class="chip" onclick={() => addId('VISA')}><Icon name="plus" /> Visa</button>
+    </div>
+    <span class="t-hint">Waymark warns on a trip's Before you go list when one runs out too soon.</span>
+  </fieldset>
   <div class="btn-row">
     <button type="button" class="btn btn-muted" onclick={onclose}>Cancel</button>
     <button type="submit" class="btn btn-primary" disabled={!fullName.trim()}

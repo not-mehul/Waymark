@@ -22,7 +22,9 @@ export type TripSheet =
   | { name: 'scheduleIdea'; idea: Idea }
   | { name: 'editTraveler'; traveler: Traveler }
   | { name: 'removeTraveler'; traveler: Traveler }
-  | { name: 'reference'; label: string; code: string };
+  | { name: 'reference'; label: string; code: string }
+  | { name: 'document'; documentId: string }
+  | { name: 'afterTrip' };
 
 export interface TripContext {
   model: TripModel;

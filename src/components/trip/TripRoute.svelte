@@ -12,6 +12,9 @@
   import AddFlight from '../segment/AddFlight.svelte';
   import SegmentScreen from '../segment/SegmentScreen.svelte';
   import ReferenceCard from '../segment/ReferenceCard.svelte';
+  import DocumentViewer from '../docs/DocumentViewer.svelte';
+  import ChecklistScreen from '../checklist/ChecklistScreen.svelte';
+  import AfterTrip from './AfterTrip.svelte';
   import Modal from '../ui/Modal.svelte';
   import { provideTrip, type TripSheet } from './context';
   import TravelerProfile from '../people/TravelerProfile.svelte';
@@ -72,6 +75,8 @@
   <NumbersScreen />
 {:else if view === 'notes'}
   <NotesScreen />
+{:else if view === 'checklist'}
+  <ChecklistScreen />
 {:else if segmentId}
   {#key segmentId}
     <SegmentScreen {segmentId} />
@@ -123,6 +128,10 @@
         <ReferenceCard label={current.label} code={current.code} onclose={close} />
       {:else if current.name === 'removeSegment'}
         <RemoveSegment segment={current.segment} />
+      {:else if current.name === 'document'}
+        <DocumentViewer documentId={current.documentId} onclose={close} />
+      {:else if current.name === 'afterTrip'}
+        <AfterTrip />
       {/if}
     {/key}
   </Modal>
