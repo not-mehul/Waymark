@@ -137,6 +137,7 @@ npm ci
 npm run dev        # the app in a browser, at http://localhost:5173
 npm run check      # tokens and contrast, formatting, lint, types, tests, build
 npm run sync       # build the page into android/, then open it in Android Studio
+npm run android:apk  # a debug APK, in android/app/build/outputs/apk/debug/
 ```
 
 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) covers the design, the architecture, the Android build and the tests. [RELEASING.md](RELEASING.md) covers signing and releases.
