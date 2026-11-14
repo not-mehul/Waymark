@@ -9,6 +9,7 @@ import { ui } from './ui.svelte';
 import { liveQuery, type Subscription } from 'dexie';
 import { partyWarnings, splitWindows } from '../domain/party-split';
 import {
+  segmentTitle,
   traveler,
   type Idea,
   type IdeaStatus,
@@ -148,8 +149,14 @@ export class TripModel {
     void askForReminders();
   }
 
-  deleteSegment(segmentId: string): Promise<void> {
-    return trips.deleteSegment(segmentId);
+  /** Removed at once, and offered back for a few seconds (style.md: Undo, not a confirmation). */
+  async deleteSegment(segmentId: string): Promise<void> {
+    const removed = await trips.deleteSegment(segmentId);
+    if (!removed) return;
+    ui.notify(`Removed “${segmentTitle(removed.segment)}”.`, 'info', {
+      label: 'Undo',
+      run: () => void trips.restoreSegment(removed)
+    });
   }
 
   // — Ideas ——————————————————————————————————————————————————————————————

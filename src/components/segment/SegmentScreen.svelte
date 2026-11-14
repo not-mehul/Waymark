@@ -37,6 +37,12 @@
   const party = $derived(model.party);
   let editing = $state(false);
 
+  /** Back to the timeline, and the booking goes at once with Undo in the toast. */
+  async function remove(s: Segment) {
+    ui.go({ name: 'trip', tripId: model.tripId });
+    await model.deleteSegment(s.id);
+  }
+
   // The reference just copied wears a tick for a moment, where the finger was.
   let copied = $state<string | null>(null);
   let copiedTimer: ReturnType<typeof setTimeout> | undefined;
@@ -124,12 +130,7 @@
         <button type="button" class="btn-icon" aria-label="Edit booking" onclick={() => (editing = true)}>
           <Icon name="edit" />
         </button>
-        <button
-          type="button"
-          class="btn-icon"
-          aria-label="Remove booking"
-          onclick={() => open({ name: 'removeSegment', segment: current })}
-        >
+        <button type="button" class="btn-icon" aria-label="Remove booking" onclick={() => remove(current)}>
           <Icon name="trash" />
         </button>
       {/if}

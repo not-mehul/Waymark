@@ -1,7 +1,7 @@
 // The rules the repository keeps, against a real IndexedDB (fake-indexeddb).
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { openDatabase, type WaymarkDb } from '../../src/db/database';
+import { ideaRow, openDatabase, type WaymarkDb } from '../../src/db/database';
 import { TripRepository } from '../../src/db/trips';
 import { copyCommon, type Segment } from '../../src/domain/model';
 import type { TripBundle } from '../../src/share/trip-archive';
@@ -134,6 +134,53 @@ describe('documents and the checklist', () => {
     expect((await db.documents.get(doc(segment.id).id))!.segmentId).toBeNull();
     await trips.deleteTrip(sample.trip.id);
     expect(await db.documents.count()).toBe(0);
+  });
+
+  it('puts a removed booking back with its idea, tickets and unread reminders, for Undo', async () => {
+    const segment = sample.segments[0]!;
+    const idea = { ...sample.ideas[0]!, status: 'SCHEDULED' as const, scheduledSegmentId: segment.id };
+    await db.ideas.put(ideaRow(idea));
+    await db.documents.put(doc(segment.id));
+    const reminder = {
+      signature: 'sig-unread',
+      segmentId: segment.id,
+      label: 'Check in',
+      headline: 'Check in opens',
+      detail: '',
+      startEpochMillis: segment.startEpochMillis,
+      raisedAtMillis: 1,
+      posted: true,
+      acknowledged: false
+    };
+    await db.alerts.bulkPut([reminder, { ...reminder, signature: 'sig-read', acknowledged: true }]);
+
+    const stored = await db.segments.get(segment.id);
+    const removal = (await trips.deleteSegment(segment.id))!;
+    expect(await db.segments.get(segment.id)).toBeUndefined();
+    expect((await db.ideas.get(idea.id))!.scheduledSegmentId).toBeNull();
+
+    await trips.restoreSegment(removal);
+    expect(await db.segments.get(segment.id)).toEqual(stored);
+    expect(await db.ideas.get(idea.id)).toEqual(ideaRow(idea));
+    expect((await db.documents.get(doc(segment.id).id))!.segmentId).toBe(segment.id);
+    expect((await db.alerts.get('sig-unread'))!.acknowledged).toBe(false);
+    expect((await db.alerts.get('sig-read'))!.acknowledged).toBe(true);
+  });
+
+  it('Undo leaves alone what changed since, and does nothing once the trip is gone', async () => {
+    const [segment, other] = sample.segments;
+    await db.documents.put(doc(segment!.id));
+    const removal = (await trips.deleteSegment(segment!.id))!;
+    // The ticket was moved to another booking before Undo.
+    await db.documents.update(doc(segment!.id).id, { segmentId: other!.id });
+    await trips.restoreSegment(removal);
+    expect((await db.documents.get(doc(segment!.id).id))!.segmentId).toBe(other!.id);
+
+    const again = (await trips.deleteSegment(segment!.id))!;
+    await trips.deleteTrip(sample.trip.id);
+    await trips.restoreSegment(again);
+    expect(await db.segments.count()).toBe(0);
+    expect(await trips.deleteSegment('no-such-booking')).toBeNull();
   });
 
   it('carries them in a bundle, and an import without them leaves them alone', async () => {
