@@ -30,7 +30,6 @@
   import EditTrip from './EditTrip.svelte';
   import OnlineExtras from './OnlineExtras.svelte';
   import Reminders from './Reminders.svelte';
-  import RemoveSegment from './RemoveSegment.svelte';
   import TripMenu from './TripMenu.svelte';
   import TripScreen from './TripScreen.svelte';
 
@@ -126,8 +125,6 @@
         <AddPlan />
       {:else if current.name === 'reference'}
         <ReferenceCard label={current.label} code={current.code} onclose={close} />
-      {:else if current.name === 'removeSegment'}
-        <RemoveSegment segment={current.segment} />
       {:else if current.name === 'document'}
         <DocumentViewer documentId={current.documentId} onclose={close} />
       {:else if current.name === 'afterTrip'}

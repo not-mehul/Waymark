@@ -18,6 +18,7 @@ import type { TripBundle } from '../share/trip-archive';
 import {
   expenseOf,
   expenseRow,
+  type IdeaRow,
   ideaOf,
   ideaRow,
   present,
@@ -28,6 +29,17 @@ import {
 } from './database';
 
 const DAY_MILLIS = 24 * 60 * 60 * 1000;
+
+/** What removing a booking changed: enough to put it all back. */
+export interface SegmentRemoval {
+  segment: Segment;
+  /** Ideas that had been scheduled as this booking, before they went back to the list. */
+  ideas: IdeaRow[];
+  /** Tickets and documents that were kept with it. */
+  documentIds: string[];
+  /** Its raised reminders that were still unread. */
+  alertSignatures: string[];
+}
 
 /** Full 128-bit ids: rows are put, not inserted, so a collision would overwrite silently. */
 export function newId(prefix: string): string {
@@ -160,10 +172,25 @@ export class TripRepository {
     });
   }
 
-  /** Remove one booking, and everything that only existed because of it. */
-  async deleteSegment(segmentId: string): Promise<void> {
+  /**
+   * Remove one booking, and everything that only existed because of it.
+   * Returns what it changed, so Undo can put every piece back.
+   */
+  async deleteSegment(segmentId: string): Promise<SegmentRemoval | null> {
     const { db } = this;
-    await db.transaction('rw', db.segments, db.ideas, db.alerts, db.documents, async () => {
+    return db.transaction('rw', db.segments, db.ideas, db.alerts, db.documents, async () => {
+      const segment = await db.segments.get(segmentId);
+      if (!segment) return null;
+      const removal: SegmentRemoval = {
+        segment,
+        ideas: await db.ideas.where('scheduledSegmentId').equals(segmentId).toArray(),
+        documentIds: await db.documents.where('segmentId').equals(segmentId).primaryKeys(),
+        alertSignatures: await db.alerts
+          .where('segmentId')
+          .equals(segmentId)
+          .filter((a) => !a.acknowledged)
+          .primaryKeys()
+      };
       // An idea promoted onto the timeline goes back to the list rather than
       // vanishing with the segment.
       await this.releaseSegment(segmentId);
@@ -171,6 +198,31 @@ export class TripRepository {
       await db.documents.where('segmentId').equals(segmentId).modify({ segmentId: null });
       await db.alerts.where('segmentId').equals(segmentId).modify({ acknowledged: true });
       await db.segments.delete(segmentId);
+      return removal;
+    });
+  }
+
+  /**
+   * Undo for deleteSegment: the booking, the idea it came from, its tickets
+   * and its unread reminders, as they were. Anything changed since (an idea
+   * scheduled again, a ticket moved to another booking) is left as it is now.
+   */
+  async restoreSegment(removal: SegmentRemoval): Promise<void> {
+    const { db } = this;
+    const { segment } = removal;
+    await db.transaction('rw', [db.trips, db.segments, db.ideas, db.alerts, db.documents], async () => {
+      if (!(await db.trips.get(segment.tripId))) return;
+      await db.segments.put(segment);
+      for (const idea of removal.ideas) {
+        const now = await db.ideas.get(idea.id);
+        if (now && now.scheduledSegmentId == null) await db.ideas.put(idea);
+      }
+      await db.documents
+        .where(':id')
+        .anyOf(removal.documentIds)
+        .filter((d) => d.segmentId == null)
+        .modify({ segmentId: segment.id });
+      await db.alerts.where(':id').anyOf(removal.alertSignatures).modify({ acknowledged: false });
     });
   }
 
