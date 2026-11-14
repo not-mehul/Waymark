@@ -1,9 +1,9 @@
 {
   "name": "waymark",
-  "version": "0.0.0",
+  "version": "2.1.3",
   "private": true,
   "type": "module",
-  "description": "Offline-first trip planner — Editorial Dusk & Dawn (Svelte rewrite, in progress)",
+  "description": "Waymark — your whole trip, offline: flights, stays, plans and costs on one timeline.",
   "engines": {
     "node": ">=22.12"
   },

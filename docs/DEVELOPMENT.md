@@ -4,8 +4,8 @@ How Waymark is built, designed and tested. For what the app does, see the [READM
 
 ## Design: "Editorial Dusk & Dawn"
 
-The style reference is shared with BookShelf, Ledger, Colophon and Rosetta as
-one package, [`dusk-dawn`](https://github.com/not-mehul/dusk-dawn), installed
+The style reference is shared with BookShelf, Ledger, Colophon, Rosetta, Mise
+and Nookling as one package, [`dusk-dawn`](https://github.com/not-mehul/dusk-dawn), installed
 at a tag. It holds the tokens, Fraunces, the shared component styles and
 components, and `style.md`. `npm run check` runs its contrast check
 (`dusk-dawn check`) and its literal-colour check (`dusk-dawn colours`). To
