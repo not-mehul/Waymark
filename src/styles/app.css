@@ -19,7 +19,7 @@
 .app-shell {
   position: relative;
   z-index: 1;
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: calc(var(--inset-top) + var(--space-6)) calc(var(--inset-right) + var(--space-5))
     calc(var(--inset-bottom) + var(--space-6)) calc(var(--inset-left) + var(--space-5));
 }
