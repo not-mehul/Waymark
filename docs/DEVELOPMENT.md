@@ -403,3 +403,19 @@ from the Kotlin app on an emulator.
 
 
 
+
+### In a browser
+
+`npm run test:e2e` builds the page and runs Playwright in Chromium at phone
+size, with the clock pinned and the time zone set to UTC.
+
+- `a11y.spec.ts` — the shelf, a trip and its menu, a booking, the
+  before-you-go list and finding a booking across trips each pass axe, and
+  hold at 200% text without scrolling sideways
+- `flows.spec.ts` — a new trip set from the app's own calendar (nothing
+  changes until Choose, the last day follows the first and can't go before
+  it, the trip is still there after a reload); a stay added one question at a
+  time, with Escape closing the clock but not the sheet, landing under its
+  check-in and check-out days with its reference; and an expense split
+  between two, with the payment that squares it before and after editing
+  who it was for
