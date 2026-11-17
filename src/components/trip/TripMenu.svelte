@@ -51,7 +51,7 @@
           {
             icon: 'star' as const,
             title: 'After the trip',
-            detail: 'Rate each city in Ledger, or send your nookling a postcard',
+            detail: 'Rate each city in Ledger',
             act: opens({ name: 'afterTrip' })
           }
         ]

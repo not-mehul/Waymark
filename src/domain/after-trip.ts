@@ -1,5 +1,5 @@
-// The cities a trip actually stayed in, for the hand-offs once it is over:
-// "Rate in Ledger" (style.md §14.1) and a postcard for the nookling.
+// The cities a trip actually stayed in, for "Rate in Ledger" once it is
+// over (style.md §14.1).
 
 import { countryOf } from '../catalog/countries';
 import {
