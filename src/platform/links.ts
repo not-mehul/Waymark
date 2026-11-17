@@ -22,7 +22,8 @@ export const LINK_ACTIONS = {
   },
   bookshelf: {
     open: [],
-    log: ['title', 'author', 'isbn', 'finished', 'progress']
+    log: ['title', 'author', 'isbn', 'finished', 'progress', 'note'],
+    quote: ['text', 'title', 'author', 'where', 'note']
   },
   ledger: {
     open: [],
