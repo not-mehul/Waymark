@@ -57,8 +57,8 @@ Waymark is a travel-logistics app for Android. Every flight, stay, transfer and 
 - **Print it.** An A4 PDF itinerary with every booking under its day, references, weather and who owes whom.
 - **Back up every trip** to one file, and archive trips that are over: no reminders, off the widget, back with one tap. On the phone, a dated backup is also written each week to `Documents/Waymark/Backups`, keeping the newest five.
 - **Sync through a folder** you pick, kept the same across phones by Syncthing, Drive or Nextcloud. Trips merge one by one, and a trip deleted on one phone stays deleted.
-- **After the trip.** Each city you stayed in can be rated in Ledger or sent to Nookling as a postcard, each with one tap.
-- **Links between the apps.** `waymark://open?trip=<id>` opens a trip, and a trip's QR code is a `waymark://import` link. Waymark sends `ledger://add` and `nookling://postcard`.
+- **After the trip.** Each city you stayed in can be rated in Ledger with one tap.
+- **Links between the apps.** `waymark://open?trip=<id>` opens a trip, and a trip's QR code is a `waymark://import` link. Waymark sends `ledger://add`.
 - **A little delight.** Confetti when a trip is created, an idle compass to play with, and four easter eggs, counted in About. All of it respects reduced motion.
 
 ## Private by design
@@ -117,14 +117,13 @@ Download the signed APK from the [latest release](https://github.com/not-mehul/W
 
 ## The Dusk & Dawn apps
 
-Waymark is one of six apps by Mehul Sen that share one design system, [Editorial Dusk & Dawn](https://github.com/not-mehul/dusk-dawn), and a common link scheme, so they can hand things to each other.
+Waymark is one of five apps by Mehul Sen that share one design system, [Editorial Dusk & Dawn](https://github.com/not-mehul/dusk-dawn), and a common link scheme, so they can hand things to each other.
 
 | App | What it is for |
 |---|---|
 | [Waymark](https://github.com/not-mehul/Waymark) | Your whole trip, offline: flights, stays, plans and costs on one timeline |
 | [BookShelf](https://github.com/not-mehul/BookShelf) | Books, films, shows and the lines worth keeping |
 | [Ledger](https://github.com/not-mehul/Ledger) | A record of cities, scored on what matters to you |
-| [Colophon](https://github.com/not-mehul/Colophon) | Inspect, fix and rebind EPUB editions |
 | [Rosetta](https://github.com/not-mehul/Rosetta) | A quiet library and reader for books, papers and notes |
 | [Mise](https://github.com/not-mehul/Mise) | Recipes from anywhere, cooked one step at a time |
 

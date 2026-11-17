@@ -31,8 +31,8 @@ describe('links between the apps', () => {
   });
 
   it('treats a bare scheme as open', () => {
-    expect(parseLink('colophon://')).toMatchObject({
-      app: 'colophon',
+    expect(parseLink('mise://')).toMatchObject({
+      app: 'mise',
       action: 'open',
       params: {},
       source: null

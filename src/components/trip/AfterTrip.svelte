@@ -1,8 +1,7 @@
 <script lang="ts">
-  // Once a trip is under way or over, each city it stayed in can go on to the
-  // sibling apps: rated in Ledger, or sent as a postcard to the nookling.
-  // Each is a link that opens a screen there to confirm; nothing is saved by
-  // sending it (style.md §14.1).
+  // Once a trip is under way or over, each city it stayed in can be rated in
+  // Ledger. It is a link that opens a screen there to confirm; nothing is
+  // saved by sending it (style.md §14.1).
   import { countryForCode } from '../../catalog/countries';
   import { citiesVisited, type CityVisit } from '../../domain/after-trip';
   import { dayCompact } from '../../domain/time-text';
@@ -40,18 +39,6 @@
     if (result === 'opened') sent = { ...sent, [`ledger:${c.city}`]: true };
     said(result, 'Ledger');
   }
-
-  async function postcard(c: CityVisit) {
-    const url = buildLink(
-      'nookling',
-      'postcard',
-      { city: c.city, country: c.country, date: c.arrived.toString() },
-      'waymark'
-    );
-    const result = await handOff(url, `A postcard from ${where(c)}`);
-    if (result === 'opened') sent = { ...sent, [`nookling:${c.city}`]: true };
-    said(result, 'Nookling');
-  }
 </script>
 
 <ModalHead eyebrow="After the trip" title="The cities you stayed in" />
@@ -71,14 +58,9 @@
           <button type="button" class="btn btn-secondary" onclick={() => rate(c)}>
             {#if sent[`ledger:${c.city}`]}<Icon name="check" />{:else}<Icon name="star" />{/if} Rate in Ledger
           </button>
-          <button type="button" class="btn btn-muted" onclick={() => postcard(c)}>
-            {#if sent[`nookling:${c.city}`]}<Icon name="check" />{:else}<Icon name="mail" />{/if} Postcard to Nookling
-          </button>
         </div>
       </li>
     {/each}
   </ul>
-  <p class="t-hint">
-    Each opens the other app with the city filled in. Nothing is kept there until you say so.
-  </p>
+  <p class="t-hint">Each opens Ledger with the city filled in. Nothing is kept there until you say so.</p>
 {/if}
